@@ -89,8 +89,13 @@ final profileEditStoreProvider =
 );
 
 class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
+  bool _disposed = false;
+
   @override
   ProfileEditState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
+
     final session = ref.read(sessionStoreProvider);
     return ProfileEditState(
       displayName: session.displayName ?? '',
@@ -132,6 +137,9 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
     }
 
     final previousSession = ref.read(sessionStoreProvider);
+    // Capture session notifier before first await — sessionStore survives
+    // our autoDispose lifecycle and must always be rolled back on failure.
+    final sessionNotifier = ref.read(sessionStoreProvider.notifier);
     final selectedAvatarPath = state.selectedAvatarPath;
     String? uploadedAvatarUrl;
     state = state.copyWith(
@@ -145,6 +153,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         uploadedAvatarUrl = await ref.read(avatarUploadServiceProvider).upload(
               selectedAvatarPath,
             );
+        if (_disposed) return;
         avatarUrl = uploadedAvatarUrl;
         // Avatar committed server-side — clear the path so retry won't
         // re-upload, and update avatarUrl optimistically (#799).
@@ -154,23 +163,26 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         );
       }
 
-      await ref.read(sessionStoreProvider.notifier).updateProfile(
-            displayName: displayName,
-            bio: bio,
-            avatarUrl: avatarUrl,
-          );
+      await sessionNotifier.updateProfile(
+        displayName: displayName,
+        bio: bio,
+        avatarUrl: avatarUrl,
+      );
+      if (_disposed) return;
 
       final profile =
           await ref.read(profileEditRepositoryProvider).updateCurrentUser(
                 displayName: displayName,
                 bio: bio,
               );
+      if (_disposed) return;
 
-      await ref.read(sessionStoreProvider.notifier).updateProfile(
-            displayName: profile.displayName,
-            bio: profile.description ?? bio,
-            avatarUrl: profile.avatarUrl ?? avatarUrl,
-          );
+      await sessionNotifier.updateProfile(
+        displayName: profile.displayName,
+        bio: profile.description ?? bio,
+        avatarUrl: profile.avatarUrl ?? avatarUrl,
+      );
+      if (_disposed) return;
 
       state = state.copyWith(
         displayName: profile.displayName,
@@ -182,10 +194,14 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarCommitted: false,
       );
     } on AppFailure catch (failure) {
-      await _rollbackSession(
+      // Always rollback the optimistic session write — sessionStore
+      // survives our autoDispose and must not keep unsaved values (#823).
+      await _rollbackSessionWith(
+        sessionNotifier,
         previousSession,
         keepAvatarUrl: uploadedAvatarUrl,
       );
+      if (_disposed) return;
       state = state.copyWith(
         avatarUrl: uploadedAvatarUrl,
         status: ProfileEditStatus.failure,
@@ -193,7 +209,10 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarCommitted: uploadedAvatarUrl != null,
       );
     } on AvatarUploadException catch (error) {
-      await _rollbackSession(previousSession);
+      // Avatar upload failed before any optimistic session write, but
+      // rollback is safe to call unconditionally.
+      await _rollbackSessionWith(sessionNotifier, previousSession);
+      if (_disposed) return;
       state = state.copyWith(
         status: ProfileEditStatus.failure,
         failure: error.failure ??
@@ -204,8 +223,9 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarCommitted: false,
       );
     } catch (error, stackTrace) {
-      _reportUnexpectedError(error, stackTrace);
-      await _rollbackSession(previousSession);
+      if (!_disposed) _reportUnexpectedError(error, stackTrace);
+      await _rollbackSessionWith(sessionNotifier, previousSession);
+      if (_disposed) return;
       state = state.copyWith(
         status: ProfileEditStatus.failure,
         failure: UnknownFailure(
@@ -217,19 +237,23 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
     }
   }
 
-  Future<void> _rollbackSession(
+  /// Rollback session to previous values using a pre-captured notifier.
+  /// This ensures rollback happens even after this store is disposed,
+  /// since sessionStore survives in a parent scope.
+  Future<void> _rollbackSessionWith(
+    SessionStore sessionNotifier,
     SessionState previousSession, {
     String? keepAvatarUrl,
   }) {
     final avatarUrl = keepAvatarUrl ?? previousSession.avatarUrl;
-    return ref.read(sessionStoreProvider.notifier).updateProfile(
-          displayName: previousSession.displayName,
-          bio: previousSession.bio,
-          avatarUrl: avatarUrl,
-          clearDisplayName: previousSession.displayName == null,
-          clearBio: previousSession.bio == null,
-          clearAvatarUrl: avatarUrl == null,
-        );
+    return sessionNotifier.updateProfile(
+      displayName: previousSession.displayName,
+      bio: previousSession.bio,
+      avatarUrl: avatarUrl,
+      clearDisplayName: previousSession.displayName == null,
+      clearBio: previousSession.bio == null,
+      clearAvatarUrl: avatarUrl == null,
+    );
   }
 
   void _reportUnexpectedError(Object error, StackTrace stackTrace) {
