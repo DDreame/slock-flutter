@@ -126,7 +126,8 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     required String status,
   }) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-817: Snapshot only the target item, not full list.
+    final previousItem = state.items.firstWhere((t) => t.id == taskId);
     state = state.copyWith(
       items: state.items
           .map((t) => t.id == taskId ? t.copyWith(status: status) : t)
@@ -146,12 +147,19 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       );
     } on AppFailure {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems);
+      // Per-item rollback: restore only the target item in current list.
+      state = state.copyWith(
+        items:
+            state.items.map((t) => t.id == taskId ? previousItem : t).toList(),
+      );
       rethrow;
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('updateTaskStatus', e, st);
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((t) => t.id == taskId ? previousItem : t).toList(),
+      );
       throw UnknownFailure(
         message: 'Failed to update task status.',
         causeType: e.runtimeType.toString(),
@@ -161,7 +169,9 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
 
   Future<void> deleteTask(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-817: Snapshot the deleted item and its original index.
+    final deletedIndex = state.items.indexWhere((t) => t.id == taskId);
+    final deletedItem = state.items[deletedIndex];
     state = state.copyWith(
       items: state.items.where((t) => t.id != taskId).toList(),
     );
@@ -172,12 +182,14 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       if (_disposed) return;
     } on AppFailure {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems);
+      // Per-item rollback: re-insert at original position (clamped to current
+      // list length to handle concurrent removals that shrink the list).
+      _reinsertAtPosition(deletedItem, deletedIndex);
       rethrow;
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('deleteTask', e, st);
-      state = state.copyWith(items: previousItems);
+      _reinsertAtPosition(deletedItem, deletedIndex);
       throw UnknownFailure(
         message: 'Failed to delete task.',
         causeType: e.runtimeType.toString(),
@@ -185,9 +197,20 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     }
   }
 
+  /// Re-inserts [item] at [originalIndex], clamped to the current list length.
+  /// This preserves ordering in the simple case while tolerating concurrent
+  /// list mutations (additions/removals) that shift boundaries.
+  void _reinsertAtPosition(TaskItem item, int originalIndex) {
+    final current = [...state.items];
+    final insertAt = originalIndex.clamp(0, current.length);
+    current.insert(insertAt, item);
+    state = state.copyWith(items: current);
+  }
+
   Future<void> claimTask(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-817: Snapshot only the target item for rollback.
+    final previousItem = state.items.firstWhere((t) => t.id == taskId);
 
     // Optimistic: immediately show current user as assignee.
     final session = ref.read(sessionStoreProvider);
@@ -213,12 +236,18 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       );
     } on AppFailure {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((t) => t.id == taskId ? previousItem : t).toList(),
+      );
       rethrow;
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('claimTask', e, st);
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((t) => t.id == taskId ? previousItem : t).toList(),
+      );
       throw UnknownFailure(
         message: 'Failed to claim task.',
         causeType: e.runtimeType.toString(),
@@ -228,7 +257,8 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
 
   Future<void> unclaimTask(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-817: Snapshot only the target item for rollback.
+    final previousItem = state.items.firstWhere((t) => t.id == taskId);
 
     // Optimistic: immediately clear assignee.
     state = state.copyWith(
@@ -246,12 +276,18 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       );
     } on AppFailure {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((t) => t.id == taskId ? previousItem : t).toList(),
+      );
       rethrow;
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('unclaimTask', e, st);
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((t) => t.id == taskId ? previousItem : t).toList(),
+      );
       throw UnknownFailure(
         message: 'Failed to unclaim task.',
         causeType: e.runtimeType.toString(),
