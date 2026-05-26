@@ -282,7 +282,6 @@ void main() {
       // rebuild even when members and query are unchanged.
       NewDmPage.peopleFilterRecomputeCount = 0;
 
-      // Use a StateProvider to inject members into memberRepositoryProvider.
       // The real MemberListStore runs inside NewDmPage's child ProviderScope;
       // we override its dependencies (repository, agents) to return test data.
       final container = ProviderContainer(
@@ -314,12 +313,21 @@ void main() {
       expect(countAfterFirst, greaterThan(0),
           reason: 'Initial render must compute the filter at least once.');
 
-      // Pump again — widget does NOT rebuild because no inputs changed.
-      // If memoization were absent but build() still ran, count would increase.
-      await tester.pump();
+      // Force a REAL rebuild of _NewDmPageContent (and thus _PeopleTabState)
+      // by mutating a provider the parent watches. _NewDmPageContent watches
+      // agentsStoreProvider.select((s) => s.status). Changing the status
+      // triggers a parent rebuild which propagates via
+      // StatefulElement.update → rebuild(force: true) to _PeopleTabState.
+      // Crucially, the member list state is unchanged — same identity, same
+      // query — so the memoization guard should prevent recomputation.
+      final agentsNotifier =
+          container.read(agentsStoreProvider.notifier) as _FakeAgentsStore;
+      agentsNotifier.forceNotify();
       await tester.pump();
 
-      // Counter must NOT have increased.
+      // Counter must NOT have increased — memoization is load-bearing.
+      // Without the identical() guard in _PeopleTabState._buildFilteredList,
+      // this assertion fails because build() IS called (verified by A1).
       expect(NewDmPage.peopleFilterRecomputeCount, countAfterFirst,
           reason:
               'Same members + same query must not recompute (memoization is load-bearing)');
@@ -560,6 +568,13 @@ class _ConcurrentLoadUpdateRepository implements TranslationRepository {
 class _FakeAgentsStore extends AgentsStore {
   @override
   AgentsState build() => const AgentsState(status: AgentsStatus.success);
+
+  /// Mutates state to trigger downstream widget rebuilds without changing
+  /// the member list. Used to prove _PeopleTabState memoization is
+  /// load-bearing: build() IS called but the filter is NOT recomputed.
+  void forceNotify() {
+    state = const AgentsState(status: AgentsStatus.loading);
+  }
 
   @override
   Future<void> ensureLoaded() async {}
