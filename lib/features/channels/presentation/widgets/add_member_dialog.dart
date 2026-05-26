@@ -274,6 +274,7 @@ class _HumanCandidateTile extends StatelessWidget {
             )
           : IconButton(
               icon: const Icon(Icons.add_circle_outline),
+              tooltip: context.l10n.addHumanToChannelTooltip,
               onPressed: onAdd,
             ),
     );
@@ -313,6 +314,7 @@ class _AgentCandidateTile extends StatelessWidget {
             )
           : IconButton(
               icon: const Icon(Icons.add_circle_outline),
+              tooltip: context.l10n.addAgentToChannelTooltip,
               onPressed: onAdd,
             ),
     );

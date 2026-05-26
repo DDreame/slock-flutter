@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/announcements/application/announcement_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Dismissible banner showing the first active announcement at the top of the
 /// app (INV-ANNOUNCE-1). Handles dismiss on tap (INV-ANNOUNCE-2).
@@ -104,6 +105,7 @@ class _AnnouncementBannerState extends ConsumerState<AnnouncementBanner> {
                     size: 18,
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
+                  tooltip: context.l10n.dismissAnnouncementTooltip,
                   onPressed: () {
                     ref
                         .read(announcementStoreProvider.notifier)

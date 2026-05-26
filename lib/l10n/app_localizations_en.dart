@@ -3305,4 +3305,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allFilterLabel => 'All';
+
+  @override
+  String get agentEditTooltip => 'Edit agent';
+
+  @override
+  String get agentDeleteTooltip => 'Delete agent';
+
+  @override
+  String get searchClearTooltip => 'Clear search';
+
+  @override
+  String get channelMembersAddTooltip => 'Add member';
+
+  @override
+  String get channelMembersRemoveTooltip => 'Remove member';
+
+  @override
+  String get channelFilesTooltip => 'Channel files';
+
+  @override
+  String get channelMembersTooltip => 'Channel members';
+
+  @override
+  String get addHumanToChannelTooltip => 'Add to channel';
+
+  @override
+  String get addAgentToChannelTooltip => 'Add agent to channel';
+
+  @override
+  String get togglePasswordVisibilityTooltip => 'Toggle password visibility';
+
+  @override
+  String get dismissAnnouncementTooltip => 'Dismiss';
+
+  @override
+  String get shareTargetCancelTooltip => 'Cancel';
 }

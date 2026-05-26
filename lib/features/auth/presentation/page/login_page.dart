@@ -78,6 +78,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           ? Icons.visibility
                           : Icons.visibility_off,
                     ),
+                    tooltip: l10n.togglePasswordVisibilityTooltip,
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),

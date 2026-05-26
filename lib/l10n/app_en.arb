@@ -1359,5 +1359,18 @@
   "screenshotCanvasSemantics": "Screenshot annotation canvas",
   "voiceWaveformSemantics": "Recording waveform",
   "unreadFilterLabel": "Unread",
-  "allFilterLabel": "All"
+  "allFilterLabel": "All",
+
+  "agentEditTooltip": "Edit agent",
+  "agentDeleteTooltip": "Delete agent",
+  "searchClearTooltip": "Clear search",
+  "channelMembersAddTooltip": "Add member",
+  "channelMembersRemoveTooltip": "Remove member",
+  "channelFilesTooltip": "Channel files",
+  "channelMembersTooltip": "Channel members",
+  "addHumanToChannelTooltip": "Add to channel",
+  "addAgentToChannelTooltip": "Add agent to channel",
+  "togglePasswordVisibilityTooltip": "Toggle password visibility",
+  "dismissAnnouncementTooltip": "Dismiss",
+  "shareTargetCancelTooltip": "Cancel"
 }

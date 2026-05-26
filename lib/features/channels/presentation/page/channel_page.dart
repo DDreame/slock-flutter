@@ -9,7 +9,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ChannelPage extends ConsumerWidget {
   final String serverId;
@@ -66,12 +66,14 @@ class ChannelPage extends ConsumerWidget {
         appBarActionsBuilder: (context, ref, state) => [
           IconButton(
             icon: const Icon(Icons.attach_file),
+            tooltip: context.l10n.channelFilesTooltip,
             onPressed: () => context.push(
               '/servers/$serverId/channels/$channelId/files',
             ),
           ),
           IconButton(
             icon: const Icon(Icons.group),
+            tooltip: context.l10n.channelMembersTooltip,
             onPressed: () => context.push(
               '/servers/$serverId/channels/$channelId/members',
             ),

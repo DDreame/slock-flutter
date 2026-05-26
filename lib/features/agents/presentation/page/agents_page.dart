@@ -908,11 +908,13 @@ class _AgentDetailScaffold extends StatelessWidget {
             key: const ValueKey('agent-edit-btn'),
             onPressed: onEdit == null ? null : () => onEdit!(a),
             icon: const Icon(Icons.edit_outlined),
+            tooltip: context.l10n.agentEditTooltip,
           ),
           IconButton(
             key: const ValueKey('agent-delete-btn'),
             onPressed: onDelete == null ? null : () => onDelete!(a),
             icon: const Icon(Icons.delete_outline),
+            tooltip: context.l10n.agentDeleteTooltip,
           ),
         ],
       ),

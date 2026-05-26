@@ -99,6 +99,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
                 IconButton(
                   key: const ValueKey('channel-members-add-button'),
                   icon: const Icon(Icons.person_add),
+                  tooltip: context.l10n.channelMembersAddTooltip,
                   onPressed: () => _showAddMemberDialog(context),
                 ),
               ]
@@ -305,6 +306,7 @@ class _MemberTile extends StatelessWidget {
             IconButton(
               key: ValueKey('channel-member-remove-${member.id}'),
               icon: const Icon(Icons.remove_circle_outline),
+              tooltip: context.l10n.channelMembersRemoveTooltip,
               onPressed: onRemove,
             ),
         ],

@@ -114,6 +114,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
             IconButton(
               key: const ValueKey('search-clear'),
               icon: const Icon(Icons.close),
+              tooltip: context.l10n.searchClearTooltip,
               onPressed: () {
                 _controller.clear();
                 ref.read(searchStoreProvider.notifier).clear();
