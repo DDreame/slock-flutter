@@ -27,9 +27,14 @@ final Map<String, DateFormat> _notificationDateFormatCache = {};
 /// Increments only when a locale is seen for the first time.
 int _notificationDateFormatCreateCount = 0;
 
+/// Number of times _formatNotificationTimestamp has been called.
+/// Proves both production call sites route through this helper.
+int _notificationDateFormatHelperCallCount = 0;
+
 /// Cached DateFormat formatter for notification timestamps.
 /// Both formatting sites in this file MUST use this helper.
 String _formatNotificationTimestamp(DateTime date, String locale) {
+  _notificationDateFormatHelperCallCount++;
   if (!_notificationDateFormatCache.containsKey(locale)) {
     _notificationDateFormatCreateCount++;
     _notificationDateFormatCache[locale] = DateFormat.yMMMd(locale).add_Hm();
@@ -50,11 +55,19 @@ class NotificationSettingsPage extends ConsumerStatefulWidget {
   @visibleForTesting
   static int get dateFormatCreateCount => _notificationDateFormatCreateCount;
 
+  /// Number of times the helper was called (proves both call sites use it).
+  /// Exposed for testing — if either site reverts to direct DateFormat,
+  /// call count drops and the test goes RED.
+  @visibleForTesting
+  static int get dateFormatHelperCallCount =>
+      _notificationDateFormatHelperCallCount;
+
   /// Clears the notification DateFormat cache for test isolation.
   @visibleForTesting
   static void clearDateFormatCache() {
     _notificationDateFormatCache.clear();
     _notificationDateFormatCreateCount = 0;
+    _notificationDateFormatHelperCallCount = 0;
   }
 
   @override

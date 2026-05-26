@@ -77,12 +77,12 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(machinesRealtimeBindingProvider);
-    // PERF-819: Narrow watch to only the fields used by the parent scaffold
-    // (status, isCreating, failure). Per-item busy states only rebuild the
-    // success view, not the AppBar/FAB.
-    final (:status, :isCreating, :failure) = ref.watch(
+    // PERF-831: Narrow watch to only status + isCreating. Failure is only
+    // consumed inside the failure branch, so reading it there avoids
+    // rebuilding the success view when a transient background error arrives.
+    final (:status, :isCreating) = ref.watch(
       machinesStoreProvider.select(
-        (s) => (status: s.status, isCreating: s.isCreating, failure: s.failure),
+        (s) => (status: s.status, isCreating: s.isCreating),
       ),
     );
 
@@ -108,7 +108,9 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             child: CircularProgressIndicator(),
           ),
         MachinesStatus.failure => _MachinesFailureView(
-            message: failure?.userMessage(context.l10n) ??
+            message: ref.read(machinesStoreProvider).failure?.userMessage(
+                      context.l10n,
+                    ) ??
                 context.l10n.machinesLoadFailed,
             onRetry: ref.read(machinesStoreProvider.notifier).load,
           ),

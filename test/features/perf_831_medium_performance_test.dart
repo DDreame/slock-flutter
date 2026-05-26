@@ -134,7 +134,8 @@ void main() {
     );
 
     testWidgets(
-      'successViewBuildCount hook is functional',
+      'success view does NOT rebuild on failure-only store mutation '
+      '(real mounted MachinesPage)',
       (tester) async {
         MachinesPage.successViewBuildCount = 0;
 
@@ -169,9 +170,29 @@ void main() {
           find.byKey(const ValueKey('machines-list')),
         );
 
-        expect(MachinesPage.successViewBuildCount, greaterThan(0),
-            reason: 'successViewBuildCount must increment when success view '
-                'builds. This test goes RED if the hook is removed.');
+        // Success view must have built at least once.
+        final countAfterLoad = MachinesPage.successViewBuildCount;
+        expect(countAfterLoad, greaterThan(0));
+
+        // Get the nested ProviderScope container that MachinesPage created.
+        // This is the SAME container the success view watches.
+        final machinesListElement =
+            tester.element(find.byKey(const ValueKey('machines-list')));
+        final nestedContainer = ProviderScope.containerOf(machinesListElement);
+
+        // Mutate only failure — the .select() projection excludes failure,
+        // so the success view must NOT rebuild.
+        final store = nestedContainer.read(machinesStoreProvider.notifier);
+        store.state = store.state.copyWith(
+          failure:
+              const UnknownFailure(message: 'Transient', causeType: 'test'),
+        );
+        await tester.pump();
+
+        expect(MachinesPage.successViewBuildCount, countAfterLoad,
+            reason: 'Success view must NOT rebuild when only failure changes. '
+                'This test goes RED if _MachinesSuccessView reverts to '
+                'ref.watch(machinesStoreProvider) without .select().');
       },
     );
   });
@@ -198,7 +219,6 @@ void main() {
 
         // Only ONE DateFormat should be created (cache miss on first access).
         // The second call site reuses the same cached instance.
-        // This test goes RED if either site bypasses _formatNotificationTimestamp.
         expect(
           NotificationSettingsPage.dateFormatCreateCount,
           1,
@@ -210,6 +230,16 @@ void main() {
           NotificationSettingsPage.dateFormatCacheSize,
           1,
           reason: 'Cache should have exactly 1 entry for en locale.',
+        );
+
+        // BOTH call sites must have invoked the helper. If either reverts to
+        // direct DateFormat(...).format(...), call count drops below 2 → RED.
+        expect(
+          NotificationSettingsPage.dateFormatHelperCallCount,
+          greaterThanOrEqualTo(2),
+          reason: 'Both formatting sites must route through the cache helper. '
+              'This test goes RED if either site reverts to direct '
+              'DateFormat(...).format(...).',
         );
       },
     );
@@ -248,6 +278,12 @@ void main() {
           NotificationSettingsPage.dateFormatCreateCount,
           2,
           reason: 'Exactly 2 DateFormat allocations — one per locale.',
+        );
+        // Each render hits 2 call sites × 2 locales = at least 4 helper calls.
+        expect(
+          NotificationSettingsPage.dateFormatHelperCallCount,
+          greaterThanOrEqualTo(4),
+          reason: 'Both call sites must route through helper for each locale.',
         );
       },
     );
