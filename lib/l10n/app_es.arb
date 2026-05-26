@@ -1197,5 +1197,10 @@
   "linkPreviewSemantics": "Vista previa del enlace: {domain}",
   "textPreviewShowMore": "Mostrar más",
   "textPreviewShowLess": "Mostrar menos",
-  "profileAvatarEditSemantics": "Editar avatar de perfil"
+  "profileAvatarEditSemantics": "Editar avatar de perfil",
+
+  "screenshotCanvasSemantics": "Lienzo de anotación de captura",
+  "voiceWaveformSemantics": "Forma de onda de grabación",
+  "unreadFilterLabel": "No leídos",
+  "allFilterLabel": "Todos"
 }

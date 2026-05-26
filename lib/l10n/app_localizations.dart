@@ -6178,6 +6178,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit profile avatar'**
   String get profileAvatarEditSemantics;
+
+  /// No description provided for @screenshotCanvasSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot annotation canvas'**
+  String get screenshotCanvasSemantics;
+
+  /// No description provided for @voiceWaveformSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording waveform'**
+  String get voiceWaveformSemantics;
+
+  /// No description provided for @unreadFilterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get unreadFilterLabel;
+
+  /// No description provided for @allFilterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFilterLabel;
 }
 
 class _AppLocalizationsDelegate

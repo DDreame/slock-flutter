@@ -239,7 +239,9 @@ class _FilterChip extends StatelessWidget {
         },
         child: Chip(
           label: Text(
-            isUnreadOnly ? 'Unread' : 'All',
+            isUnreadOnly
+                ? context.l10n.unreadFilterLabel
+                : context.l10n.allFilterLabel,
             style: AppTypography.caption.copyWith(
               color: isUnreadOnly ? colors.primary : colors.textSecondary,
               fontWeight: FontWeight.w500,
