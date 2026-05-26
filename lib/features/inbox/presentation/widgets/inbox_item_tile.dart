@@ -306,6 +306,11 @@ class InboxItemTile extends StatelessWidget {
   // Time formatting
   // -------------------------------------------------------------------------
 
+  /// Cached [DateFormat] instances keyed by locale name. Avoids allocating a
+  /// new formatter on every tile build — a significant cost when scrolling
+  /// through hundreds of inbox items.
+  static final Map<String, DateFormat> _dateFormatCache = {};
+
   static String _formatTime(DateTime time, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(time);
@@ -313,6 +318,8 @@ class InboxItemTile extends StatelessWidget {
     if (diff.inMinutes < 60) return l10n.inboxTimeMinutes(diff.inMinutes);
     if (diff.inHours < 24) return l10n.inboxTimeHours(diff.inHours);
     if (diff.inDays < 7) return l10n.inboxTimeDays(diff.inDays);
-    return DateFormat.MMMd(l10n.localeName).format(time);
+    final locale = l10n.localeName;
+    final formatter = _dateFormatCache[locale] ??= DateFormat.MMMd(locale);
+    return formatter.format(time);
   }
 }
