@@ -1123,5 +1123,9 @@
   "voiceBubblePlay": "播放",
   "memberListItemMessageTooltip": "发消息",
   "memberListItemAdminActionsTooltip": "成员管理操作",
-  "homeOverviewSemantics": "首页概览"
+  "homeOverviewSemantics": "首页概览",
+  "linkPreviewSemantics": "链接预览：{domain}",
+  "textPreviewShowMore": "展开更多",
+  "textPreviewShowLess": "收起",
+  "profileAvatarEditSemantics": "编辑头像"
 }

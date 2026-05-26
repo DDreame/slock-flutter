@@ -218,23 +218,28 @@ class _ProfileSuccessBody extends ConsumerWidget {
                     Positioned(
                       right: 0,
                       bottom: 0,
-                      child: GestureDetector(
-                        key: const ValueKey('profile-avatar-edit-button'),
-                        onTap: () => _handleAvatarEdit(context, ref),
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: colors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                              width: 2,
+                      child: Semantics(
+                        button: true,
+                        label: context.l10n.profileAvatarEditSemantics,
+                        child: GestureDetector(
+                          key: const ValueKey('profile-avatar-edit-button'),
+                          onTap: () => _handleAvatarEdit(context, ref),
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
+                                width: 2,
+                              ),
                             ),
-                          ),
-                          child: Icon(
-                            Icons.camera_alt,
-                            size: 16,
-                            color: colors.primaryForeground,
+                            child: Icon(
+                              Icons.camera_alt,
+                              size: 16,
+                              color: colors.primaryForeground,
+                            ),
                           ),
                         ),
                       ),

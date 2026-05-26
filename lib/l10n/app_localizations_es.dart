@@ -3318,4 +3318,18 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeOverviewSemantics => 'Vista general';
+
+  @override
+  String linkPreviewSemantics(String domain) {
+    return 'Vista previa del enlace: $domain';
+  }
+
+  @override
+  String get textPreviewShowMore => 'Mostrar más';
+
+  @override
+  String get textPreviewShowLess => 'Mostrar menos';
+
+  @override
+  String get profileAvatarEditSemantics => 'Editar avatar de perfil';
 }

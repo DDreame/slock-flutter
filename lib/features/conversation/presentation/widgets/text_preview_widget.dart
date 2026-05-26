@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/fetch_preview_widget.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Inline preview for text-based attachments — Markdown or plain text
 /// (INV-ATTACH-1).
@@ -91,13 +92,16 @@ class _TextPreviewWidgetState
         if (truncated)
           Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: GestureDetector(
-              key: const ValueKey('text-preview-show-more'),
-              onTap: () => setState(() => _expanded = true),
-              child: Text(
-                'Show more',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
+            child: Semantics(
+              button: true,
+              child: GestureDetector(
+                key: const ValueKey('text-preview-show-more'),
+                onTap: () => setState(() => _expanded = true),
+                child: Text(
+                  context.l10n.textPreviewShowMore,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ),
             ),
