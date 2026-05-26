@@ -11,6 +11,8 @@
 //   4. UnreadListPage "Unread"/"All" filter chip renders localized text
 // =============================================================================
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,7 +77,7 @@ void main() {
       final semantics = tester.getSemantics(drawButton);
       expect(
         semantics.flagsCollection.isSelected,
-        isTrue,
+        Tristate.isTrue,
         reason: 'Selected tool must expose isSelected to SR',
       );
 
@@ -97,7 +99,7 @@ void main() {
       final semantics = tester.getSemantics(arrowButton);
       expect(
         semantics.flagsCollection.isSelected,
-        isFalse,
+        Tristate.isFalse,
         reason: 'Non-selected tool must not have isSelected flag',
       );
 
@@ -149,8 +151,9 @@ void main() {
   // ===========================================================================
 
   group('#827 — Screenshot canvas semantics', () {
-    testWidgets('canvas area has semantic label', (tester) async {
+    testWidgets('canvas area has semantic label from l10n', (tester) async {
       final semanticsHandle = tester.ensureSemantics();
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
       await tester.pumpWidget(
         ProviderScope(
@@ -171,7 +174,7 @@ void main() {
       expect(canvas, findsOneWidget);
 
       final semantics = tester.getSemantics(canvas);
-      expect(semantics.label, isNotEmpty);
+      expect(semantics.label, l10n.screenshotCanvasSemantics);
 
       semanticsHandle.dispose();
     });
@@ -204,19 +207,27 @@ void main() {
     }
 
     testWidgets('"Unread" chip is localized in ZH', (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+
       await tester.pumpWidget(buildUnreadPage(filter: InboxFilter.unread));
       await tester.pumpAndSettle();
 
       // Must NOT show English "Unread" in ZH locale.
       expect(find.text('Unread'), findsNothing);
+      // Must show the ZH localized label.
+      expect(find.text(l10n.unreadFilterLabel), findsOneWidget);
     });
 
     testWidgets('"All" chip is localized in ZH', (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+
       await tester.pumpWidget(buildUnreadPage(filter: InboxFilter.all));
       await tester.pumpAndSettle();
 
       // Must NOT show English "All" in ZH locale.
       expect(find.text('All'), findsNothing);
+      // Must show the ZH localized label.
+      expect(find.text(l10n.allFilterLabel), findsOneWidget);
     });
   });
 }
