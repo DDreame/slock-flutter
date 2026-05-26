@@ -179,17 +179,37 @@ void main() {
 
       repo.shouldFail = true;
 
+      // Simulate a WS event adding a 3rd agent while stop is in-flight.
+      repo.onStopCalled = () {
+        store.state = store.state.copyWith(
+          items: [
+            ...store.state.items,
+            const AgentItem(
+              id: 'a3',
+              name: 'Agent3',
+              model: 'claude',
+              runtime: 'daemon',
+              status: 'running',
+              activity: 'idle',
+            ),
+          ],
+        );
+      };
+
       try {
         await store.stopAgent('a1');
       } on AppFailure catch (_) {}
 
       final state = container.read(agentsStoreProvider);
-      // a1 rolled back to 'running'.
+      // a1 rolled back to 'running' (per-item).
       final a1 = state.items.firstWhere((a) => a.id == 'a1');
       expect(a1.status, 'running');
       expect(a1.activity, 'working');
+      // a3 (concurrent WS addition) should still be present.
+      expect(state.items.any((a) => a.id == 'a3'), isTrue);
       // a2 unchanged.
-      expect(state.items.length, 2);
+      final a2 = state.items.firstWhere((a) => a.id == 'a2');
+      expect(a2.status, 'running');
 
       sub.close();
       container.dispose();
@@ -230,16 +250,30 @@ void main() {
 
       repo.shouldFail = true;
 
+      // Simulate a WS event adding a 4th member while remove is in-flight.
+      repo.onRemoveHumanCalled = () {
+        store.state = store.state.copyWith(
+          items: [
+            ...store.state.items,
+            const ChannelMember(
+                id: 'm4', channelId: channelId, userId: 'u4', userName: 'Dave'),
+          ],
+        );
+      };
+
       try {
         await store.removeHumanMember('u2');
       } on AppFailure catch (_) {}
 
       final state = container.read(channelMemberStoreProvider);
-      // All 3 members present, Bob at index 1.
-      expect(state.items.length, 3);
-      expect(state.items[0].userId, 'u1');
-      expect(state.items[1].userId, 'u2');
-      expect(state.items[2].userId, 'u3');
+      // Bob re-inserted + Dave (concurrent addition) preserved.
+      expect(state.items.length, 4);
+      expect(state.items.any((m) => m.userId == 'u2'), isTrue);
+      expect(state.items.any((m) => m.userId == 'u4'), isTrue);
+      // Original ordering preserved for existing members.
+      final bobIndex = state.items.indexWhere((m) => m.userId == 'u2');
+      final aliceIndex = state.items.indexWhere((m) => m.userId == 'u1');
+      expect(aliceIndex, lessThan(bobIndex));
 
       sub.close();
       container.dispose();
@@ -277,14 +311,29 @@ void main() {
 
       repo.shouldFail = true;
 
+      // Simulate a WS event adding a 3rd agent member while remove is in-flight.
+      repo.onRemoveAgentCalled = () {
+        store.state = store.state.copyWith(
+          items: [
+            ...store.state.items,
+            const ChannelMember(
+                id: 'm3',
+                channelId: channelId,
+                agentId: 'ag3',
+                agentName: 'Bot3'),
+          ],
+        );
+      };
+
       try {
         await store.removeAgentMember('ag1');
       } on AppFailure catch (_) {}
 
       final state = container.read(channelMemberStoreProvider);
-      expect(state.items.length, 2);
-      expect(state.items[0].agentId, 'ag1');
-      expect(state.items[1].agentId, 'ag2');
+      // ag1 re-inserted + ag3 (concurrent addition) preserved.
+      expect(state.items.length, 3);
+      expect(state.items.any((m) => m.agentId == 'ag1'), isTrue);
+      expect(state.items.any((m) => m.agentId == 'ag3'), isTrue);
 
       sub.close();
       container.dispose();
@@ -332,16 +381,30 @@ void main() {
 
       repo.shouldFail = true;
 
+      // Simulate a WS event adding a 4th workspace while delete is in-flight.
+      repo.onDeleteCalled = () {
+        store.state = store.state.copyWith(
+          items: [
+            ...store.state.items,
+            WorkspaceItem(
+              id: 'ws-4',
+              name: 'Workspace 4',
+              machineId: 'machine-1',
+              createdAt: DateTime(2024),
+            ),
+          ],
+        );
+      };
+
       try {
         await store.deleteWorkspace('ws-2');
       } on AppFailure catch (_) {}
 
       final state = container.read(workspacesStoreProvider);
-      // All 3 present, ws-2 at index 1.
-      expect(state.items.length, 3);
-      expect(state.items[0].id, 'ws-1');
-      expect(state.items[1].id, 'ws-2');
-      expect(state.items[2].id, 'ws-3');
+      // ws-2 re-inserted + ws-4 (concurrent addition) preserved.
+      expect(state.items.length, 4);
+      expect(state.items.any((w) => w.id == 'ws-2'), isTrue);
+      expect(state.items.any((w) => w.id == 'ws-4'), isTrue);
       expect(state.deletingWorkspaceIds, isEmpty);
 
       sub.close();
@@ -389,6 +452,7 @@ class _DelayedThreadRepo implements ThreadRepository {
 class _FakeAgentsRepo implements AgentsRepository {
   bool shouldFail = false;
   _VoidCallback? onStartCalled;
+  _VoidCallback? onStopCalled;
 
   @override
   Future<void> startAgent(String agentId) async {
@@ -398,6 +462,7 @@ class _FakeAgentsRepo implements AgentsRepository {
 
   @override
   Future<void> stopAgent(String agentId) async {
+    onStopCalled?.call();
     if (shouldFail) throw const UnknownFailure(message: 'test failure');
   }
 
@@ -417,6 +482,8 @@ class _FakeAgentsRepo implements AgentsRepository {
 
 class _FakeChannelMemberRepo implements ChannelMemberRepository {
   bool shouldFail = false;
+  _VoidCallback? onRemoveHumanCalled;
+  _VoidCallback? onRemoveAgentCalled;
 
   @override
   Future<List<ChannelMember>> listMembers(
@@ -431,6 +498,7 @@ class _FakeChannelMemberRepo implements ChannelMemberRepository {
     required String channelId,
     required String userId,
   }) async {
+    onRemoveHumanCalled?.call();
     if (shouldFail) throw const UnknownFailure(message: 'test failure');
   }
 
@@ -440,6 +508,7 @@ class _FakeChannelMemberRepo implements ChannelMemberRepository {
     required String channelId,
     required String agentId,
   }) async {
+    onRemoveAgentCalled?.call();
     if (shouldFail) throw const UnknownFailure(message: 'test failure');
   }
 
@@ -460,12 +529,14 @@ class _FakeChannelMemberRepo implements ChannelMemberRepository {
 
 class _FakeMachinesRepo implements MachinesRepository {
   bool shouldFail = false;
+  _VoidCallback? onDeleteCalled;
 
   @override
   Future<void> deleteWorkspace(
     String machineId, {
     required String workspaceId,
   }) async {
+    onDeleteCalled?.call();
     if (shouldFail) throw const UnknownFailure(message: 'test failure');
   }
 
