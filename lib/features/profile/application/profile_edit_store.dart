@@ -89,8 +89,13 @@ final profileEditStoreProvider =
 );
 
 class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
+  bool _disposed = false;
+
   @override
   ProfileEditState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
+
     final session = ref.read(sessionStoreProvider);
     return ProfileEditState(
       displayName: session.displayName ?? '',
@@ -145,6 +150,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         uploadedAvatarUrl = await ref.read(avatarUploadServiceProvider).upload(
               selectedAvatarPath,
             );
+        if (_disposed) return;
         avatarUrl = uploadedAvatarUrl;
         // Avatar committed server-side — clear the path so retry won't
         // re-upload, and update avatarUrl optimistically (#799).
@@ -159,18 +165,21 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
             bio: bio,
             avatarUrl: avatarUrl,
           );
+      if (_disposed) return;
 
       final profile =
           await ref.read(profileEditRepositoryProvider).updateCurrentUser(
                 displayName: displayName,
                 bio: bio,
               );
+      if (_disposed) return;
 
       await ref.read(sessionStoreProvider.notifier).updateProfile(
             displayName: profile.displayName,
             bio: profile.description ?? bio,
             avatarUrl: profile.avatarUrl ?? avatarUrl,
           );
+      if (_disposed) return;
 
       state = state.copyWith(
         displayName: profile.displayName,
@@ -182,10 +191,12 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarCommitted: false,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       await _rollbackSession(
         previousSession,
         keepAvatarUrl: uploadedAvatarUrl,
       );
+      if (_disposed) return;
       state = state.copyWith(
         avatarUrl: uploadedAvatarUrl,
         status: ProfileEditStatus.failure,
@@ -193,7 +204,9 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarCommitted: uploadedAvatarUrl != null,
       );
     } on AvatarUploadException catch (error) {
+      if (_disposed) return;
       await _rollbackSession(previousSession);
+      if (_disposed) return;
       state = state.copyWith(
         status: ProfileEditStatus.failure,
         failure: error.failure ??
@@ -204,8 +217,10 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarCommitted: false,
       );
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _reportUnexpectedError(error, stackTrace);
       await _rollbackSession(previousSession);
+      if (_disposed) return;
       state = state.copyWith(
         status: ProfileEditStatus.failure,
         failure: UnknownFailure(
