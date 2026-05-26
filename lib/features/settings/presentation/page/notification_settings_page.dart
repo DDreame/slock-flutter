@@ -19,8 +19,21 @@ typedef _NotifySettingsProjection = ({
   NotificationPreference notificationPreference,
 });
 
+/// PERF-831: Static cache for DateFormat instances used in notification
+/// settings. Keyed by locale to avoid allocating a new DateFormat per build.
+final Map<String, DateFormat> _notificationDateFormatCache = {};
+
 class NotificationSettingsPage extends ConsumerStatefulWidget {
   const NotificationSettingsPage({super.key});
+
+  /// Number of entries in the notification DateFormat cache.
+  /// Exposed for testing to verify the cache grows per locale.
+  @visibleForTesting
+  static int get dateFormatCacheSize => _notificationDateFormatCache.length;
+
+  /// Clears the notification DateFormat cache for test isolation.
+  @visibleForTesting
+  static void clearDateFormatCache() => _notificationDateFormatCache.clear();
 
   @override
   ConsumerState<NotificationSettingsPage> createState() =>
@@ -154,8 +167,8 @@ class _NotificationSettingsPageState
                   title: Text(l10n.notificationSettingsLastRegistration),
                   subtitle: Text(
                     notificationState.pushTokenUpdatedAt != null
-                        ? DateFormat.yMMMd(l10n.localeName)
-                            .add_Hm()
+                        ? (_notificationDateFormatCache[l10n.localeName] ??=
+                                DateFormat.yMMMd(l10n.localeName).add_Hm())
                             .format(notificationState.pushTokenUpdatedAt!)
                         : l10n.notificationSettingsNotRegistered,
                   ),
@@ -330,8 +343,8 @@ String _permissionSubtitle(
       ? l10n.notificationSettingsDeviceNotRegistered
       : l10n.notificationSettingsDeviceRegistered(
           state.pushTokenUpdatedAt != null
-              ? DateFormat.yMMMd(l10n.localeName)
-                  .add_Hm()
+              ? (_notificationDateFormatCache[l10n.localeName] ??=
+                      DateFormat.yMMMd(l10n.localeName).add_Hm())
                   .format(state.pushTokenUpdatedAt!)
               : l10n.notificationSettingsDateRecently,
         );

@@ -17,6 +17,12 @@ class MachinesPage extends StatelessWidget {
 
   final ServerScopeId _serverId;
 
+  /// Number of times _MachinesSuccessView.build has been invoked.
+  /// Exposed for testing to verify that status/failure changes do NOT trigger
+  /// rebuilds of the success view.
+  @visibleForTesting
+  static int successViewBuildCount = 0;
+
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
@@ -357,7 +363,21 @@ class _MachinesSuccessView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(machinesStoreProvider);
+    MachinesPage.successViewBuildCount++;
+    // PERF-831: Narrow watch to only consumed fields. Status/failure changes
+    // (e.g. transient background errors) do NOT rebuild this success view.
+    final state = ref.watch(
+      machinesStoreProvider.select(
+        (s) => (
+          items: s.items,
+          latestDaemonVersion: s.latestDaemonVersion,
+          isCreating: s.isCreating,
+          renamingMachineIds: s.renamingMachineIds,
+          rotatingKeyMachineIds: s.rotatingKeyMachineIds,
+          deletingMachineIds: s.deletingMachineIds,
+        ),
+      ),
+    );
     final l10n = context.l10n;
     final connectedCount = state.items.where((item) => item.isOnline).length;
 
@@ -391,7 +411,9 @@ class _MachinesSuccessView extends ConsumerWidget {
             for (final machine in state.items) ...[
               _MachineCard(
                 machine: machine,
-                isBusy: state.isBusy(machine.id),
+                isBusy: state.renamingMachineIds.contains(machine.id) ||
+                    state.rotatingKeyMachineIds.contains(machine.id) ||
+                    state.deletingMachineIds.contains(machine.id),
                 serverId: serverId,
                 onRename: () => onRename(machine),
                 onRotateApiKey: () => onRotateApiKey(machine),
