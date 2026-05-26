@@ -292,6 +292,18 @@ class ConversationDetailStore
     final targetKey = outboxTargetKey(target);
     outbox.registerDrainCallback(targetKey, _onOutboxDrain);
 
+    // Listen for realtime reconnection to trigger conversation refresh.
+    // When the connection transitions from reconnecting → connected,
+    // we must reload to catch messages received during the disconnect.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == ConversationDetailStatus.success) {
+          load();
+        }
+      }
+    });
+
     ref.onDispose(() {
       _disposed = true;
       _sendMixinDisposed = true;

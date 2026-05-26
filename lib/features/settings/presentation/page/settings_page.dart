@@ -10,6 +10,7 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
+import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -206,7 +207,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 icon: Icons.palette_outlined,
                 iconColor: colors.primary,
                 title: l10n.settingsThemeTitle,
-                subtitle: themePreference.title,
+                subtitle: switch (themePreference) {
+                  ThemePreference.system => l10n.settingsThemeSystemTitle,
+                  ThemePreference.light => l10n.settingsThemeLightTitle,
+                  ThemePreference.dark => l10n.settingsThemeDarkTitle,
+                },
                 subtitleKey: const ValueKey(
                   'settings-appearance-subtitle',
                 ),
@@ -532,6 +537,10 @@ String _notificationSummary(
     NotificationPermissionStatus.unknown =>
       l10n.settingsNotificationNotRequested,
   };
-  final filter = pref.title;
+  final filter = switch (pref) {
+    NotificationPreference.all => l10n.notificationPrefAllTitle,
+    NotificationPreference.mentionsOnly => l10n.notificationPrefMentionsTitle,
+    NotificationPreference.mute => l10n.notificationPrefMuteTitle,
+  };
   return '$permission \u00b7 $filter';
 }

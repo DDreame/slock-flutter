@@ -16,6 +16,9 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
@@ -402,6 +405,8 @@ void main() {
         conversationRepositoryProvider
             .overrideWithValue(conversationRepository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        savedMessagesRepositoryProvider
+            .overrideWithValue(_NoOpSavedMessagesRepository()),
         homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
@@ -776,5 +781,30 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   @override
   Future<void> dispose() async {
     await _signalsController.close();
+  }
+}
+
+class _NoOpSavedMessagesRepository implements SavedMessagesRepository {
+  @override
+  Future<SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    return const SavedMessagesPage(items: [], hasMore: false);
+  }
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async {
+    return {};
   }
 }
