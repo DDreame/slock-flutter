@@ -3293,4 +3293,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileAvatarEditSemantics => 'Edit profile avatar';
+
+  @override
+  String get screenshotCanvasSemantics => 'Screenshot annotation canvas';
+
+  @override
+  String get voiceWaveformSemantics => 'Recording waveform';
+
+  @override
+  String get unreadFilterLabel => 'Unread';
+
+  @override
+  String get allFilterLabel => 'All';
 }

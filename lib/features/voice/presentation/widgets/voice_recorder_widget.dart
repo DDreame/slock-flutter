@@ -71,16 +71,21 @@ class VoiceRecorderWidget extends ConsumerWidget {
 
           // Waveform visualization.
           Expanded(
-            child: SizedBox(
-              height: 32,
-              child: CustomPaint(
-                painter: AudioWaveformPainter(
-                  amplitudes:
-                      ref.read(voiceMessageStoreProvider.notifier).amplitudes,
-                  amplitudeCount: state.amplitudeCount,
-                  color: theme.colorScheme.primary,
+            child: Semantics(
+              liveRegion: true,
+              label: context.l10n.voiceWaveformSemantics,
+              child: SizedBox(
+                key: const ValueKey('voice-waveform'),
+                height: 32,
+                child: CustomPaint(
+                  painter: AudioWaveformPainter(
+                    amplitudes:
+                        ref.read(voiceMessageStoreProvider.notifier).amplitudes,
+                    amplitudeCount: state.amplitudeCount,
+                    color: theme.colorScheme.primary,
+                  ),
+                  size: Size.infinite,
                 ),
-                size: Size.infinite,
               ),
             ),
           ),

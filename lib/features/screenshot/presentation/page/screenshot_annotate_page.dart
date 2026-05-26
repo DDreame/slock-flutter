@@ -185,72 +185,76 @@ class _ScreenshotAnnotatePageState
                   offset = Offset.zero;
                 }
 
-                return GestureDetector(
-                  // Disable gesture input until transform is ready to prevent
-                  // misplaced annotations from identity-transform fallback.
-                  onPanStart: _isTransformReady
-                      ? (details) => _onPanStart(
-                            details,
-                            state.selectedTool,
-                            state.selectedColor,
-                            scale,
-                            offset,
-                          )
-                      : null,
-                  onPanUpdate: _isTransformReady
-                      ? (details) => _onPanUpdate(
-                            details,
-                            state.selectedTool,
-                            state.selectedColor,
-                            scale,
-                            offset,
-                          )
-                      : null,
-                  onPanEnd: _isTransformReady
-                      ? (details) => _onPanEnd(
-                            store,
-                            state.selectedTool,
-                            state.selectedColor,
-                            scale,
-                            offset,
-                          )
-                      : null,
-                  onTapUp: _isTransformReady
-                      ? (details) => _onTapUp(
-                            details,
-                            store,
-                            state.selectedTool,
-                            state.selectedColor,
-                            scale,
-                            offset,
-                          )
-                      : null,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Background: the captured screenshot.
-                      Image.file(
-                        File(state.imagePath!),
-                        fit: BoxFit.contain,
-                      ),
-                      // Overlay: annotation canvas.
-                      if (_isTransformReady)
-                        CustomPaint(
-                          painter: AnnotationPainter(
-                            annotations: state.annotations,
-                            activeStroke: _activeStroke,
-                            displayScale: scale,
-                            displayOffset: offset,
+                return Semantics(
+                  key: const ValueKey('screenshot-canvas'),
+                  label: context.l10n.screenshotCanvasSemantics,
+                  child: GestureDetector(
+                    // Disable gesture input until transform is ready to prevent
+                    // misplaced annotations from identity-transform fallback.
+                    onPanStart: _isTransformReady
+                        ? (details) => _onPanStart(
+                              details,
+                              state.selectedTool,
+                              state.selectedColor,
+                              scale,
+                              offset,
+                            )
+                        : null,
+                    onPanUpdate: _isTransformReady
+                        ? (details) => _onPanUpdate(
+                              details,
+                              state.selectedTool,
+                              state.selectedColor,
+                              scale,
+                              offset,
+                            )
+                        : null,
+                    onPanEnd: _isTransformReady
+                        ? (details) => _onPanEnd(
+                              store,
+                              state.selectedTool,
+                              state.selectedColor,
+                              scale,
+                              offset,
+                            )
+                        : null,
+                    onTapUp: _isTransformReady
+                        ? (details) => _onTapUp(
+                              details,
+                              store,
+                              state.selectedTool,
+                              state.selectedColor,
+                              scale,
+                              offset,
+                            )
+                        : null,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Background: the captured screenshot.
+                        Image.file(
+                          File(state.imagePath!),
+                          fit: BoxFit.contain,
+                        ),
+                        // Overlay: annotation canvas.
+                        if (_isTransformReady)
+                          CustomPaint(
+                            painter: AnnotationPainter(
+                              annotations: state.annotations,
+                              activeStroke: _activeStroke,
+                              displayScale: scale,
+                              displayOffset: offset,
+                            ),
+                            size: Size.infinite,
                           ),
-                          size: Size.infinite,
-                        ),
-                      // Loading overlay during export.
-                      if (state.isExporting)
-                        const ColoredBox(
-                          color: Colors.black54,
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                    ],
+                        // Loading overlay during export.
+                        if (state.isExporting)
+                          const ColoredBox(
+                            color: Colors.black54,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                      ],
+                    ),
                   ),
                 );
               },

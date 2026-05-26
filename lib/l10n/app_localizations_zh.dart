@@ -3181,4 +3181,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileAvatarEditSemantics => '编辑头像';
+
+  @override
+  String get screenshotCanvasSemantics => '截图标注画布';
+
+  @override
+  String get voiceWaveformSemantics => '录音波形';
+
+  @override
+  String get unreadFilterLabel => '未读';
+
+  @override
+  String get allFilterLabel => '全部';
 }

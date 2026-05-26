@@ -1127,5 +1127,10 @@
   "linkPreviewSemantics": "链接预览：{domain}",
   "textPreviewShowMore": "展开更多",
   "textPreviewShowLess": "收起",
-  "profileAvatarEditSemantics": "编辑头像"
+  "profileAvatarEditSemantics": "编辑头像",
+
+  "screenshotCanvasSemantics": "截图标注画布",
+  "voiceWaveformSemantics": "录音波形",
+  "unreadFilterLabel": "未读",
+  "allFilterLabel": "全部"
 }

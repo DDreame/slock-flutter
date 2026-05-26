@@ -1354,5 +1354,10 @@
   "@linkPreviewSemantics": { "placeholders": { "domain": { "type": "String" } } },
   "textPreviewShowMore": "Show more",
   "textPreviewShowLess": "Show less",
-  "profileAvatarEditSemantics": "Edit profile avatar"
+  "profileAvatarEditSemantics": "Edit profile avatar",
+
+  "screenshotCanvasSemantics": "Screenshot annotation canvas",
+  "voiceWaveformSemantics": "Recording waveform",
+  "unreadFilterLabel": "Unread",
+  "allFilterLabel": "All"
 }
