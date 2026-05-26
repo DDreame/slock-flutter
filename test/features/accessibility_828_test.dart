@@ -141,8 +141,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            searchStoreProvider
-                .overrideWith(() => _FakeSearchStoreWithQuery()),
+            searchStoreProvider.overrideWith(() => _FakeSearchStoreWithQuery()),
             searchHistoryProvider
                 .overrideWith(() => _FakeSearchHistoryNotifier()),
           ],
@@ -228,8 +227,7 @@ void main() {
           overrides: [
             channelMemberRepositoryProvider
                 .overrideWithValue(_FakeChannelMemberRepo()),
-            serverListStoreProvider
-                .overrideWith(() => _FakeServerListStore()),
+            serverListStoreProvider.overrideWith(() => _FakeServerListStore()),
             sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
           ],
           child: MaterialApp(
