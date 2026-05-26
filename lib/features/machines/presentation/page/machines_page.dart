@@ -11,6 +11,32 @@ import 'package:slock_app/features/machines/data/machines_repository_provider.da
 import 'package:slock_app/features/machines/presentation/page/workspaces_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
+/// PERF-831: Select projection for _MachinesSuccessView — excludes status and
+/// failure so the success view does not rebuild on transient errors.
+/// Exposed for testing to verify the production select is stable across
+/// status/failure-only mutations.
+@visibleForTesting
+typedef MachinesSuccessProjection = ({
+  List<MachineItem> items,
+  String? latestDaemonVersion,
+  bool isCreating,
+  Set<String> renamingMachineIds,
+  Set<String> rotatingKeyMachineIds,
+  Set<String> deletingMachineIds,
+});
+
+/// The select function used by _MachinesSuccessView.build(). Exposed for
+/// testing so the test can listen via the exact same projection.
+@visibleForTesting
+MachinesSuccessProjection machinesSuccessViewProjection(MachinesState s) => (
+      items: s.items,
+      latestDaemonVersion: s.latestDaemonVersion,
+      isCreating: s.isCreating,
+      renamingMachineIds: s.renamingMachineIds,
+      rotatingKeyMachineIds: s.rotatingKeyMachineIds,
+      deletingMachineIds: s.deletingMachineIds,
+    );
+
 class MachinesPage extends StatelessWidget {
   MachinesPage({super.key, required String serverId})
       : _serverId = ServerScopeId(serverId);
@@ -367,16 +393,7 @@ class _MachinesSuccessView extends ConsumerWidget {
     // PERF-831: Narrow watch to only consumed fields. Status/failure changes
     // (e.g. transient background errors) do NOT rebuild this success view.
     final state = ref.watch(
-      machinesStoreProvider.select(
-        (s) => (
-          items: s.items,
-          latestDaemonVersion: s.latestDaemonVersion,
-          isCreating: s.isCreating,
-          renamingMachineIds: s.renamingMachineIds,
-          rotatingKeyMachineIds: s.rotatingKeyMachineIds,
-          deletingMachineIds: s.deletingMachineIds,
-        ),
-      ),
+      machinesStoreProvider.select(machinesSuccessViewProjection),
     );
     final l10n = context.l10n;
     final connectedCount = state.items.where((item) => item.isOnline).length;

@@ -23,6 +23,20 @@ typedef _NotifySettingsProjection = ({
 /// settings. Keyed by locale to avoid allocating a new DateFormat per build.
 final Map<String, DateFormat> _notificationDateFormatCache = {};
 
+/// Number of new DateFormat instances created (cache misses).
+/// Increments only when a locale is seen for the first time.
+int _notificationDateFormatCreateCount = 0;
+
+/// Cached DateFormat formatter for notification timestamps.
+/// Both formatting sites in this file MUST use this helper.
+String _formatNotificationTimestamp(DateTime date, String locale) {
+  if (!_notificationDateFormatCache.containsKey(locale)) {
+    _notificationDateFormatCreateCount++;
+    _notificationDateFormatCache[locale] = DateFormat.yMMMd(locale).add_Hm();
+  }
+  return _notificationDateFormatCache[locale]!.format(date);
+}
+
 class NotificationSettingsPage extends ConsumerStatefulWidget {
   const NotificationSettingsPage({super.key});
 
@@ -31,9 +45,17 @@ class NotificationSettingsPage extends ConsumerStatefulWidget {
   @visibleForTesting
   static int get dateFormatCacheSize => _notificationDateFormatCache.length;
 
+  /// Number of DateFormat instances created (cache misses).
+  /// Exposed for testing to verify both call sites use the cache helper.
+  @visibleForTesting
+  static int get dateFormatCreateCount => _notificationDateFormatCreateCount;
+
   /// Clears the notification DateFormat cache for test isolation.
   @visibleForTesting
-  static void clearDateFormatCache() => _notificationDateFormatCache.clear();
+  static void clearDateFormatCache() {
+    _notificationDateFormatCache.clear();
+    _notificationDateFormatCreateCount = 0;
+  }
 
   @override
   ConsumerState<NotificationSettingsPage> createState() =>
@@ -167,9 +189,10 @@ class _NotificationSettingsPageState
                   title: Text(l10n.notificationSettingsLastRegistration),
                   subtitle: Text(
                     notificationState.pushTokenUpdatedAt != null
-                        ? (_notificationDateFormatCache[l10n.localeName] ??=
-                                DateFormat.yMMMd(l10n.localeName).add_Hm())
-                            .format(notificationState.pushTokenUpdatedAt!)
+                        ? _formatNotificationTimestamp(
+                            notificationState.pushTokenUpdatedAt!,
+                            l10n.localeName,
+                          )
                         : l10n.notificationSettingsNotRegistered,
                   ),
                 ),
@@ -343,9 +366,8 @@ String _permissionSubtitle(
       ? l10n.notificationSettingsDeviceNotRegistered
       : l10n.notificationSettingsDeviceRegistered(
           state.pushTokenUpdatedAt != null
-              ? (_notificationDateFormatCache[l10n.localeName] ??=
-                      DateFormat.yMMMd(l10n.localeName).add_Hm())
-                  .format(state.pushTokenUpdatedAt!)
+              ? _formatNotificationTimestamp(
+                  state.pushTokenUpdatedAt!, l10n.localeName)
               : l10n.notificationSettingsDateRecently,
         );
   return '$status\n$tokenState';

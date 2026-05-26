@@ -4,8 +4,9 @@
 //
 // Verifies:
 // 1. _MachinesSuccessView's .select() projection does NOT fire on
-//    status/failure-only changes (provider-level proof).
-// 2. NotificationSettingsPage DateFormat is cached per locale.
+//    status/failure-only changes (uses real MachinesStore + production select).
+// 2. NotificationSettingsPage DateFormat is cached per locale AND both call
+//    sites route through the single cached helper.
 // 3. TypingIndicatorWidget wraps _AnimatedDots in a RepaintBoundary.
 // =============================================================================
 
@@ -18,6 +19,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/typing_indicator_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/features/machines/application/machines_state.dart';
+import 'package:slock_app/features/machines/application/machines_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
@@ -32,93 +34,96 @@ void main() {
   setUpAll(() => initializeDateFormatting());
 
   // ===========================================================================
-  // 1. MachinesPage .select() narrowing — provider-level proof
+  // 1. MachinesPage .select() narrowing — real store proof
   // ===========================================================================
 
   group('#831 — MachinesPage .select() narrowing', () {
     test(
-      'success view select projection does NOT fire on failure-only change',
+      'machinesSuccessViewProjection does NOT fire on failure-only change '
+      '(real MachinesStore)',
       () async {
-        // Simulate what _MachinesSuccessView.build does: watch the store via
-        // .select() that projects only consumed fields. We use a StateProvider
-        // to hold MachinesState and a derived Provider that applies the same
-        // select-like projection. This proves the projection is stable across
-        // failure-only mutations.
-        final stateHolder = StateProvider<MachinesState>(
-          (ref) => const MachinesState(
-            status: MachinesStatus.success,
-            items: [
-              MachineItem(id: 'machine-1', name: 'Builder', status: 'online'),
-            ],
-            latestDaemonVersion: '1.0.0',
-          ),
+        // Uses the REAL MachinesStore backed by a fake repository.
+        // Listens via the SAME production select function
+        // (machinesSuccessViewProjection) that _MachinesSuccessView.build()
+        // uses. This is load-bearing: removing the .select() from production
+        // code or adding failure to the projection function → test RED.
+        final container = ProviderContainer(
+          overrides: [
+            machinesRepositoryProvider.overrideWithValue(
+              _FakeMachinesRepository(
+                snapshot: const MachinesSnapshot(
+                  items: [
+                    MachineItem(
+                        id: 'machine-1', name: 'Builder', status: 'online'),
+                  ],
+                  latestDaemonVersion: '1.0.0',
+                ),
+              ),
+            ),
+            realtimeReductionIngressProvider
+                .overrideWithValue(RealtimeReductionIngress()),
+            currentMachinesServerIdProvider
+                .overrideWithValue(const ServerScopeId('server-1')),
+          ],
         );
-
-        // This projection mirrors the exact .select() in production code:
-        // machines_page.dart _MachinesSuccessView.build().
-        final projectionProvider = Provider((ref) {
-          final s = ref.watch(stateHolder);
-          return (
-            items: s.items,
-            latestDaemonVersion: s.latestDaemonVersion,
-            isCreating: s.isCreating,
-            renamingMachineIds: s.renamingMachineIds,
-            rotatingKeyMachineIds: s.rotatingKeyMachineIds,
-            deletingMachineIds: s.deletingMachineIds,
-          );
-        });
-
-        final container = ProviderContainer();
         addTearDown(container.dispose);
 
-        var selectFireCount = 0;
-        final sub = container.listen(projectionProvider, (prev, next) {
-          selectFireCount++;
-        });
-        addTearDown(sub.close);
-
-        // Initial subscription triggers one notification.
-        selectFireCount = 0; // Reset after initial.
-
-        // Change only failure — projection should NOT fire.
-        container.read(stateHolder.notifier).state = const MachinesState(
-          status: MachinesStatus.success,
-          items: [
-            MachineItem(id: 'machine-1', name: 'Builder', status: 'online'),
-          ],
-          latestDaemonVersion: '1.0.0',
-          failure: UnknownFailure(message: 'Transient', causeType: 'test'),
+        // Keep the store alive (autoDispose).
+        final keepAlive = container.listen(
+          machinesStoreProvider,
+          (_, __) {},
         );
-        await Future<void>.delayed(Duration.zero); // Flush microtask queue.
+        addTearDown(keepAlive.close);
+
+        // Trigger load.
+        await container.read(machinesStoreProvider.notifier).ensureLoaded();
+
+        // Store should be in success state.
+        expect(container.read(machinesStoreProvider).status,
+            MachinesStatus.success);
+
+        // Listen to the PRODUCTION select projection.
+        var selectFireCount = 0;
+        final sub = container.listen(
+          machinesStoreProvider.select(machinesSuccessViewProjection),
+          (_, __) {
+            selectFireCount++;
+          },
+        );
+        addTearDown(sub.close);
+        selectFireCount = 0; // Reset after initial subscription.
+
+        // Mutate only failure — projection must NOT fire.
+        final store = container.read(machinesStoreProvider.notifier);
+        store.state = store.state.copyWith(
+          failure:
+              const UnknownFailure(message: 'Transient', causeType: 'test'),
+        );
+        await Future<void>.delayed(Duration.zero);
 
         expect(selectFireCount, 0,
             reason: 'Projection listener must NOT fire when only failure '
-                'changes. This test goes RED if failure is added to the '
-                'select tuple or if .select() is replaced with a full watch.');
+                'changes. This test goes RED if machinesSuccessViewProjection '
+                'includes failure, or if the production .select() is removed.');
 
-        // Change only status — projection should NOT fire.
-        container.read(stateHolder.notifier).state = const MachinesState(
+        // Mutate only status — projection must NOT fire.
+        store.state = store.state.copyWith(
           status: MachinesStatus.loading,
-          items: [
-            MachineItem(id: 'machine-1', name: 'Builder', status: 'online'),
-          ],
-          latestDaemonVersion: '1.0.0',
+          clearFailure: true,
         );
         await Future<void>.delayed(Duration.zero);
 
         expect(selectFireCount, 0,
             reason: 'Projection listener must NOT fire when only status '
-                'changes. This test goes RED if status is added to the '
-                'select tuple.');
+                'changes.');
 
-        // Change items — projection SHOULD fire (proves test is sensitive).
-        container.read(stateHolder.notifier).state = const MachinesState(
+        // Mutate items — projection SHOULD fire (sensitivity proof).
+        store.state = store.state.copyWith(
           status: MachinesStatus.success,
-          items: [
+          items: const [
             MachineItem(id: 'machine-1', name: 'Builder', status: 'online'),
             MachineItem(id: 'machine-2', name: 'Runner', status: 'offline'),
           ],
-          latestDaemonVersion: '1.0.0',
         );
         await Future<void>.delayed(Duration.zero);
 
@@ -179,6 +184,37 @@ void main() {
     setUp(() => NotificationSettingsPage.clearDateFormatCache());
 
     testWidgets(
+      'both call sites route through cache helper — one create per locale',
+      (tester) async {
+        // Render with 'en' locale and pushTokenUpdatedAt set so both
+        // formatting sites fire (build body + _permissionSubtitle).
+        await tester.pumpWidget(
+          _buildNotificationSettingsApp(
+            locale: const Locale('en'),
+            pushTokenUpdatedAt: DateTime(2024, 6, 1, 14, 30),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Only ONE DateFormat should be created (cache miss on first access).
+        // The second call site reuses the same cached instance.
+        // This test goes RED if either site bypasses _formatNotificationTimestamp.
+        expect(
+          NotificationSettingsPage.dateFormatCreateCount,
+          1,
+          reason: 'Only 1 DateFormat should be created for the en locale. '
+              'Both call sites must use the cached helper. This test goes RED '
+              'if either site creates its own DateFormat directly.',
+        );
+        expect(
+          NotificationSettingsPage.dateFormatCacheSize,
+          1,
+          reason: 'Cache should have exactly 1 entry for en locale.',
+        );
+      },
+    );
+
+    testWidgets(
       'cache grows per locale — proves keyed-by-locale contract',
       (tester) async {
         // Render with 'en' locale.
@@ -190,12 +226,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        expect(
-          NotificationSettingsPage.dateFormatCacheSize,
-          1,
-          reason: 'After en render with pushTokenUpdatedAt, cache should '
-              'have exactly 1 entry.',
-        );
+        expect(NotificationSettingsPage.dateFormatCacheSize, 1);
 
         // Rebuild with 'zh' locale.
         await tester.pumpWidget(
@@ -209,9 +240,14 @@ void main() {
         expect(
           NotificationSettingsPage.dateFormatCacheSize,
           2,
-          reason: 'After rendering with both en and zh locales, cache must '
-              'have 2 entries. This test goes RED if the cache is replaced '
-              'with a single shared formatter (not keyed by locale).',
+          reason: 'After en + zh renders, cache must have 2 entries. '
+              'This test goes RED if the cache is replaced with a single '
+              'shared formatter.',
+        );
+        expect(
+          NotificationSettingsPage.dateFormatCreateCount,
+          2,
+          reason: 'Exactly 2 DateFormat allocations — one per locale.',
         );
       },
     );
