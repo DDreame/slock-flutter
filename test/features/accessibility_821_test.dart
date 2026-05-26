@@ -218,5 +218,34 @@ void main() {
 
       semanticsHandle.dispose();
     });
+
+    testWidgets('scrubber exposes increase and decrease actions',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+
+      await tester.pumpWidget(buildBubble(
+        duration: const Duration(seconds: 30),
+        position: const Duration(seconds: 15),
+      ));
+
+      final scrubber = find.bySemanticsLabel(
+        RegExp('.*scrubber.*|.*Scrubber.*|.*seek.*|.*Seek.*',
+            caseSensitive: false),
+      );
+      final semantics = tester.getSemantics(scrubber);
+
+      expect(
+        semantics.getSemanticsData().actions & SemanticsAction.increase.index,
+        isNonZero,
+        reason: 'Scrubber must expose increase action for accessibility',
+      );
+      expect(
+        semantics.getSemanticsData().actions & SemanticsAction.decrease.index,
+        isNonZero,
+        reason: 'Scrubber must expose decrease action for accessibility',
+      );
+
+      semanticsHandle.dispose();
+    });
   });
 }

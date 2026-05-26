@@ -67,6 +67,8 @@ class VoiceMessageBubble extends StatelessWidget {
                 label: context.l10n.voiceMessageScrubber,
                 value: '${(progress * 100).round()}%',
                 slider: true,
+                onIncrease: () => onSeek((progress + 0.1).clamp(0.0, 1.0)),
+                onDecrease: () => onSeek((progress - 0.1).clamp(0.0, 1.0)),
                 child: LayoutBuilder(
                   builder: (_, constraints) => GestureDetector(
                     onTapDown: (details) {
