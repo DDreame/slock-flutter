@@ -124,6 +124,7 @@ mixin _ConversationDetailCoreMixin
     int requestEpoch,
     ConversationDetailTarget target,
   ) {
+    if ((this as ConversationDetailStore)._disposed) return false;
     return requestEpoch == (this as ConversationDetailStore)._requestEpoch &&
         ref.read(currentConversationDetailTargetProvider) == target;
   }
