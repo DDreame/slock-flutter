@@ -17,8 +17,12 @@ final threadsInboxStoreProvider =
 );
 
 class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
+  bool _disposed = false;
+
   @override
   ThreadsInboxState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     final serverId = ref.watch(currentThreadsServerIdProvider);
     Future.microtask(() {
       if (state.status == ThreadsInboxStatus.initial) {
@@ -40,6 +44,7 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       final items = await ref
           .read(threadRepositoryProvider)
           .loadFollowedThreads(serverId);
+      if (_disposed) return;
       if (ref.read(currentThreadsServerIdProvider) != serverId) {
         return;
       }
@@ -50,6 +55,7 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       if (ref.read(currentThreadsServerIdProvider) != serverId) {
         return;
       }

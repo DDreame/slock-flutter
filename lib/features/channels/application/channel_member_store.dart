@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
+import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
 
 final currentChannelMemberServerIdProvider = Provider<ServerScopeId>((ref) {
@@ -122,7 +123,9 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
   Future<void> removeHumanMember(String userId) async {
     final serverId = ref.read(currentChannelMemberServerIdProvider);
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-829: Snapshot item + index for per-item rollback.
+    final removedIndex = state.items.indexWhere((m) => m.userId == userId);
+    final removedItem = state.items[removedIndex];
     state = state.copyWith(
       items: state.items.where((m) => m.userId != userId).toList(),
     );
@@ -136,12 +139,13 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       );
     } on AppFailure catch (failure) {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems, failure: failure);
+      _reinsertAtPosition(removedItem, removedIndex);
+      state = state.copyWith(failure: failure);
       rethrow;
     } catch (error) {
       if (_disposed) return;
+      _reinsertAtPosition(removedItem, removedIndex);
       state = state.copyWith(
-        items: previousItems,
         failure: UnknownFailure(
           message: 'Failed to remove channel member.',
           causeType: error.runtimeType.toString(),
@@ -154,7 +158,9 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
   Future<void> removeAgentMember(String agentId) async {
     final serverId = ref.read(currentChannelMemberServerIdProvider);
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-829: Snapshot item + index for per-item rollback.
+    final removedIndex = state.items.indexWhere((m) => m.agentId == agentId);
+    final removedItem = state.items[removedIndex];
     state = state.copyWith(
       items: state.items.where((m) => m.agentId != agentId).toList(),
     );
@@ -168,12 +174,13 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       );
     } on AppFailure catch (failure) {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems, failure: failure);
+      _reinsertAtPosition(removedItem, removedIndex);
+      state = state.copyWith(failure: failure);
       rethrow;
     } catch (error) {
       if (_disposed) return;
+      _reinsertAtPosition(removedItem, removedIndex);
       state = state.copyWith(
-        items: previousItems,
         failure: UnknownFailure(
           message: 'Failed to remove channel member.',
           causeType: error.runtimeType.toString(),
@@ -181,6 +188,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       );
       rethrow;
     }
+  }
+
+  /// Re-inserts [item] at [originalIndex], clamped to the current list length.
+  /// Preserves ordering while tolerating concurrent list mutations.
+  void _reinsertAtPosition(ChannelMember item, int originalIndex) {
+    final current = [...state.items];
+    final insertAt = originalIndex.clamp(0, current.length);
+    current.insert(insertAt, item);
+    state = state.copyWith(items: current);
   }
 
   Future<void> retry() => load();

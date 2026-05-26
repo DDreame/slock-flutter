@@ -225,7 +225,8 @@ class AgentsStore extends Notifier<AgentsState> {
   }
 
   Future<void> startAgent(String agentId) async {
-    final previousItems = state.items;
+    // INV-ROLLBACK-829: Snapshot only the target item for per-item rollback.
+    final previousItem = state.items.firstWhere((a) => a.id == agentId);
     state = state.copyWith(
       controlActionAgentIds: {...state.controlActionAgentIds, agentId},
       items: state.items
@@ -242,7 +243,10 @@ class AgentsStore extends Notifier<AgentsState> {
       await repo.startAgent(agentId);
     } on AppFailure {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((a) => a.id == agentId ? previousItem : a).toList(),
+      );
       rethrow;
     } catch (error, stackTrace) {
       if (_disposed) return;
@@ -255,7 +259,11 @@ class AgentsStore extends Notifier<AgentsState> {
         error,
         message: 'Failed to start agent.',
       );
-      state = state.copyWith(items: previousItems, failure: failure);
+      state = state.copyWith(
+        items:
+            state.items.map((a) => a.id == agentId ? previousItem : a).toList(),
+        failure: failure,
+      );
       throw failure;
     } finally {
       if (!_disposed) {
@@ -268,7 +276,8 @@ class AgentsStore extends Notifier<AgentsState> {
   }
 
   Future<void> stopAgent(String agentId) async {
-    final previousItems = state.items;
+    // INV-ROLLBACK-829: Snapshot only the target item for per-item rollback.
+    final previousItem = state.items.firstWhere((a) => a.id == agentId);
     state = state.copyWith(
       controlActionAgentIds: {...state.controlActionAgentIds, agentId},
       items: state.items
@@ -285,7 +294,10 @@ class AgentsStore extends Notifier<AgentsState> {
       await repo.stopAgent(agentId);
     } on AppFailure {
       if (_disposed) return;
-      state = state.copyWith(items: previousItems);
+      state = state.copyWith(
+        items:
+            state.items.map((a) => a.id == agentId ? previousItem : a).toList(),
+      );
       rethrow;
     } catch (error, stackTrace) {
       if (_disposed) return;
@@ -298,7 +310,11 @@ class AgentsStore extends Notifier<AgentsState> {
         error,
         message: 'Failed to stop agent.',
       );
-      state = state.copyWith(items: previousItems, failure: failure);
+      state = state.copyWith(
+        items:
+            state.items.map((a) => a.id == agentId ? previousItem : a).toList(),
+        failure: failure,
+      );
       throw failure;
     } finally {
       if (!_disposed) {

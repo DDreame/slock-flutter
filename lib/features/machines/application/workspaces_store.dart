@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/application/workspaces_state.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+import 'package:slock_app/features/machines/data/workspace_item.dart';
 
 final currentWorkspacesMachineIdProvider = Provider<String>((ref) {
   throw UnimplementedError(
@@ -66,7 +67,9 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
 
   Future<void> deleteWorkspace(String workspaceId) async {
     final machineId = ref.read(currentWorkspacesMachineIdProvider);
-    final previousItems = state.items;
+    // INV-ROLLBACK-829: Snapshot item + index for per-item rollback.
+    final removedIndex = state.items.indexWhere((w) => w.id == workspaceId);
+    final removedItem = state.items[removedIndex];
 
     // Optimistic: remove from list and add to deleting set.
     state = state.copyWith(
@@ -86,9 +89,9 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
       );
     } on AppFailure {
       if (_disposed) return;
-      // Rollback: restore previous items and clear deleting flag.
+      // Per-item rollback: re-insert at original position.
+      _reinsertAtPosition(removedItem, removedIndex);
       state = state.copyWith(
-        items: previousItems,
         deletingWorkspaceIds:
             state.deletingWorkspaceIds.difference({workspaceId}),
       );
@@ -96,9 +99,9 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('deleteWorkspace', e, st);
-      // Rollback: restore previous items and clear deleting flag.
+      // Per-item rollback: re-insert at original position.
+      _reinsertAtPosition(removedItem, removedIndex);
       state = state.copyWith(
-        items: previousItems,
         deletingWorkspaceIds:
             state.deletingWorkspaceIds.difference({workspaceId}),
         failure: UnknownFailure(
@@ -108,6 +111,15 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
       );
       rethrow;
     }
+  }
+
+  /// Re-inserts [item] at [originalIndex], clamped to the current list length.
+  /// Preserves ordering while tolerating concurrent list mutations.
+  void _reinsertAtPosition(WorkspaceItem item, int originalIndex) {
+    final current = [...state.items];
+    final insertAt = originalIndex.clamp(0, current.length);
+    current.insert(insertAt, item);
+    state = state.copyWith(items: current);
   }
 
   void _reportUnexpectedError(String method, Object error, StackTrace st) {
