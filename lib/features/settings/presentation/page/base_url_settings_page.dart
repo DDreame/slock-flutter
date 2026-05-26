@@ -11,6 +11,10 @@ import 'package:slock_app/stores/base_url/base_url_settings_store.dart';
 class BaseUrlSettingsPage extends ConsumerStatefulWidget {
   const BaseUrlSettingsPage({super.key});
 
+  /// Build-count probe for verifying .select() rebuild isolation in tests.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
   @override
   ConsumerState<BaseUrlSettingsPage> createState() =>
       _BaseUrlSettingsPageState();
@@ -37,6 +41,7 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    BaseUrlSettingsPage.debugBuildCount++;
     final (:apiTestResult, :realtimeTestResult, :isTesting) =
         ref.watch(baseUrlSettingsStoreProvider.select((s) => (
               apiTestResult: s.apiTestResult,

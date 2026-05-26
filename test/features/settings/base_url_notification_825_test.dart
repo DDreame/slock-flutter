@@ -2,101 +2,114 @@
 // #825 — BaseUrl .select() Rebuild Isolation + NotificationSettings Reversed
 //
 // Verifies:
-// 1. BaseUrlSettingsPage .select() only fires on (apiTestResult,
+// 1. BaseUrlSettingsPage .select() only rebuilds on (apiTestResult,
 //    realtimeTestResult, isTesting) — unrelated field changes (settings,
-//    isDirty) do NOT trigger rebuild.
+//    isDirty) do NOT trigger widget rebuild.
 // 2. NotificationSettings diagnostics entries display in reverse
 //    chronological order using .reversed (without redundant .toList()).
 //
 // Load-bearing proof:
-//   Reverting .select() → ref.watch(full state) causes test 1 to fail.
+//   Reverting .select() → ref.watch(full state) causes test 1 to fail
+//   (widget rebuilds on setApiBaseUrl which mutates settings+isDirty).
 //   Removing .reversed causes test 2 to fail (wrong order).
 // =============================================================================
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:slock_app/core/core.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/settings/presentation/page/base_url_settings_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/base_url/base_url_settings_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
   // ===========================================================================
-  // Part 1: BaseUrlSettingsPage .select() rebuild isolation
+  // Part 1: BaseUrlSettingsPage .select() rebuild isolation (widget-level)
   // ===========================================================================
 
-  group('#825 — BaseUrlSettingsPage .select() isolation', () {
-    late ProviderContainer container;
+  group('#825 — BaseUrlSettingsPage .select() rebuild isolation', () {
+    late SharedPreferences prefs;
 
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
-      final prefs = await SharedPreferences.getInstance();
-      container = ProviderContainer(overrides: [
-        sharedPreferencesProvider.overrideWithValue(prefs),
-      ]);
+      prefs = await SharedPreferences.getInstance();
+      BaseUrlSettingsPage.debugBuildCount = 0;
     });
 
-    tearDown(() => container.dispose());
-
-    test('.select() does not fire on settings/isDirty changes', () {
-      int fireCount = 0;
-      container.listen(
-        baseUrlSettingsStoreProvider.select(
-          (s) => (
-            apiTestResult: s.apiTestResult,
-            realtimeTestResult: s.realtimeTestResult,
-            isTesting: s.isTesting,
+    Widget buildSubject() {
+      return ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          routerConfig: GoRouter(
+            initialLocation: '/test',
+            routes: [
+              GoRoute(
+                path: '/test',
+                builder: (context, state) => const BaseUrlSettingsPage(),
+              ),
+            ],
           ),
         ),
-        (_, __) => fireCount++,
-        fireImmediately: true,
       );
+    }
 
-      // Initial fire.
-      expect(fireCount, 1);
+    testWidgets(
+      '.select() prevents rebuild on unrelated field mutation',
+      (tester) async {
+        await tester.pumpWidget(buildSubject());
+        await tester.pumpAndSettle();
 
-      // Mutate settings (unrelated to the select).
-      container
-          .read(baseUrlSettingsStoreProvider.notifier)
-          .setApiBaseUrl('http://new-api.example.com');
+        final before = BaseUrlSettingsPage.debugBuildCount;
+        expect(before, greaterThan(0)); // Sanity: page was built.
 
-      // setApiBaseUrl changes settings + isDirty + clears apiTestResult.
-      // Since apiTestResult was already null, the selected tuple is unchanged.
-      expect(fireCount, 1);
+        // Mutate settings + isDirty (NOT in the select tuple).
+        // setApiBaseUrl changes settings.apiBaseUrl, sets isDirty=true,
+        // and clears apiTestResult (which was already null → unchanged).
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(BaseUrlSettingsPage)),
+        );
+        container
+            .read(baseUrlSettingsStoreProvider.notifier)
+            .setApiBaseUrl('http://changed.example.com');
 
-      // Another unrelated change.
-      container
-          .read(baseUrlSettingsStoreProvider.notifier)
-          .setRealtimeUrl('wss://new-rt.example.com');
+        await tester.pump();
 
-      // realtimeTestResult was also null, so still unchanged.
-      expect(fireCount, 1);
-    });
+        // Build count must NOT increase because .select() filters the
+        // rebuild to only (apiTestResult, realtimeTestResult, isTesting)
+        // and none of those changed.
+        expect(BaseUrlSettingsPage.debugBuildCount, before);
+      },
+    );
 
-    test('.select() fires when isTesting changes', () {
-      int fireCount = 0;
-      container.listen(
-        baseUrlSettingsStoreProvider.select(
-          (s) => (
-            apiTestResult: s.apiTestResult,
-            realtimeTestResult: s.realtimeTestResult,
-            isTesting: s.isTesting,
-          ),
-        ),
-        (_, __) => fireCount++,
-        fireImmediately: true,
-      );
+    testWidgets(
+      '.select() prevents rebuild on second unrelated mutation',
+      (tester) async {
+        await tester.pumpWidget(buildSubject());
+        await tester.pumpAndSettle();
 
-      expect(fireCount, 1);
+        final before = BaseUrlSettingsPage.debugBuildCount;
 
-      // testConnection() sets isTesting=true which IS in the select.
-      // We can't easily call testConnection (needs HTTP), but we can
-      // verify by manually checking state changes would propagate.
-      // Verify that a state with isTesting=true would differ:
-      final before = container.read(baseUrlSettingsStoreProvider);
-      expect(before.isTesting, isFalse);
-      // If isTesting toggled, the select tuple would change → rebuild.
-    });
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(BaseUrlSettingsPage)),
+        );
+        container
+            .read(baseUrlSettingsStoreProvider.notifier)
+            .setRealtimeUrl('wss://new-rt.example.com');
+
+        await tester.pump();
+
+        // realtimeTestResult was already null, so select tuple unchanged.
+        expect(BaseUrlSettingsPage.debugBuildCount, before);
+      },
+    );
   });
 
   // ===========================================================================
