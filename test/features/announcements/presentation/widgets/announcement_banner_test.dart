@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/announcements/application/announcement_store.dart';
 import 'package:slock_app/features/announcements/data/announcement.dart';
 import 'package:slock_app/features/announcements/presentation/widgets/announcement_banner.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('banner renders announcement title (INV-ANNOUNCE-1)',
@@ -22,6 +23,8 @@ void main() {
           }),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: AnnouncementBanner()),
         ),
       ),
@@ -51,6 +54,8 @@ void main() {
           }),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: AnnouncementBanner()),
         ),
       ),
@@ -83,6 +88,8 @@ void main() {
           }),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: AnnouncementBanner()),
         ),
       ),
@@ -102,6 +109,8 @@ void main() {
           }),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: AnnouncementBanner()),
         ),
       ),

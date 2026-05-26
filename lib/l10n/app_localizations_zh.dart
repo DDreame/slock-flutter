@@ -3193,4 +3193,40 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get allFilterLabel => '全部';
+
+  @override
+  String get agentEditTooltip => '编辑智能体';
+
+  @override
+  String get agentDeleteTooltip => '删除智能体';
+
+  @override
+  String get searchClearTooltip => '清除搜索';
+
+  @override
+  String get channelMembersAddTooltip => '添加成员';
+
+  @override
+  String get channelMembersRemoveTooltip => '移除成员';
+
+  @override
+  String get channelFilesTooltip => '频道文件';
+
+  @override
+  String get channelMembersTooltip => '频道成员';
+
+  @override
+  String get addHumanToChannelTooltip => '添加到频道';
+
+  @override
+  String get addAgentToChannelTooltip => '添加智能体到频道';
+
+  @override
+  String get togglePasswordVisibilityTooltip => '切换密码可见性';
+
+  @override
+  String get dismissAnnouncementTooltip => '关闭';
+
+  @override
+  String get shareTargetCancelTooltip => '取消';
 }

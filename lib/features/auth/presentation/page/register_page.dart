@@ -78,6 +78,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                           ? Icons.visibility
                           : Icons.visibility_off,
                     ),
+                    tooltip: l10n.togglePasswordVisibilityTooltip,
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),

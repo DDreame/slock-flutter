@@ -87,6 +87,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                           ? Icons.visibility
                           : Icons.visibility_off,
                     ),
+                    tooltip: l10n.togglePasswordVisibilityTooltip,
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),
@@ -106,6 +107,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                           ? Icons.visibility
                           : Icons.visibility_off,
                     ),
+                    tooltip: l10n.togglePasswordVisibilityTooltip,
                     onPressed: () => setState(() =>
                         _obscureConfirmPassword = !_obscureConfirmPassword),
                   ),

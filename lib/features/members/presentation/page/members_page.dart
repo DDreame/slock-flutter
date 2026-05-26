@@ -258,6 +258,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
                         Icons.close,
                         color: colors.textTertiary,
                       ),
+                      tooltip: context.l10n.searchClearTooltip,
                       onPressed: () {
                         _searchController.clear();
                         ref.read(memberListStoreProvider.notifier).setQuery('');

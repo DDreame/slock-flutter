@@ -160,6 +160,7 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
+          tooltip: context.l10n.shareTargetCancelTooltip,
           onPressed: widget.onCancel,
         ),
         title: Text(context.l10n.shareTargetTitle),

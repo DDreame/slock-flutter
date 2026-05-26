@@ -6202,6 +6202,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get allFilterLabel;
+
+  /// No description provided for @agentEditTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit agent'**
+  String get agentEditTooltip;
+
+  /// No description provided for @agentDeleteTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete agent'**
+  String get agentDeleteTooltip;
+
+  /// No description provided for @searchClearTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get searchClearTooltip;
+
+  /// No description provided for @channelMembersAddTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add member'**
+  String get channelMembersAddTooltip;
+
+  /// No description provided for @channelMembersRemoveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove member'**
+  String get channelMembersRemoveTooltip;
+
+  /// No description provided for @channelFilesTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel files'**
+  String get channelFilesTooltip;
+
+  /// No description provided for @channelMembersTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel members'**
+  String get channelMembersTooltip;
+
+  /// No description provided for @addHumanToChannelTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to channel'**
+  String get addHumanToChannelTooltip;
+
+  /// No description provided for @addAgentToChannelTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Add agent to channel'**
+  String get addAgentToChannelTooltip;
+
+  /// No description provided for @togglePasswordVisibilityTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle password visibility'**
+  String get togglePasswordVisibilityTooltip;
+
+  /// No description provided for @dismissAnnouncementTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismissAnnouncementTooltip;
+
+  /// No description provided for @shareTargetCancelTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get shareTargetCancelTooltip;
 }
 
 class _AppLocalizationsDelegate

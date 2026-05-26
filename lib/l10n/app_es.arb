@@ -1202,5 +1202,18 @@
   "screenshotCanvasSemantics": "Lienzo de anotación de captura",
   "voiceWaveformSemantics": "Forma de onda de grabación",
   "unreadFilterLabel": "No leídos",
-  "allFilterLabel": "Todos"
+  "allFilterLabel": "Todos",
+
+  "agentEditTooltip": "Editar agente",
+  "agentDeleteTooltip": "Eliminar agente",
+  "searchClearTooltip": "Borrar búsqueda",
+  "channelMembersAddTooltip": "Añadir miembro",
+  "channelMembersRemoveTooltip": "Eliminar miembro",
+  "channelFilesTooltip": "Archivos del canal",
+  "channelMembersTooltip": "Miembros del canal",
+  "addHumanToChannelTooltip": "Añadir al canal",
+  "addAgentToChannelTooltip": "Añadir agente al canal",
+  "togglePasswordVisibilityTooltip": "Alternar visibilidad de contraseña",
+  "dismissAnnouncementTooltip": "Cerrar",
+  "shareTargetCancelTooltip": "Cancelar"
 }
