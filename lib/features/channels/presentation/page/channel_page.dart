@@ -92,8 +92,11 @@ class _ChannelOverflowMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final mgmtState = ref.watch(channelManagementStoreProvider);
-    final isBusy = mgmtState.isBusy;
+    // #820 Item 5: .select() narrowing — only rebuild when isBusy changes.
+    // channelId and failure changes do not affect this widget's enabled state.
+    final isBusy = ref.watch(
+      channelManagementStoreProvider.select((s) => s.isBusy),
+    );
 
     return PopupMenuButton<_ChannelOverflowAction>(
       key: const ValueKey('channel-overflow-menu'),

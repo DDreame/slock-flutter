@@ -33,6 +33,26 @@ class MessageExportCard extends StatefulWidget {
   /// Key for the RepaintBoundary used by screenshot capture.
   final GlobalKey boundaryKey;
 
+  // ---------------------------------------------------------------------------
+  // #820 Item 4: DateFormat instance cache — avoids re-allocating formatters
+  // on every build call.
+  // ---------------------------------------------------------------------------
+
+  static final Map<String, DateFormat> _dateFormatCache = {};
+
+  /// Returns a cached [DateFormat] instance for the given [pattern].
+  /// Allocates only on first access per unique pattern.
+  @visibleForTesting
+  static DateFormat cachedDateFormat(String pattern) {
+    return _dateFormatCache[pattern] ??= DateFormat(pattern);
+  }
+
+  @visibleForTesting
+  static int get dateFormatCacheSize => _dateFormatCache.length;
+
+  @visibleForTesting
+  static void clearDateFormatCache() => _dateFormatCache.clear();
+
   @override
   State<MessageExportCard> createState() => _MessageExportCardState();
 }
@@ -68,7 +88,8 @@ class _MessageExportCardState extends State<MessageExportCard> {
     // Determine timestamp range for footer.
     final earliest = _sorted.first.createdAt;
     final latest = _sorted.last.createdAt;
-    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+    // #820 Item 4: Use cached DateFormat instead of allocating on every build.
+    final dateFormat = MessageExportCard.cachedDateFormat('yyyy-MM-dd HH:mm');
     final footerText = _sorted.length == 1
         ? dateFormat.format(earliest)
         : '${dateFormat.format(earliest)} – ${dateFormat.format(latest)}';

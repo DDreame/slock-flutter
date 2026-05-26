@@ -132,7 +132,10 @@ class TranslationSettingsStore
       return;
     }
 
-    final previous = state;
+    // #820 Item 1: Field-only rollback — save only the settings field, not the
+    // entire state snapshot. This preserves concurrent status changes that may
+    // occur during the async gap.
+    final previousSettings = state.settings;
 
     // Optimistically update local state.
     state = state.copyWith(settings: settings);
@@ -145,12 +148,13 @@ class TranslationSettingsStore
       state = state.copyWith(settings: updated);
     } on AppFailure catch (failure) {
       if (_disposed) return;
-      // Revert on failure.
-      state = previous.copyWith(failure: failure);
+      // Revert only the settings field; preserve current status.
+      state = state.copyWith(settings: previousSettings, failure: failure);
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('update', e, st);
-      state = previous.copyWith(
+      state = state.copyWith(
+        settings: previousSettings,
         failure: UnknownFailure(
           message: 'Failed to update translation settings.',
           causeType: e.runtimeType.toString(),

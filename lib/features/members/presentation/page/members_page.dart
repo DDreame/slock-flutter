@@ -212,12 +212,20 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
 
   @override
   Widget build(BuildContext context) {
-    // Full state watch — rebuilds only this body subtree on member/query/
-    // mutation changes, NOT the scaffold.
-    final state = ref.watch(memberListStoreProvider);
+    // #820 Item 2: .select() narrowing — only rebuild when status, members,
+    // or query change. Mutation fields (isInvitingByEmail,
+    // updatingRoleMemberIds, removingMemberIds) do not affect this subtree.
+    final (:status, :members, :query) = ref.watch(
+      memberListStoreProvider.select(
+        (s) => (status: s.status, members: s.members, query: s.query),
+      ),
+    );
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return _buildMemberList(state, colors);
+    return _buildMemberList(
+      MemberListState(status: status, members: members, query: query),
+      colors,
+    );
   }
 
   Widget _buildMemberList(MemberListState state, AppColors colors) {
