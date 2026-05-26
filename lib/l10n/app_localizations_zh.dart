@@ -3152,4 +3152,19 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceMessageScrubber => '语音消息进度条';
+
+  @override
+  String get voiceBubblePause => '暂停';
+
+  @override
+  String get voiceBubblePlay => '播放';
+
+  @override
+  String get memberListItemMessageTooltip => '发消息';
+
+  @override
+  String get memberListItemAdminActionsTooltip => '成员管理操作';
+
+  @override
+  String get homeOverviewSemantics => '首页概览';
 }

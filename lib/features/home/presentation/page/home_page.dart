@@ -123,7 +123,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   key: const ValueKey('home-refresh-indicator'),
                   onRefresh: homeStore.refresh,
                   child: Semantics(
-                    label: 'Home overview',
+                    label: l10n.homeOverviewSemantics,
                     child: ListView.separated(
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.pageHorizontal,

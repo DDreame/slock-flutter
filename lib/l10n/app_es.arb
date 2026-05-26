@@ -1187,5 +1187,11 @@
 
   "voiceRecorderCancel": "Cancelar grabación",
   "voiceRecorderSend": "Enviar mensaje de voz",
-  "voiceMessageScrubber": "Control de mensaje de voz"
+  "voiceMessageScrubber": "Control de mensaje de voz",
+
+  "voiceBubblePause": "Pausar",
+  "voiceBubblePlay": "Reproducir",
+  "memberListItemMessageTooltip": "Mensaje",
+  "memberListItemAdminActionsTooltip": "Acciones de administración",
+  "homeOverviewSemantics": "Vista general"
 }

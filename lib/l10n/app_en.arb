@@ -1343,5 +1343,11 @@
 
   "voiceRecorderCancel": "Cancel recording",
   "voiceRecorderSend": "Send voice message",
-  "voiceMessageScrubber": "Voice message scrubber"
+  "voiceMessageScrubber": "Voice message scrubber",
+
+  "voiceBubblePause": "Pause",
+  "voiceBubblePlay": "Play",
+  "memberListItemMessageTooltip": "Message",
+  "memberListItemAdminActionsTooltip": "Member admin actions",
+  "homeOverviewSemantics": "Home overview"
 }

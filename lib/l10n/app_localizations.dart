@@ -6124,6 +6124,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Voice message scrubber'**
   String get voiceMessageScrubber;
+
+  /// No description provided for @voiceBubblePause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get voiceBubblePause;
+
+  /// No description provided for @voiceBubblePlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get voiceBubblePlay;
+
+  /// No description provided for @memberListItemMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get memberListItemMessageTooltip;
+
+  /// No description provided for @memberListItemAdminActionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Member admin actions'**
+  String get memberListItemAdminActionsTooltip;
+
+  /// No description provided for @homeOverviewSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Home overview'**
+  String get homeOverviewSemantics;
 }
 
 class _AppLocalizationsDelegate

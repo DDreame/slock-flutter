@@ -123,7 +123,7 @@ class MemberListItem extends StatelessWidget {
                     color: colors.textTertiary,
                   ),
             onPressed: isOpeningDirectMessage ? null : onMessage,
-            tooltip: 'Message',
+            tooltip: context.l10n.memberListItemMessageTooltip,
           ),
           if (canManageTarget)
             isUpdatingRole || isRemoving
@@ -137,7 +137,7 @@ class MemberListItem extends StatelessWidget {
                       Icons.more_vert,
                       color: colors.textTertiary,
                     ),
-                    tooltip: 'Member admin actions',
+                    tooltip: context.l10n.memberListItemAdminActionsTooltip,
                     onSelected: (action) {
                       switch (action) {
                         case _MemberAction.makeAdmin:
