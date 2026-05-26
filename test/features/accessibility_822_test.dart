@@ -10,10 +10,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/agents/application/agents_state.dart';
+import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
@@ -185,6 +190,10 @@ void main() {
             activeServerScopeIdProvider
                 .overrideWithValue(const ServerScopeId('test-server')),
             serverListStoreProvider.overrideWith(() => _FakeServerListStore()),
+            // Override timer-creating providers to prevent pending async work.
+            inboxStoreProvider.overrideWith(() => _FakeInboxStore()),
+            agentsStoreProvider.overrideWith(() => _FakeAgentsStore()),
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime(2026))),
           ],
           child: MaterialApp(
             locale: const Locale('zh'),
@@ -228,4 +237,18 @@ class _FakeServerListStore extends ServerListStore {
   @override
   ServerListState build() =>
       const ServerListState(status: ServerListStatus.success);
+}
+
+/// No-op InboxStore that avoids Future.microtask(load) and ref.listen.
+/// Returns success status so _InboxUnreadSectionState.initState skips load().
+class _FakeInboxStore extends InboxStore {
+  @override
+  InboxState build() => const InboxState(status: InboxStatus.success);
+}
+
+/// No-op AgentsStore that prevents child sections from starting network loads.
+/// Returns success status so ensureLoaded() short-circuits immediately.
+class _FakeAgentsStore extends AgentsStore {
+  @override
+  AgentsState build() => const AgentsState(status: AgentsStatus.success);
 }
