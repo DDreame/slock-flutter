@@ -132,7 +132,10 @@ class TranslationSettingsStore
       return;
     }
 
-    final previous = state;
+    // #820 Item 1: Compare-and-swap rollback — save the previous settings AND
+    // the optimistic value. On failure, only revert if no concurrent write
+    // (e.g. load()) has changed settings since the optimistic update.
+    final previousSettings = state.settings;
 
     // Optimistically update local state.
     state = state.copyWith(settings: settings);
@@ -145,12 +148,18 @@ class TranslationSettingsStore
       state = state.copyWith(settings: updated);
     } on AppFailure catch (failure) {
       if (_disposed) return;
-      // Revert on failure.
-      state = previous.copyWith(failure: failure);
+      // Only revert if settings haven't been changed by another source
+      // (e.g. a concurrent load()) during the async gap.
+      final rollbackSettings =
+          state.settings == settings ? previousSettings : state.settings;
+      state = state.copyWith(settings: rollbackSettings, failure: failure);
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('update', e, st);
-      state = previous.copyWith(
+      final rollbackSettings =
+          state.settings == settings ? previousSettings : state.settings;
+      state = state.copyWith(
+        settings: rollbackSettings,
         failure: UnknownFailure(
           message: 'Failed to update translation settings.',
           causeType: e.runtimeType.toString(),

@@ -22,6 +22,11 @@ import 'package:slock_app/l10n/l10n.dart';
 class NewDmPage extends StatelessWidget {
   const NewDmPage({super.key, required this.serverId});
 
+  /// #820 Item 3: Counter incremented each time the People tab recomputes its
+  /// filtered member list. Used by load-bearing tests to prove memoization.
+  @visibleForTesting
+  static int peopleFilterRecomputeCount = 0;
+
   final ServerScopeId serverId;
 
   @override
@@ -214,7 +219,7 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
   }
 }
 
-class _PeopleTab extends ConsumerWidget {
+class _PeopleTab extends ConsumerStatefulWidget {
   const _PeopleTab({
     required this.searchQuery,
     required this.openingId,
@@ -226,7 +231,18 @@ class _PeopleTab extends ConsumerWidget {
   final void Function(MemberProfile) onSelect;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PeopleTab> createState() => _PeopleTabState();
+}
+
+class _PeopleTabState extends ConsumerState<_PeopleTab> {
+  // #820 Item 3: Memoize filtered list — recompute only when members identity
+  // or searchQuery changes. Avoids per-build list allocation.
+  List<MemberProfile>? _cachedMembers;
+  String _cachedQuery = '';
+  List<MemberProfile>? _cachedFiltered;
+
+  @override
+  Widget build(BuildContext context) {
     // INV-SELECT-809: Only rebuild when status, failure, or members change.
     // isInvitingByEmail, updatingRoleMemberIds, query, etc. do not affect
     // the contact picker.
@@ -250,21 +266,30 @@ class _PeopleTab extends ConsumerWidget {
   }
 
   Widget _buildFilteredList(List<MemberProfile> members) {
-    final nonSelfMembers = members.where((m) => !m.isSelf).toList();
-    // Hoist toLowerCase() outside iteration to avoid per-item allocation.
-    final lowerQuery = searchQuery.toLowerCase();
-    final filtered = searchQuery.isEmpty
-        ? nonSelfMembers
-        : nonSelfMembers
-            .where(
-              (m) => m.displayName.toLowerCase().contains(lowerQuery),
-            )
-            .toList();
+    final query = widget.searchQuery;
+
+    // Recompute only when inputs change.
+    if (!identical(members, _cachedMembers) || query != _cachedQuery) {
+      _cachedMembers = members;
+      _cachedQuery = query;
+      NewDmPage.peopleFilterRecomputeCount++;
+
+      final nonSelfMembers = members.where((m) => !m.isSelf).toList();
+      // Hoist toLowerCase() outside iteration to avoid per-item allocation.
+      final lowerQuery = query.toLowerCase();
+      _cachedFiltered = query.isEmpty
+          ? nonSelfMembers
+          : nonSelfMembers
+              .where(
+                (m) => m.displayName.toLowerCase().contains(lowerQuery),
+              )
+              .toList();
+    }
 
     return _MemberList(
-      members: filtered,
-      openingId: openingId,
-      onSelect: onSelect,
+      members: _cachedFiltered!,
+      openingId: widget.openingId,
+      onSelect: widget.onSelect,
     );
   }
 }
