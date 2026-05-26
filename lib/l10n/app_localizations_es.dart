@@ -3303,4 +3303,19 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get voiceMessageScrubber => 'Control de mensaje de voz';
+
+  @override
+  String get voiceBubblePause => 'Pausar';
+
+  @override
+  String get voiceBubblePlay => 'Reproducir';
+
+  @override
+  String get memberListItemMessageTooltip => 'Mensaje';
+
+  @override
+  String get memberListItemAdminActionsTooltip => 'Acciones de administración';
+
+  @override
+  String get homeOverviewSemantics => 'Vista general';
 }

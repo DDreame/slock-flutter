@@ -53,7 +53,9 @@ class VoiceMessageBubble extends StatelessWidget {
           ),
           onPressed: onPlayPause,
           visualDensity: VisualDensity.compact,
-          tooltip: isPlaying ? 'Pause' : 'Play',
+          tooltip: isPlaying
+              ? context.l10n.voiceBubblePause
+              : context.l10n.voiceBubblePlay,
         ),
 
         // Waveform + duration.
