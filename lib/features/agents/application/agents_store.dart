@@ -18,8 +18,12 @@ class AgentsStore extends Notifier<AgentsState> {
   /// callers from each firing a separate load() call (#726).
   Completer<void>? _ensureLoadedCompleter;
 
+  bool _disposed = false;
+
   @override
   AgentsState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     return const AgentsState();
   }
 
@@ -237,9 +241,11 @@ class AgentsStore extends Notifier<AgentsState> {
       final repo = ref.read(agentsRepositoryProvider);
       await repo.startAgent(agentId);
     } on AppFailure {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems);
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -252,10 +258,12 @@ class AgentsStore extends Notifier<AgentsState> {
       state = state.copyWith(items: previousItems, failure: failure);
       throw failure;
     } finally {
-      state = state.copyWith(
-        controlActionAgentIds: {...state.controlActionAgentIds}
-          ..remove(agentId),
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          controlActionAgentIds: {...state.controlActionAgentIds}
+            ..remove(agentId),
+        );
+      }
     }
   }
 
@@ -276,9 +284,11 @@ class AgentsStore extends Notifier<AgentsState> {
       final repo = ref.read(agentsRepositoryProvider);
       await repo.stopAgent(agentId);
     } on AppFailure {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems);
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -291,10 +301,12 @@ class AgentsStore extends Notifier<AgentsState> {
       state = state.copyWith(items: previousItems, failure: failure);
       throw failure;
     } finally {
-      state = state.copyWith(
-        controlActionAgentIds: {...state.controlActionAgentIds}
-          ..remove(agentId),
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          controlActionAgentIds: {...state.controlActionAgentIds}
+            ..remove(agentId),
+        );
+      }
     }
   }
 
@@ -307,12 +319,15 @@ class AgentsStore extends Notifier<AgentsState> {
       final repo = ref.read(agentsRepositoryProvider);
       await repo.resetAgent(agentId, mode: 'session');
     } on AppFailure {
+      if (_disposed) return;
       rethrow;
     } finally {
-      state = state.copyWith(
-        controlActionAgentIds: {...state.controlActionAgentIds}
-          ..remove(agentId),
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          controlActionAgentIds: {...state.controlActionAgentIds}
+            ..remove(agentId),
+        );
+      }
     }
   }
 
