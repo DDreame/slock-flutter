@@ -311,6 +311,16 @@ class InboxItemTile extends StatelessWidget {
   /// through hundreds of inbox items.
   static final Map<String, DateFormat> _dateFormatCache = {};
 
+  /// Number of entries in the DateFormat cache. Exposed for testing to verify
+  /// that the cache grows only once per locale (not per build).
+  @visibleForTesting
+  static int get dateFormatCacheSize => _dateFormatCache.length;
+
+  /// Clears the DateFormat cache. Exposed for testing to ensure a clean
+  /// baseline between test runs.
+  @visibleForTesting
+  static void clearDateFormatCache() => _dateFormatCache.clear();
+
   static String _formatTime(DateTime time, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(time);

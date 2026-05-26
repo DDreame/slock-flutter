@@ -32,6 +32,12 @@ import 'package:slock_app/features/unread/application/unread_source_projection_s
 class ChannelsTabPage extends ConsumerStatefulWidget {
   const ChannelsTabPage({super.key});
 
+  /// Number of times the filter memoization cache was recomputed across
+  /// all instances. Exposed for testing to verify the memoization is
+  /// load-bearing (counter should NOT increment on unrelated rebuilds).
+  @visibleForTesting
+  static int filterRecomputeCount = 0;
+
   @override
   ConsumerState<ChannelsTabPage> createState() => _ChannelsTabPageState();
 }
@@ -199,6 +205,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                   .where((c) => c.name.toLowerCase().contains(queryLower))
                   .toList();
             }();
+      ChannelsTabPage.filterRecomputeCount++;
     }
     final displayList = _cachedDisplayList!;
 

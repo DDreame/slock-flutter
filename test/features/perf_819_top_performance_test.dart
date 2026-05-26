@@ -6,13 +6,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/application/channel_management_state.dart';
+import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/home/application/channel_sort_preference.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/presentation/widgets/inbox_item_tile.dart';
@@ -20,6 +25,9 @@ import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/application/machines_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
@@ -29,12 +37,18 @@ void main() {
   // Perf-1: InboxItemTile DateFormat caching
   // ===========================================================================
   group('Perf-1: InboxItemTile DateFormat caching', () {
+    setUp(() {
+      // Ensure a clean slate for cache size assertions.
+      InboxItemTile.clearDateFormatCache();
+    });
+
     testWidgets(
-      'dates older than 7 days render using cached MMMd formatter',
+      'first render with date >7d creates exactly one cache entry per locale',
       (tester) async {
-        // Date older than 7 days — will hit the DateFormat.MMMd branch.
         final oldDate = DateTime.now().subtract(const Duration(days: 10));
-        final expectedFormat = DateFormat.MMMd('en').format(oldDate);
+
+        expect(InboxItemTile.dateFormatCacheSize, 0,
+            reason: 'Cache should be empty before first render.');
 
         await tester.pumpWidget(_buildInboxTileApp(
           lastActivityAt: oldDate,
@@ -42,33 +56,54 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        // Verify the formatted date text is rendered.
+        // Verify date is rendered using MMMd format.
+        final expectedFormat = DateFormat.MMMd('en').format(oldDate);
+        expect(find.text(expectedFormat), findsOneWidget);
+
+        // Cache should have exactly 1 entry (for 'en' locale).
         expect(
-          find.text(expectedFormat),
-          findsOneWidget,
-          reason: 'Date >7 days should be formatted using DateFormat.MMMd',
+          InboxItemTile.dateFormatCacheSize,
+          1,
+          reason: 'After first render with en locale, cache should have '
+              'exactly 1 entry.',
         );
       },
     );
 
     testWidgets(
-      'multiple tiles with different dates >7d reuse the same DateFormat instance',
+      'subsequent renders reuse cached formatter — cache size stays at 1',
       (tester) async {
-        // Two dates older than 7 days — both should use the same cached
-        // DateFormat instance (same locale key).
         final date1 = DateTime.now().subtract(const Duration(days: 15));
         final date2 = DateTime.now().subtract(const Duration(days: 30));
-        final expected1 = DateFormat.MMMd('en').format(date1);
-        final expected2 = DateFormat.MMMd('en').format(date2);
 
-        await tester.pumpWidget(_buildMultiTileApp(
-          dates: [date1, date2],
+        expect(InboxItemTile.dateFormatCacheSize, 0);
+
+        // First render — creates cache entry.
+        await tester.pumpWidget(_buildInboxTileApp(
+          lastActivityAt: date1,
+          channelId: 'ch-1',
+        ));
+        await tester.pumpAndSettle();
+        expect(InboxItemTile.dateFormatCacheSize, 1);
+
+        // Second render with different date, same locale — cache must NOT grow.
+        // This proves the ??= assignment reuses the existing instance.
+        await tester.pumpWidget(_buildInboxTileApp(
+          lastActivityAt: date2,
+          channelId: 'ch-2',
         ));
         await tester.pumpAndSettle();
 
-        // Both tiles render correct MMMd output — proves cache returns
-        // correct results for different dates (same locale, same formatter).
-        expect(find.text(expected1), findsOneWidget);
+        expect(
+          InboxItemTile.dateFormatCacheSize,
+          1,
+          reason: 'Cache size must remain 1 for same locale — proves the '
+              'cached DateFormat instance is reused, not re-allocated. '
+              'This test FAILS if _dateFormatCache is removed.',
+        );
+
+        // Both dates should render correctly.
+        final expected2 = DateFormat.MMMd('en').format(date2);
         expect(find.text(expected2), findsOneWidget);
       },
     );
@@ -156,6 +191,99 @@ void main() {
           greaterThan(0),
           reason:
               'sortedChannelListProvider MUST rebuild when channels change.',
+        );
+      },
+    );
+
+    testWidgets(
+      'ChannelsTabPage filterRecomputeCount does not increment on '
+      'unrelated widget rebuild',
+      (tester) async {
+        final unreadState = StateProvider<UnreadSourceProjectionState>(
+          (ref) => UnreadSourceProjectionState(
+            channelUnreadCounts: {
+              const ChannelScopeId(
+                serverId: ServerScopeId('s1'),
+                value: 'ch-1',
+              ): 2,
+            },
+            isLoaded: true,
+          ),
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+            channelSortPreferenceProvider
+                .overrideWith(() => _FixedSortPreferenceNotifier()),
+            unreadSourceProjectionProvider.overrideWith(
+              (ref) => ref.watch(unreadState),
+            ),
+            channelManagementStoreProvider
+                .overrideWith(() => _FakeChannelManagementStore()),
+            channelMutedIdsProvider.overrideWith((ref) => <String>{}),
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Reset counter before test.
+        ChannelsTabPage.filterRecomputeCount = 0;
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: GoRouter(
+                initialLocation: '/channels',
+                routes: [
+                  GoRoute(
+                    path: '/channels',
+                    builder: (_, __) => const ChannelsTabPage(),
+                  ),
+                ],
+              ),
+              theme: AppTheme.light,
+              locale: const Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Channel should be rendered.
+        expect(find.text('general'), findsOneWidget);
+
+        // Record filter count after initial render.
+        final countAfterInitial = ChannelsTabPage.filterRecomputeCount;
+        expect(countAfterInitial, greaterThan(0),
+            reason: 'Initial render must compute the filter at least once.');
+
+        // Change unread counts — triggers widget rebuild via
+        // unreadSourceProjectionProvider.select((s) => s.channelUnreadCounts)
+        // but does NOT change sorted list identity.
+        container.read(unreadState.notifier).state =
+            UnreadSourceProjectionState(
+          channelUnreadCounts: {
+            const ChannelScopeId(
+              serverId: ServerScopeId('s1'),
+              value: 'ch-1',
+            ): 5,
+          },
+          isLoaded: true,
+        );
+        await tester.pumpAndSettle();
+
+        // Filter counter must NOT have incremented — memoization held
+        // because sorted list identity was unchanged.
+        expect(
+          ChannelsTabPage.filterRecomputeCount,
+          countAfterInitial,
+          reason: 'Filter must NOT recompute when only channelUnreadCounts '
+              'changes. The identical(sorted, _cachedSorted) check should '
+              'skip recomputation. This test would FAIL if the memoization '
+              'were removed.',
         );
       },
     );
@@ -278,36 +406,6 @@ Widget _buildInboxTileApp({
   );
 }
 
-Widget _buildMultiTileApp({required List<DateTime> dates}) {
-  return MaterialApp(
-    theme: AppTheme.light,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    locale: const Locale('en'),
-    home: Scaffold(
-      body: ListView(
-        children: [
-          for (var i = 0; i < dates.length; i++)
-            InboxItemTile(
-              projection: ConversationProjection(
-                kind: ConversationProjectionKind.channel,
-                id: 'ch-$i',
-                title: 'Channel $i',
-                previewText: 'Preview $i',
-                unreadCount: 1,
-                senderName: 'Sender $i',
-                lastActivityAt: dates[i],
-                channelId: 'ch-$i',
-              ),
-              isMentioned: false,
-              onTap: () {},
-            ),
-        ],
-      ),
-    ),
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Test harness: Perf-2 (Channels filter memoization)
 // ---------------------------------------------------------------------------
@@ -339,6 +437,11 @@ class _FakeHomeListStore extends HomeListStore {
 class _FixedSortPreferenceNotifier extends ChannelSortPreferenceNotifier {
   @override
   ChannelSortPreference build() => ChannelSortPreference.recentActivity;
+}
+
+class _FakeChannelManagementStore extends ChannelManagementStore {
+  @override
+  ChannelManagementState build() => const ChannelManagementState();
 }
 
 // ---------------------------------------------------------------------------
