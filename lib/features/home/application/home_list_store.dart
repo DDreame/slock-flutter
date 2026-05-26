@@ -208,8 +208,6 @@ class HomeListStore extends Notifier<HomeListState> {
         };
       }
 
-      _hydrateUnreadCounts(snapshot);
-
       // Emit success with workspace data immediately — don't wait
       // for agents/tasks/machines/threads.
       _emitPersonalizedState(
@@ -499,7 +497,6 @@ class HomeListStore extends Notifier<HomeListState> {
           };
         }
 
-        _hydrateUnreadCounts(snapshot);
         _restoreRefreshRealtimePreviewIds(preRefreshRealtimePreviewIds);
 
         // Emit success with Tier 1 data, clear refreshing indicator.
@@ -529,10 +526,6 @@ class HomeListStore extends Notifier<HomeListState> {
       ..addAll(preRefreshIds)
       ..addAll(duringRefreshIds);
   }
-
-  /// No-op: ChannelUnreadStore hydration retired in favour of
-  /// unreadSourceProjectionProvider (derives from InboxStore).
-  void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {}
 
   void addDirectMessage(HomeDirectMessageSummary dm) {
     if (state.status != HomeListStatus.success) return;

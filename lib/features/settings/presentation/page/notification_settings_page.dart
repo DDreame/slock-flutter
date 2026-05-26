@@ -249,8 +249,7 @@ class _DiagnosticsEventsList extends StatelessWidget {
     final entries = diagnostics.entries
         .where((e) => e.tag == 'notification')
         .toList()
-        .reversed
-        .toList();
+        .reversed;
 
     if (entries.isEmpty) {
       return Card(
