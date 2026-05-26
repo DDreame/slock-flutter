@@ -45,15 +45,22 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(machinesRealtimeBindingProvider);
-    final state = ref.watch(machinesStoreProvider);
+    // PERF-819: Narrow watch to only the fields used by the parent scaffold
+    // (status, isCreating, failure). Per-item busy states only rebuild the
+    // success view, not the AppBar/FAB.
+    final (:status, :isCreating, :failure) = ref.watch(
+      machinesStoreProvider.select(
+        (s) => (status: s.status, isCreating: s.isCreating, failure: s.failure),
+      ),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.machinesPageTitle)),
-      floatingActionButton: state.status == MachinesStatus.success
+      floatingActionButton: status == MachinesStatus.success
           ? FloatingActionButton.extended(
               key: const ValueKey('machines-create-fab'),
-              onPressed: state.isCreating ? null : _createMachine,
-              icon: state.isCreating
+              onPressed: isCreating ? null : _createMachine,
+              icon: isCreating
                   ? const SizedBox(
                       width: 18,
                       height: 18,
@@ -63,18 +70,17 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
               label: Text(context.l10n.machinesAddButton),
             )
           : null,
-      body: switch (state.status) {
+      body: switch (status) {
         MachinesStatus.initial || MachinesStatus.loading => const Center(
             key: ValueKey('machines-loading'),
             child: CircularProgressIndicator(),
           ),
         MachinesStatus.failure => _MachinesFailureView(
-            message: state.failure?.userMessage(context.l10n) ??
+            message: failure?.userMessage(context.l10n) ??
                 context.l10n.machinesLoadFailed,
             onRetry: ref.read(machinesStoreProvider.notifier).load,
           ),
         MachinesStatus.success => _MachinesSuccessView(
-            state: state,
             serverId: ref.read(currentMachinesServerIdProvider),
             onRefresh: ref.read(machinesStoreProvider.notifier).load,
             onCreate: _createMachine,
@@ -332,9 +338,8 @@ class _MachinesFailureView extends StatelessWidget {
   }
 }
 
-class _MachinesSuccessView extends StatelessWidget {
+class _MachinesSuccessView extends ConsumerWidget {
   const _MachinesSuccessView({
-    required this.state,
     required this.serverId,
     required this.onRefresh,
     required this.onCreate,
@@ -343,7 +348,6 @@ class _MachinesSuccessView extends StatelessWidget {
     required this.onDelete,
   });
 
-  final MachinesState state;
   final ServerScopeId serverId;
   final Future<void> Function() onRefresh;
   final Future<void> Function() onCreate;
@@ -352,7 +356,8 @@ class _MachinesSuccessView extends StatelessWidget {
   final Future<void> Function(MachineItem machine) onDelete;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(machinesStoreProvider);
     final l10n = context.l10n;
     final connectedCount = state.items.where((item) => item.isOnline).length;
 

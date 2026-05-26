@@ -32,6 +32,12 @@ import 'package:slock_app/features/unread/application/unread_source_projection_s
 class ChannelsTabPage extends ConsumerStatefulWidget {
   const ChannelsTabPage({super.key});
 
+  /// Number of times the filter memoization cache was recomputed across
+  /// all instances. Exposed for testing to verify the memoization is
+  /// load-bearing (counter should NOT increment on unrelated rebuilds).
+  @visibleForTesting
+  static int filterRecomputeCount = 0;
+
   @override
   ConsumerState<ChannelsTabPage> createState() => _ChannelsTabPageState();
 }
@@ -39,6 +45,13 @@ class ChannelsTabPage extends ConsumerStatefulWidget {
 class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  // PERF-819: Memoize filtered list — only recompute when search query or
+  // sorted list identity changes, not on unrelated rebuilds (e.g. unread
+  // count updates).
+  List<HomeChannelSummary>? _cachedSorted;
+  String _cachedSearchQuery = '';
+  List<HomeChannelSummary>? _cachedDisplayList;
 
   @override
   void dispose() {
@@ -179,15 +192,22 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     // the channel list or sort preference changes, NOT on unread count updates.
     final sorted = ref.watch(sortedChannelListProvider);
 
-    // Apply search filter.
-    final displayList = _searchQuery.isEmpty
-        ? sorted
-        : () {
-            final queryLower = _searchQuery.toLowerCase();
-            return sorted
-                .where((c) => c.name.toLowerCase().contains(queryLower))
-                .toList();
-          }();
+    // PERF-819: Memoized filter — skip recomputation when inputs unchanged.
+    if (!identical(sorted, _cachedSorted) ||
+        _searchQuery != _cachedSearchQuery) {
+      _cachedSorted = sorted;
+      _cachedSearchQuery = _searchQuery;
+      _cachedDisplayList = _searchQuery.isEmpty
+          ? sorted
+          : () {
+              final queryLower = _searchQuery.toLowerCase();
+              return sorted
+                  .where((c) => c.name.toLowerCase().contains(queryLower))
+                  .toList();
+            }();
+      ChannelsTabPage.filterRecomputeCount++;
+    }
+    final displayList = _cachedDisplayList!;
 
     final pinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
 
