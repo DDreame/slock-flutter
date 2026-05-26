@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_con
 import 'package:slock_app/features/link_preview/application/link_preview_store.dart';
 import 'package:slock_app/features/link_preview/data/link_metadata.dart';
 import 'package:slock_app/features/link_preview/data/link_preview_service.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   ConversationMessageSummary makeMessage(String content) {
@@ -42,6 +43,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message:
@@ -83,6 +86,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message: makeMessage('Visit https://example.com'),
@@ -114,6 +119,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message: makeMessage('Hello, no links here!'),
@@ -145,6 +152,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message: makeMessage('Check https://no-og-tags.invalid'),
@@ -180,6 +189,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message: makeMessage('Check https://no-og-tags.invalid'),
@@ -215,6 +226,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message: makeMessage('Check https://failing-server.invalid'),
@@ -254,6 +267,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: MessageContentWidget(
                 message: makeMessage('Visit https://example.com'),

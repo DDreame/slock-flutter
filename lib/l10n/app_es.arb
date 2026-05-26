@@ -1193,5 +1193,9 @@
   "voiceBubblePlay": "Reproducir",
   "memberListItemMessageTooltip": "Mensaje",
   "memberListItemAdminActionsTooltip": "Acciones de administración",
-  "homeOverviewSemantics": "Vista general"
+  "homeOverviewSemantics": "Vista general",
+  "linkPreviewSemantics": "Vista previa del enlace: {domain}",
+  "textPreviewShowMore": "Mostrar más",
+  "textPreviewShowLess": "Mostrar menos",
+  "profileAvatarEditSemantics": "Editar avatar de perfil"
 }

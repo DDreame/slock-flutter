@@ -3167,4 +3167,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeOverviewSemantics => '首页概览';
+
+  @override
+  String linkPreviewSemantics(String domain) {
+    return '链接预览：$domain';
+  }
+
+  @override
+  String get textPreviewShowMore => '展开更多';
+
+  @override
+  String get textPreviewShowLess => '收起';
+
+  @override
+  String get profileAvatarEditSemantics => '编辑头像';
 }

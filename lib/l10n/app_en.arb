@@ -1349,5 +1349,10 @@
   "voiceBubblePlay": "Play",
   "memberListItemMessageTooltip": "Message",
   "memberListItemAdminActionsTooltip": "Member admin actions",
-  "homeOverviewSemantics": "Home overview"
+  "homeOverviewSemantics": "Home overview",
+  "linkPreviewSemantics": "Link preview: {domain}",
+  "@linkPreviewSemantics": { "placeholders": { "domain": { "type": "String" } } },
+  "textPreviewShowMore": "Show more",
+  "textPreviewShowLess": "Show less",
+  "profileAvatarEditSemantics": "Edit profile avatar"
 }

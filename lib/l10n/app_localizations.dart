@@ -6154,6 +6154,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Home overview'**
   String get homeOverviewSemantics;
+
+  /// No description provided for @linkPreviewSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Link preview: {domain}'**
+  String linkPreviewSemantics(String domain);
+
+  /// No description provided for @textPreviewShowMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Show more'**
+  String get textPreviewShowMore;
+
+  /// No description provided for @textPreviewShowLess.
+  ///
+  /// In en, this message translates to:
+  /// **'Show less'**
+  String get textPreviewShowLess;
+
+  /// No description provided for @profileAvatarEditSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile avatar'**
+  String get profileAvatarEditSemantics;
 }
 
 class _AppLocalizationsDelegate

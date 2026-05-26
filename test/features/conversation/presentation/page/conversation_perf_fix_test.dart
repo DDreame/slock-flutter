@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/link_preview/data/link_metadata.dart';
 import 'package:slock_app/features/link_preview/presentation/widgets/link_preview_card.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #538: 消息列表性能修复 — Phase A
@@ -159,6 +160,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
             body: Center(
               child: LinkPreviewCard(
