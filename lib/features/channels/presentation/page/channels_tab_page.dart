@@ -53,6 +53,11 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   String _cachedSearchQuery = '';
   List<HomeChannelSummary>? _cachedDisplayList;
 
+  // PERF-830: Memoize pinnedIds — only recompute when pinnedChannels identity
+  // changes, not on every rebuild.
+  List<HomeChannelSummary>? _cachedPinnedChannels;
+  Set<String>? _cachedPinnedIds;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -209,7 +214,12 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     }
     final displayList = _cachedDisplayList!;
 
-    final pinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
+    // PERF-830: Memoize pinnedIds — only recompute when list identity changes.
+    if (!identical(pinnedChannels, _cachedPinnedChannels)) {
+      _cachedPinnedChannels = pinnedChannels;
+      _cachedPinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
+    }
+    final pinnedIds = _cachedPinnedIds!;
 
     if (displayList.isEmpty && _searchQuery.isEmpty) {
       return ListView(

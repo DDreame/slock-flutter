@@ -10,7 +10,6 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
-import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -74,10 +73,6 @@ class ConversationMessageList extends ConsumerWidget {
             : -1;
 
     final toLocal = ref.watch(dateSeparatorToLocalProvider);
-
-    // #812: Capture current time once per build frame for all message cards.
-    // Avoids N per-card DateTime.now() syscalls.
-    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     return Semantics(
       label: context.l10n.conversationMessageListSemantics,
@@ -179,7 +174,6 @@ class ConversationMessageList extends ConsumerWidget {
                   highlightQuery: state.searchQuery,
                   isCurrentSearchMatch: isCurrentSearchMatch,
                   isQuoteJumpHighlighted: isQuoteJumpHighlighted,
-                  now: now,
                   onScrollToMessage: onScrollToMessage != null
                       ? (messageId) =>
                           onScrollToMessage!(messageId, state.messages)
@@ -377,8 +371,14 @@ String _formatDateLabel(
   if (_isSameDay(date, now, toLocal)) return l10n.dateSeparatorToday;
   final yesterday = now.subtract(const Duration(days: 1));
   if (_isSameDay(date, yesterday, toLocal)) return l10n.dateSeparatorYesterday;
-  return DateFormat.MMMEd(locale).format(toLocal(date));
+  final formatter =
+      _dateSeparatorFormatCache[locale] ??= DateFormat.MMMEd(locale);
+  return formatter.format(toLocal(date));
 }
+
+/// Cached [DateFormat] instances keyed by locale. Avoids allocating a new
+/// formatter per separator build — significant when scrolling long histories.
+final Map<String, DateFormat> _dateSeparatorFormatCache = {};
 
 class _ConversationHistoryHeader extends StatelessWidget {
   const _ConversationHistoryHeader({
