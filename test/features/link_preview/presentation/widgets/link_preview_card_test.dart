@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/link_preview/data/link_metadata.dart';
 import 'package:slock_app/features/link_preview/presentation/widgets/link_preview_card.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   Widget buildCard({
@@ -11,6 +12,8 @@ void main() {
   }) {
     return MaterialApp(
       theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: LinkPreviewCard(
           metadata: metadata,
