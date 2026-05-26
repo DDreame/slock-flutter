@@ -6,11 +6,14 @@
 //   hardcoded in English.
 // Item 3 (LOW): home_page.dart Semantics(label: 'Home overview') hardcoded.
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
@@ -80,6 +83,7 @@ void main() {
     }) {
       return MaterialApp(
         locale: locale,
+        theme: AppTheme.light,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -138,8 +142,7 @@ void main() {
   group('Item 3 — Home overview semantics localization', () {
     testWidgets('home overview semantics label is not hardcoded English',
         (tester) async {
-      // This test verifies the ARB key exists and is wired.
-      // We verify by checking the generated AppLocalizations class.
+      // Verify the ARB keys produce correct localized values.
       final enL10n = await AppLocalizations.delegate.load(const Locale('en'));
       expect(enL10n.homeOverviewSemantics, 'Home overview');
 
@@ -148,6 +151,29 @@ void main() {
 
       final esL10n = await AppLocalizations.delegate.load(const Locale('es'));
       expect(esL10n.homeOverviewSemantics, 'Vista general');
+    });
+
+    test('home_page.dart uses l10n key, not hardcoded string', () {
+      // Load-bearing: if someone reverts to hardcoded 'Home overview',
+      // this test fails because the source will contain the literal string.
+      final source = File(
+        'lib/features/home/presentation/page/home_page.dart',
+      ).readAsStringSync();
+
+      // Must NOT contain the hardcoded English string in a Semantics label.
+      expect(
+        source.contains("label: 'Home overview'"),
+        isFalse,
+        reason:
+            'home_page.dart must use l10n.homeOverviewSemantics, not a hardcoded string',
+      );
+
+      // Must contain the l10n reference.
+      expect(
+        source.contains('homeOverviewSemantics'),
+        isTrue,
+        reason: 'home_page.dart must reference homeOverviewSemantics l10n key',
+      );
     });
   });
 }
