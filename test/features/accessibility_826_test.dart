@@ -18,7 +18,10 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
 import 'package:slock_app/features/link_preview/data/link_metadata.dart';
 import 'package:slock_app/features/link_preview/presentation/widgets/link_preview_card.dart';
+import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   // ===========================================================================
@@ -152,26 +155,28 @@ void main() {
   });
 
   // ===========================================================================
-  // 3. Profile avatar edit — button semantics
+  // 3. Profile avatar edit — button semantics (real ProfilePage)
   // ===========================================================================
 
   group('#826 — Profile avatar edit button semantics', () {
-    testWidgets('avatar edit has button semantics', (tester) async {
-      final semanticsHandle = tester.ensureSemantics();
-
-      // Uses isolated fake that mirrors production structure.
-      // Phase B adds Semantics wrapper to real profile_page.dart;
-      // this test validates the expected semantics contract.
-      await tester.pumpWidget(
-        MaterialApp(
+    Widget buildProfilePage() {
+      return ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+        ],
+        child: MaterialApp(
           theme: AppTheme.light,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Center(child: _FakeAvatarEditButton(onTap: () {})),
-          ),
+          home: const ProfilePage(),
         ),
       );
+    }
+
+    testWidgets('avatar edit button has button semantics', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+
+      await tester.pumpWidget(buildProfilePage());
       await tester.pumpAndSettle();
 
       final editButton =
@@ -184,20 +189,10 @@ void main() {
       semanticsHandle.dispose();
     });
 
-    testWidgets('avatar edit has accessible label', (tester) async {
+    testWidgets('avatar edit button has accessible label', (tester) async {
       final semanticsHandle = tester.ensureSemantics();
 
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('en'),
-          theme: AppTheme.light,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Center(child: _FakeAvatarEditButton(onTap: () {})),
-          ),
-        ),
-      );
+      await tester.pumpWidget(buildProfilePage());
       await tester.pumpAndSettle();
 
       final editButton =
@@ -212,42 +207,16 @@ void main() {
 }
 
 // =============================================================================
-// Test helper — mirrors production profile_page.dart avatar edit overlay
+// Test helpers
 // =============================================================================
 
-/// Mimics the production avatar edit overlay from profile_page.dart (lines 221-241).
-/// Phase B will add Semantics wrapper to the real widget; this fake mirrors that
-/// structure so the test validates the expected accessibility contract.
-class _FakeAvatarEditButton extends StatelessWidget {
-  const _FakeAvatarEditButton({required this.onTap});
-
-  final VoidCallback onTap;
-
+/// Fake session store returning self-profile state (same as profile_page_test).
+class _FakeSessionStore extends SessionStore {
   @override
-  Widget build(BuildContext context) {
-    // Mirror production structure: Stack > Positioned > GestureDetector
-    // with the Semantics wrapper that Phase B will add.
-    return Stack(
-      children: [
-        const SizedBox(width: 80, height: 80), // avatar placeholder
-        Positioned(
-          right: 0,
-          bottom: 0,
-          child: Semantics(
-            button: true,
-            label: 'Edit profile avatar',
-            child: GestureDetector(
-              key: const ValueKey('profile-avatar-edit-button'),
-              onTap: onTap,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(shape: BoxShape.circle),
-                child: const Icon(Icons.camera_alt, size: 16),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-123',
+        displayName: 'Alice',
+        token: 'test-token',
+      );
 }
