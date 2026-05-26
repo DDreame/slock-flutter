@@ -11,6 +11,10 @@ import 'package:slock_app/stores/base_url/base_url_settings_store.dart';
 class BaseUrlSettingsPage extends ConsumerStatefulWidget {
   const BaseUrlSettingsPage({super.key});
 
+  /// Build-count probe for verifying .select() rebuild isolation in tests.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
   @override
   ConsumerState<BaseUrlSettingsPage> createState() =>
       _BaseUrlSettingsPageState();
@@ -37,7 +41,13 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(baseUrlSettingsStoreProvider);
+    BaseUrlSettingsPage.debugBuildCount++;
+    final (:apiTestResult, :realtimeTestResult, :isTesting) =
+        ref.watch(baseUrlSettingsStoreProvider.select((s) => (
+              apiTestResult: s.apiTestResult,
+              realtimeTestResult: s.realtimeTestResult,
+              isTesting: s.isTesting,
+            )));
     final l10n = context.l10n;
     final colors = Theme.of(context).extension<AppColors>()!;
 
@@ -76,13 +86,13 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
                         .setApiBaseUrl(value);
                   },
                 ),
-                if (state.apiTestResult != null) ...[
+                if (apiTestResult != null) ...[
                   const SizedBox(height: AppSpacing.sm),
                   _ConnectionResultChip(
                     key: const ValueKey(
                       'base-url-api-result',
                     ),
-                    result: state.apiTestResult!,
+                    result: apiTestResult,
                     colors: colors,
                     l10n: l10n,
                   ),
@@ -122,13 +132,13 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
                         .setRealtimeUrl(value);
                   },
                 ),
-                if (state.realtimeTestResult != null) ...[
+                if (realtimeTestResult != null) ...[
                   const SizedBox(height: AppSpacing.sm),
                   _ConnectionResultChip(
                     key: const ValueKey(
                       'base-url-realtime-result',
                     ),
-                    result: state.realtimeTestResult!,
+                    result: realtimeTestResult,
                     colors: colors,
                     l10n: l10n,
                   ),
@@ -146,8 +156,8 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
                   key: const ValueKey(
                     'base-url-test-connection',
                   ),
-                  onPressed: state.isTesting ? null : _testConnection,
-                  icon: state.isTesting
+                  onPressed: isTesting ? null : _testConnection,
+                  icon: isTesting
                       ? const SizedBox(
                           width: 16,
                           height: 16,
@@ -157,7 +167,7 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
                         )
                       : const Icon(Icons.wifi_tethering),
                   label: Text(
-                    state.isTesting
+                    isTesting
                         ? l10n.baseUrlTesting
                         : l10n.baseUrlTestConnection,
                   ),
@@ -171,7 +181,7 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
               Expanded(
                 child: FilledButton.icon(
                   key: const ValueKey('base-url-save'),
-                  onPressed: state.isTesting ? null : _save,
+                  onPressed: isTesting ? null : _save,
                   icon: const Icon(Icons.save),
                   label: Text(l10n.baseUrlSave),
                 ),
@@ -186,7 +196,7 @@ class _BaseUrlSettingsPageState extends ConsumerState<BaseUrlSettingsPage> {
                   key: const ValueKey(
                     'base-url-restore-defaults',
                   ),
-                  onPressed: state.isTesting ? null : _restoreDefaults,
+                  onPressed: isTesting ? null : _restoreDefaults,
                   icon: const Icon(Icons.restore),
                   label: Text(l10n.baseUrlRestoreDefaults),
                 ),
