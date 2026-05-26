@@ -110,6 +110,29 @@ void main() {
       completer.completeError(const NetworkFailure(message: 'timeout'));
       await startFuture;
     });
+
+    test('dispose during resetAgent does not throw StateError', () async {
+      final completer = Completer<void>();
+      final repo = _DelayedAgentsRepository(resetCompleter: completer);
+
+      container = ProviderContainer(overrides: [
+        agentsRepositoryProvider.overrideWithValue(repo),
+        agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+      ]);
+      sub = container.listen(agentsStoreProvider, (_, __) {});
+
+      repo.listResult = [_makeAgent()];
+      await store().load();
+
+      final resetFuture = store().resetAgent('agent-1');
+
+      sub.close();
+      container.dispose();
+
+      // Complete the reset — catch + finally blocks should bail out.
+      completer.completeError(const NetworkFailure(message: 'timeout'));
+      await resetFuture;
+    });
   });
 
   // ===========================================================================
@@ -218,10 +241,15 @@ AgentItem _makeAgent({
 // =============================================================================
 
 class _DelayedAgentsRepository implements AgentsRepository {
-  _DelayedAgentsRepository({this.startCompleter, this.stopCompleter});
+  _DelayedAgentsRepository({
+    this.startCompleter,
+    this.stopCompleter,
+    this.resetCompleter,
+  });
 
   final Completer<void>? startCompleter;
   final Completer<void>? stopCompleter;
+  final Completer<void>? resetCompleter;
   List<AgentItem> listResult = [];
 
   @override
@@ -236,7 +264,8 @@ class _DelayedAgentsRepository implements AgentsRepository {
       stopCompleter?.future ?? Future.value();
 
   @override
-  Future<void> resetAgent(String agentId, {required String mode}) async {}
+  Future<void> resetAgent(String agentId, {required String mode}) =>
+      resetCompleter?.future ?? Future.value();
 
   @override
   Future<List<AgentActivityLogEntry>> getActivityLog(
