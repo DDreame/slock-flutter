@@ -22,6 +22,11 @@ import 'package:slock_app/l10n/l10n.dart';
 class NewDmPage extends StatelessWidget {
   const NewDmPage({super.key, required this.serverId});
 
+  /// #820 Item 3: Counter incremented each time the People tab recomputes its
+  /// filtered member list. Used by load-bearing tests to prove memoization.
+  @visibleForTesting
+  static int peopleFilterRecomputeCount = 0;
+
   final ServerScopeId serverId;
 
   @override
@@ -267,6 +272,7 @@ class _PeopleTabState extends ConsumerState<_PeopleTab> {
     if (!identical(members, _cachedMembers) || query != _cachedQuery) {
       _cachedMembers = members;
       _cachedQuery = query;
+      NewDmPage.peopleFilterRecomputeCount++;
 
       final nonSelfMembers = members.where((m) => !m.isSelf).toList();
       // Hoist toLowerCase() outside iteration to avoid per-item allocation.
