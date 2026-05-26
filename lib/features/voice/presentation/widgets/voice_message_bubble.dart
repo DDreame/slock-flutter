@@ -66,6 +66,10 @@ class VoiceMessageBubble extends StatelessWidget {
               Semantics(
                 label: context.l10n.voiceMessageScrubber,
                 value: '${(progress * 100).round()}%',
+                increasedValue:
+                    '${((progress + 0.1).clamp(0.0, 1.0) * 100).round()}%',
+                decreasedValue:
+                    '${((progress - 0.1).clamp(0.0, 1.0) * 100).round()}%',
                 slider: true,
                 onIncrease: () => onSeek((progress + 0.1).clamp(0.0, 1.0)),
                 onDecrease: () => onSeek((progress - 0.1).clamp(0.0, 1.0)),
