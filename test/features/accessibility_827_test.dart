@@ -214,8 +214,12 @@ void main() {
 
       // Must NOT show English "Unread" in ZH locale.
       expect(find.text('Unread'), findsNothing);
-      // Must show the ZH localized label.
-      expect(find.text(l10n.unreadFilterLabel), findsOneWidget);
+      // Must show the ZH localized label inside the filter chip.
+      final chipText = find.descendant(
+        of: find.byKey(const ValueKey('unread-filter-toggle')),
+        matching: find.text(l10n.unreadFilterLabel),
+      );
+      expect(chipText, findsOneWidget);
     });
 
     testWidgets('"All" chip is localized in ZH', (tester) async {
@@ -226,8 +230,12 @@ void main() {
 
       // Must NOT show English "All" in ZH locale.
       expect(find.text('All'), findsNothing);
-      // Must show the ZH localized label.
-      expect(find.text(l10n.allFilterLabel), findsOneWidget);
+      // Must show the ZH localized label inside the filter chip.
+      final chipText = find.descendant(
+        of: find.byKey(const ValueKey('unread-filter-toggle')),
+        matching: find.text(l10n.allFilterLabel),
+      );
+      expect(chipText, findsOneWidget);
     });
   });
 }
