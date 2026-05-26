@@ -11,21 +11,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agents_state.dart';
+import 'package:slock_app/features/agents/application/agents_store.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/application/login_controller.dart';
 import 'package:slock_app/features/auth/application/register_controller.dart';
 import 'package:slock_app/features/auth/presentation/page/login_page.dart';
 import 'package:slock_app/features/auth/presentation/page/register_page.dart';
 import 'package:slock_app/features/auth/presentation/page/reset_password_page.dart';
+import 'package:slock_app/features/channels/data/channel_member.dart';
+import 'package:slock_app/features/channels/data/channel_member_repository.dart';
+import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
+import 'package:slock_app/features/channels/presentation/page/channel_members_page.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/search/application/search_history_store.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/application/search_store.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/features/servers/application/server_list_state.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/features/home/application/home_list_state.dart';
-import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   late AppLocalizations l10n;
@@ -175,6 +189,66 @@ void main() {
       expect(find.byTooltip(l10n.shareTargetCancelTooltip), findsOneWidget);
     });
   });
+
+  // ===========================================================================
+  // 6. Agents page — edit and delete tooltips on detail view
+  // ===========================================================================
+
+  group('#828 — AgentsPage edit/delete tooltips', () {
+    testWidgets('agent detail shows edit and delete tooltips', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsStoreProvider.overrideWith(() => _FakeAgentsStore()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const AgentsPage(agentId: 'test-agent-id'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(l10n.agentEditTooltip), findsOneWidget);
+      expect(find.byTooltip(l10n.agentDeleteTooltip), findsOneWidget);
+    });
+  });
+
+  // ===========================================================================
+  // 7. Channel members page — add and remove member tooltips
+  // ===========================================================================
+
+  group('#828 — ChannelMembersPage add/remove tooltips', () {
+    testWidgets('channel members page shows add and remove tooltips',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            channelMemberRepositoryProvider
+                .overrideWithValue(_FakeChannelMemberRepo()),
+            serverListStoreProvider
+                .overrideWith(() => _FakeServerListStore()),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ChannelMembersPage(
+              serverId: 'test-server',
+              channelId: 'test-channel',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip(l10n.channelMembersAddTooltip), findsOneWidget);
+      expect(find.byTooltip(l10n.channelMembersRemoveTooltip), findsOneWidget);
+    });
+  });
 }
 
 // =============================================================================
@@ -210,4 +284,88 @@ class _FakeHomeListStore extends HomeListStore {
 class _FakeShareIntentStore extends ShareIntentStore {
   @override
   SharedContent? build() => null;
+}
+
+class _FakeAgentsStore extends AgentsStore {
+  @override
+  AgentsState build() => const AgentsState(
+        status: AgentsStatus.success,
+        items: [
+          AgentItem(
+            id: 'test-agent-id',
+            name: 'test-agent',
+            model: 'claude',
+            runtime: 'daemon',
+            status: 'running',
+            activity: 'idle',
+          ),
+        ],
+      );
+}
+
+class _FakeServerListStore extends ServerListStore {
+  @override
+  ServerListState build() => const ServerListState(
+        status: ServerListStatus.success,
+        servers: [
+          ServerSummary(
+            id: 'test-server',
+            name: 'Test Server',
+            role: 'admin',
+          ),
+        ],
+      );
+}
+
+class _FakeSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'current-user-id',
+      );
+}
+
+class _FakeChannelMemberRepo implements ChannelMemberRepository {
+  @override
+  Future<List<ChannelMember>> listMembers(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    return [
+      ChannelMember(
+        id: 'member-1',
+        channelId: channelId,
+        agentId: 'agent-1',
+        agentName: 'TestAgent',
+      ),
+    ];
+  }
+
+  @override
+  Future<void> addHumanMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> addAgentMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String agentId,
+  }) async {}
+
+  @override
+  Future<void> removeHumanMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> removeAgentMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String agentId,
+  }) async {}
 }
