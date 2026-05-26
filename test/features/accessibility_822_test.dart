@@ -6,17 +6,22 @@
 //   hardcoded in English.
 // Item 3 (LOW): home_page.dart Semantics(label: 'Home overview') hardcoded.
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/features/servers/application/server_list_state.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/core/core.dart';
 
 void main() {
   // ===========================================================================
@@ -163,30 +168,41 @@ void main() {
       expect(esL10n.homeOverviewSemantics, 'Vista general');
     });
 
-    test('home_page.dart Semantics uses l10n.homeOverviewSemantics', () {
-      // Load-bearing: reads the source and asserts the Semantics label
-      // is wired to the specific l10n key. Fails if:
-      // - Someone reverts to hardcoded 'Home overview'
-      // - Someone wires the wrong l10n key
-      final source = File(
-        'lib/features/home/presentation/page/home_page.dart',
-      ).readAsStringSync();
+    testWidgets(
+        'HomePage renders Semantics with l10n.homeOverviewSemantics in ZH',
+        (tester) async {
+      // Suppress errors from child widgets that need unrelated providers.
+      final originalErrorBuilder = ErrorWidget.builder;
+      ErrorWidget.builder =
+          (details) => const SizedBox.shrink(key: ValueKey('error-widget'));
 
-      // Must NOT contain the hardcoded English string in a label.
-      expect(
-        source.contains("label: 'Home overview'"),
-        isFalse,
-        reason:
-            'home_page.dart must not use a hardcoded string in Semantics label',
-      );
+      final semanticsHandle = tester.ensureSemantics();
 
-      // Must contain the exact l10n wiring pattern.
-      expect(
-        RegExp(r'label:\s*l10n\.homeOverviewSemantics').hasMatch(source),
-        isTrue,
-        reason:
-            'home_page.dart must use label: l10n.homeOverviewSemantics in the Semantics widget',
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+            activeServerScopeIdProvider
+                .overrideWithValue(const ServerScopeId('test-server')),
+            serverListStoreProvider.overrideWith(() => _FakeServerListStore()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomePage(),
+          ),
+        ),
       );
+      // Use pump() instead of pumpAndSettle() — child errors may loop.
+      await tester.pump();
+
+      // The Semantics label should be the ZH translation, not hardcoded English.
+      expect(find.bySemanticsLabel('首页概览'), findsOneWidget);
+
+      semanticsHandle.dispose();
+      ErrorWidget.builder = originalErrorBuilder;
     });
   });
 }
@@ -195,4 +211,21 @@ void main() {
 class _FakePresenceStore extends PresenceStore {
   @override
   PresenceState build() => const PresenceState();
+}
+
+class _FakeHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => HomeListState(status: HomeListStatus.success);
+
+  @override
+  Future<void> refresh({String reason = 'pullToRefresh'}) async {}
+
+  @override
+  Future<void> retry() async {}
+}
+
+class _FakeServerListStore extends ServerListStore {
+  @override
+  ServerListState build() =>
+      const ServerListState(status: ServerListStatus.success);
 }
