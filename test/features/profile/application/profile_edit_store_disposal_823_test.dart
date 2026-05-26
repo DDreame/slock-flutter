@@ -186,6 +186,52 @@ void main() {
       sessionCompleter.complete();
       await saveFuture;
     });
+
+    // -------------------------------------------------------------------------
+    // 6. SessionStore survives autoDispose — must rollback after disposal
+    // -------------------------------------------------------------------------
+    test('dispose mid-save still rolls back sessionStore (non-autoDispose)',
+        () async {
+      // SessionStore is NotifierProvider (non-autoDispose) — survives when
+      // profileEditStore (autoDispose) is disposed via sub.close().
+      final repoCompleter = Completer<MemberProfile>();
+      final container = ProviderContainer(overrides: [
+        sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+        profileEditRepositoryProvider.overrideWithValue(
+          _DelayedProfileEditRepository(completer: repoCompleter),
+        ),
+        avatarUploadServiceProvider
+            .overrideWithValue(_FakeAvatarUploadService()),
+      ]);
+      addTearDown(container.dispose);
+
+      final sub = container.listen(profileEditStoreProvider, (_, __) {});
+      final store = container.read(profileEditStoreProvider.notifier);
+      store.setDisplayName('Broken Alice');
+      store.setBio('Broken bio');
+
+      final saveFuture = store.save();
+      // Let save() reach repository await (after optimistic session update).
+      await Future<void>.delayed(Duration.zero);
+
+      // Verify optimistic write happened.
+      expect(container.read(sessionStoreProvider).displayName, 'Broken Alice');
+
+      // Close subscription — triggers autoDispose of profileEditStore,
+      // simulating navigation away while repo call pending.
+      sub.close();
+      await container.pump();
+
+      // Repo fails after profileEditStore disposal.
+      repoCompleter.completeError(
+        const UnknownFailure(message: 'Nope'),
+      );
+      await saveFuture;
+
+      // SessionStore must be rolled back despite ProfileEditStore disposal.
+      expect(container.read(sessionStoreProvider).displayName, 'Alice');
+      expect(container.read(sessionStoreProvider).bio, 'Original bio');
+    });
   });
 }
 
