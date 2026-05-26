@@ -1108,7 +1108,14 @@
   "annotationArrow": "箭头",
   "annotationUndo": "撤销",
   "annotationRedo": "重做",
+  "annotationColorRed": "红色",
+  "annotationColorGreen": "绿色",
+  "annotationColorBlue": "蓝色",
+  "annotationColorYellow": "黄色",
+  "annotationColorWhite": "白色",
+  "annotationColorBlack": "黑色",
 
   "voiceRecorderCancel": "取消录音",
-  "voiceRecorderSend": "发送语音消息"
+  "voiceRecorderSend": "发送语音消息",
+  "voiceMessageScrubber": "语音消息进度条"
 }

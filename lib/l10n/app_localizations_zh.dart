@@ -3127,8 +3127,29 @@ class AppLocalizationsZh extends AppLocalizations {
   String get annotationRedo => '重做';
 
   @override
+  String get annotationColorRed => '红色';
+
+  @override
+  String get annotationColorGreen => '绿色';
+
+  @override
+  String get annotationColorBlue => '蓝色';
+
+  @override
+  String get annotationColorYellow => '黄色';
+
+  @override
+  String get annotationColorWhite => '白色';
+
+  @override
+  String get annotationColorBlack => '黑色';
+
+  @override
   String get voiceRecorderCancel => '取消录音';
 
   @override
   String get voiceRecorderSend => '发送语音消息';
+
+  @override
+  String get voiceMessageScrubber => '语音消息进度条';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Inline audio player widget for voice messages in chat bubbles.
 ///
@@ -61,25 +62,30 @@ class VoiceMessageBubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Waveform scrubber.
-              LayoutBuilder(
-                builder: (_, constraints) => GestureDetector(
-                  onTapDown: (details) {
-                    final fraction =
-                        (details.localPosition.dx / constraints.maxWidth)
-                            .clamp(0.0, 1.0);
-                    onSeek(fraction);
-                  },
-                  child: SizedBox(
-                    height: 28,
-                    child: CustomPaint(
-                      painter: AudioWaveformPainter(
-                        amplitudes: waveform,
-                        color: theme.colorScheme.primary,
-                        inactiveColor: theme.colorScheme.outlineVariant,
-                        progress: progress,
+              // Waveform scrubber with accessibility semantics.
+              Semantics(
+                label: context.l10n.voiceMessageScrubber,
+                value: '${(progress * 100).round()}%',
+                slider: true,
+                child: LayoutBuilder(
+                  builder: (_, constraints) => GestureDetector(
+                    onTapDown: (details) {
+                      final fraction =
+                          (details.localPosition.dx / constraints.maxWidth)
+                              .clamp(0.0, 1.0);
+                      onSeek(fraction);
+                    },
+                    child: SizedBox(
+                      height: 28,
+                      child: CustomPaint(
+                        painter: AudioWaveformPainter(
+                          amplitudes: waveform,
+                          color: theme.colorScheme.primary,
+                          inactiveColor: theme.colorScheme.outlineVariant,
+                          progress: progress,
+                        ),
+                        size: Size.infinite,
                       ),
-                      size: Size.infinite,
                     ),
                   ),
                 ),

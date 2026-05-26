@@ -1334,7 +1334,14 @@
   "annotationArrow": "Arrow",
   "annotationUndo": "Undo",
   "annotationRedo": "Redo",
+  "annotationColorRed": "Red",
+  "annotationColorGreen": "Green",
+  "annotationColorBlue": "Blue",
+  "annotationColorYellow": "Yellow",
+  "annotationColorWhite": "White",
+  "annotationColorBlack": "Black",
 
   "voiceRecorderCancel": "Cancel recording",
-  "voiceRecorderSend": "Send voice message"
+  "voiceRecorderSend": "Send voice message",
+  "voiceMessageScrubber": "Voice message scrubber"
 }
