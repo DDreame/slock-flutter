@@ -9,9 +9,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
+import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -81,25 +83,33 @@ void main() {
       Locale locale = const Locale('zh'),
       bool canManageMember = true,
     }) {
-      return MaterialApp(
-        locale: locale,
-        theme: AppTheme.light,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: MemberListItem(
-            member: const MemberProfile(
-              id: 'test-id',
-              displayName: 'Test User',
-              email: 'test@example.com',
-              role: 'member',
-              isSelf: false,
+      return ProviderScope(
+        overrides: [
+          presenceStoreProvider.overrideWith(() => _FakePresenceStore()),
+        ],
+        child: MaterialApp(
+          locale: locale,
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SizedBox(
+              width: 400,
+              child: MemberListItem(
+                member: const MemberProfile(
+                  id: 'test-id',
+                  displayName: 'Test User',
+                  email: 'test@example.com',
+                  role: 'member',
+                  isSelf: false,
+                ),
+                canManageMember: canManageMember,
+                onTap: () {},
+                onMessage: () {},
+                onChangeRole: (_) {},
+                onRemove: () {},
+              ),
             ),
-            canManageMember: canManageMember,
-            onTap: () {},
-            onMessage: () {},
-            onChangeRole: (_) {},
-            onRemove: () {},
           ),
         ),
       );
@@ -153,27 +163,36 @@ void main() {
       expect(esL10n.homeOverviewSemantics, 'Vista general');
     });
 
-    test('home_page.dart uses l10n key, not hardcoded string', () {
-      // Load-bearing: if someone reverts to hardcoded 'Home overview',
-      // this test fails because the source will contain the literal string.
+    test('home_page.dart Semantics uses l10n.homeOverviewSemantics', () {
+      // Load-bearing: reads the source and asserts the Semantics label
+      // is wired to the specific l10n key. Fails if:
+      // - Someone reverts to hardcoded 'Home overview'
+      // - Someone wires the wrong l10n key
       final source = File(
         'lib/features/home/presentation/page/home_page.dart',
       ).readAsStringSync();
 
-      // Must NOT contain the hardcoded English string in a Semantics label.
+      // Must NOT contain the hardcoded English string in a label.
       expect(
         source.contains("label: 'Home overview'"),
         isFalse,
         reason:
-            'home_page.dart must use l10n.homeOverviewSemantics, not a hardcoded string',
+            'home_page.dart must not use a hardcoded string in Semantics label',
       );
 
-      // Must contain the l10n reference.
+      // Must contain the exact l10n wiring pattern.
       expect(
-        source.contains('homeOverviewSemantics'),
+        RegExp(r'label:\s*l10n\.homeOverviewSemantics').hasMatch(source),
         isTrue,
-        reason: 'home_page.dart must reference homeOverviewSemantics l10n key',
+        reason:
+            'home_page.dart must use label: l10n.homeOverviewSemantics in the Semantics widget',
       );
     });
   });
+}
+
+/// Minimal fake PresenceStore that provides offline status for all users.
+class _FakePresenceStore extends PresenceStore {
+  @override
+  PresenceState build() => const PresenceState();
 }
