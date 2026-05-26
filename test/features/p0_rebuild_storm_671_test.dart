@@ -137,8 +137,7 @@ void main() {
             container: container,
             child: MaterialApp(
               theme: AppTheme.light,
-              localizationsDelegates:
-                  AppLocalizations.localizationsDelegates,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: MessageContentWidget(
@@ -229,8 +228,7 @@ void main() {
             container: container,
             child: MaterialApp(
               theme: AppTheme.light,
-              localizationsDelegates:
-                  AppLocalizations.localizationsDelegates,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: MessageContentWidget(
