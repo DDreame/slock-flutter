@@ -1,8 +1,13 @@
+import 'package:intl/intl.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
 /// Formats [dt] relative to [now] using localized strings when [l10n] is
 /// provided. Falls back to hardcoded English when [l10n] is null (legacy
 /// compatibility).
+///
+/// When [l10n] is provided, weekday and month names use ICU DateFormat
+/// with the locale from [l10n.localeName], producing localized output
+/// (e.g. ZH: "周一 14:30", "5月 27, 14:30").
 String formatRelativeTime(
   DateTime dt, {
   DateTime? now,
@@ -25,9 +30,17 @@ String formatRelativeTime(
   final localTime = _formatTime(local);
 
   if (diff.inDays < 7) {
+    if (l10n != null) {
+      final weekday = DateFormat.E(l10n.localeName).format(local);
+      return '$weekday $localTime';
+    }
     return '${_weekday(local.weekday)} $localTime';
   }
 
+  if (l10n != null) {
+    final monthDay = DateFormat.MMMd(l10n.localeName).format(local);
+    return '$monthDay, $localTime';
+  }
   return '${_month(local.month)} ${local.day}, $localTime';
 }
 

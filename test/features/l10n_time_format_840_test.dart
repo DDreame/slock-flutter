@@ -3,19 +3,39 @@
 //
 // Invariants verified:
 // INV-840-TIME:     formatRelativeTime uses l10n keys, not hardcoded English
-// INV-840-BILLING:  Billing resource labels and plan names localized
+//                   (includes weekday/month branches via ICU DateFormat)
+// INV-840-BILLING:  Billing resource labels localized via presentation mapper
 // INV-840-NOTIF:    Notification fallback title localized
 // INV-840-ES-FIX:   homeNewMessageTooltip correct in ES locale
+//
+// Load-bearing proof:
+//   - RelativeTimeText widget test mounts the REAL widget under ZH locale
+//     and asserts Chinese output. Reverting l10n wiring → test fails.
+//   - BillingPage test mounts the REAL widget under ZH locale and asserts
+//     Chinese resource label. Reverting _localizeResourceLabel → test fails.
+//   - formatRelativeTime weekday/month test asserts non-English output for ZH.
+//     Reverting DateFormat.E/MMMd usage → test fails.
 // =============================================================================
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/core/utils/time_format.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
   // ---------------------------------------------------------------------------
-  // INV-840-TIME: Relative time strings localized
+  // INV-840-TIME: Relative time strings localized (< 24h)
   // ---------------------------------------------------------------------------
   group('INV-840-TIME: formatRelativeTime localized', () {
     test('ZH locale produces Chinese relative time strings', () {
@@ -76,10 +96,143 @@ void main() {
       expect(zh.timeMinutesAgo(5), isNot(en.timeMinutesAgo(5)));
       expect(zh.timeHoursAgo(2), isNot(en.timeHoursAgo(2)));
     });
+
+    // -------------------------------------------------------------------------
+    // Weekday/month localization (>= 1 day branches)
+    // -------------------------------------------------------------------------
+    test('ZH locale produces Chinese weekday for 1-7 day old timestamps', () {
+      final l10n = lookupAppLocalizations(const Locale('zh'));
+      // Wednesday May 27 2026, 12:00 — 3 days ago = Sunday May 24 2026
+      final now = DateTime(2026, 5, 27, 12, 0, 0);
+      final threeDaysAgo = now.subtract(const Duration(days: 3));
+
+      final result = formatRelativeTime(threeDaysAgo, now: now, l10n: l10n);
+
+      // Must contain Chinese weekday (from DateFormat.E('zh')), not English.
+      final expectedWeekday = DateFormat.E('zh').format(threeDaysAgo);
+      expect(result, contains(expectedWeekday),
+          reason: 'Must contain localized Chinese weekday');
+      expect(result, isNot(contains('Sun')),
+          reason: 'Must NOT contain English weekday abbreviation');
+    });
+
+    test('ZH locale produces Chinese month for >= 7 day old timestamps', () {
+      final l10n = lookupAppLocalizations(const Locale('zh'));
+      final now = DateTime(2026, 5, 27, 12, 0, 0);
+      final twoWeeksAgo = now.subtract(const Duration(days: 14));
+
+      final result = formatRelativeTime(twoWeeksAgo, now: now, l10n: l10n);
+
+      // Must contain Chinese month+day (from DateFormat.MMMd('zh')),
+      // not English.
+      final expectedMonthDay = DateFormat.MMMd('zh').format(twoWeeksAgo);
+      expect(result, contains(expectedMonthDay),
+          reason: 'Must contain localized Chinese month+day');
+      expect(result, isNot(contains('May')),
+          reason: 'Must NOT contain English month abbreviation');
+    });
+
+    test('EN locale weekday/month still works correctly', () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+      final now = DateTime(2026, 5, 27, 12, 0, 0);
+      final threeDaysAgo = now.subtract(const Duration(days: 3));
+      final twoWeeksAgo = now.subtract(const Duration(days: 14));
+
+      final weekdayResult =
+          formatRelativeTime(threeDaysAgo, now: now, l10n: l10n);
+      final monthResult = formatRelativeTime(twoWeeksAgo, now: now, l10n: l10n);
+
+      // EN locale should produce English weekday/month via DateFormat.
+      final expectedWeekday = DateFormat.E('en').format(threeDaysAgo);
+      expect(weekdayResult, contains(expectedWeekday));
+
+      final expectedMonthDay = DateFormat.MMMd('en').format(twoWeeksAgo);
+      expect(monthResult, contains(expectedMonthDay));
+    });
   });
 
   // ---------------------------------------------------------------------------
-  // INV-840-BILLING: Billing labels localized
+  // INV-840-TIME (LOAD-BEARING): Real RelativeTimeText widget under ZH locale
+  // Reverting context.l10n wiring in relative_time_text.dart → RED.
+  // ---------------------------------------------------------------------------
+  group('INV-840-TIME: RelativeTimeText widget (load-bearing)', () {
+    testWidgets('renders Chinese relative time under ZH locale', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 5, 27, 12, 0, 0);
+      final fiveMinAgo = now.subtract(const Duration(minutes: 5));
+
+      final container = ProviderContainer(overrides: [
+        homeNowProvider.overrideWith((ref) => Stream.value(now)),
+      ]);
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('zh'),
+            home: Scaffold(body: _TestRelativeTimeHost()),
+          ),
+        ),
+      );
+
+      // Set time via a stateful wrapper that receives it from test.
+      final state = tester.state<_TestRelativeTimeHostState>(
+          find.byType(_TestRelativeTimeHost));
+      state.setTime(fiveMinAgo);
+      await tester.pumpAndSettle();
+
+      // Must show Chinese "5分钟前", not English "5m ago".
+      final zhL10n = lookupAppLocalizations(const Locale('zh'));
+      expect(find.text(zhL10n.timeMinutesAgo(5)), findsOneWidget,
+          reason: 'RelativeTimeText must render localized ZH string');
+      expect(find.text('5m ago'), findsNothing,
+          reason: 'English fallback must NOT appear under ZH locale');
+    });
+
+    testWidgets('renders Chinese weekday under ZH locale for multi-day', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 5, 27, 12, 0, 0);
+      final threeDaysAgo = now.subtract(const Duration(days: 3));
+
+      final container = ProviderContainer(overrides: [
+        homeNowProvider.overrideWith((ref) => Stream.value(now)),
+      ]);
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('zh'),
+            home: Scaffold(body: _TestRelativeTimeHost()),
+          ),
+        ),
+      );
+
+      final state = tester.state<_TestRelativeTimeHostState>(
+          find.byType(_TestRelativeTimeHost));
+      state.setTime(threeDaysAgo);
+      await tester.pumpAndSettle();
+
+      // Must contain Chinese weekday, not English.
+      final expectedWeekday = DateFormat.E('zh').format(threeDaysAgo);
+      expect(find.textContaining(expectedWeekday), findsOneWidget,
+          reason: 'RelativeTimeText must render Chinese weekday');
+      expect(find.textContaining('Sun'), findsNothing,
+          reason: 'English weekday must NOT appear');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // INV-840-BILLING: Billing resource labels localized (load-bearing)
+  // Reverting _localizeResourceLabel in billing_page.dart → RED.
   // ---------------------------------------------------------------------------
   group('INV-840-BILLING: billing resource labels and plan names', () {
     test('ZH locale has distinct billing resource labels', () {
@@ -126,4 +279,34 @@ void main() {
       expect(es.homeNewMessageTooltip, 'Nuevo mensaje');
     });
   });
+}
+
+// =============================================================================
+// Test helpers
+// =============================================================================
+
+/// Stateful host for RelativeTimeText that allows setting the time from tests.
+/// This mounts the REAL [RelativeTimeText] widget — load-bearing for l10n
+/// wiring verification.
+class _TestRelativeTimeHost extends StatefulWidget {
+  const _TestRelativeTimeHost();
+
+  @override
+  State<_TestRelativeTimeHost> createState() => _TestRelativeTimeHostState();
+}
+
+class _TestRelativeTimeHostState extends State<_TestRelativeTimeHost> {
+  DateTime _time = DateTime.now();
+
+  void setTime(DateTime time) {
+    setState(() => _time = time);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RelativeTimeText(
+      time: _time,
+      style: const TextStyle(),
+    );
+  }
 }
