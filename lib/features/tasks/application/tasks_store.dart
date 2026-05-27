@@ -28,6 +28,17 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   TasksState build() {
     _disposed = false;
     ref.onDispose(() => _disposed = true);
+
+    // INV-834: Re-fetch on WebSocket reconnect — data may be stale.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == TasksStatus.success) {
+          load();
+        }
+      }
+    });
+
     return const TasksState();
   }
 

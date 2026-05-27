@@ -24,6 +24,17 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
     _disposed = false;
     ref.onDispose(() => _disposed = true);
     final serverId = ref.watch(currentThreadsServerIdProvider);
+
+    // INV-834: Re-fetch on WebSocket reconnect — data may be stale.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == ThreadsInboxStatus.success) {
+          load();
+        }
+      }
+    });
+
     Future.microtask(() {
       if (state.status == ThreadsInboxStatus.initial) {
         load();

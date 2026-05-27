@@ -73,7 +73,8 @@ void main() {
   });
 
   testWidgets(
-      'ThreadsPage keeps loaded snapshot mounted through reconnect/resume', (
+      'ThreadsPage keeps loaded snapshot mounted through reconnect/resume and re-fetches',
+      (
     tester,
   ) async {
     final threadRepository = _FakeThreadRepository(
@@ -150,7 +151,8 @@ void main() {
     expect(socket.emittedEvents.last.$2, {
       'lastSeqByScope': {'server:server-1/channel:thread-1': 1},
     });
-    expect(threadRepository.loadFollowedThreadsCalls, 1);
+    // INV-834: reconnect now correctly triggers a re-fetch (initial + reconnect = 2).
+    expect(threadRepository.loadFollowedThreadsCalls, 2);
     expect(find.byKey(const ValueKey('threads-success')), findsOneWidget);
     expect(find.text('Please review this thread.'), findsOneWidget);
 
