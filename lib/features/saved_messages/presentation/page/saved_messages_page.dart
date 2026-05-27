@@ -6,8 +6,8 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/empty_state_widget.dart';
+import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
@@ -160,8 +160,6 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
   @override
   Widget build(BuildContext context) {
     final items = widget.items;
-    // #812: Capture current time once per build frame for all cards.
-    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
     return RefreshIndicator(
       onRefresh: () => ref.read(savedMessagesStoreProvider.notifier).load(),
       child: ListView.separated(
@@ -177,7 +175,6 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
           final item = items[index];
           return _SavedMessageCard(
             item: item,
-            now: now,
             onTap: () => _navigateToSource(context, item),
             onUnsave: () => ref
                 .read(savedMessagesStoreProvider.notifier)
@@ -229,13 +226,11 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
 class _SavedMessageCard extends StatelessWidget {
   const _SavedMessageCard({
     required this.item,
-    required this.now,
     required this.onTap,
     required this.onUnsave,
   });
 
   final SavedMessageItem item;
-  final DateTime now;
   final VoidCallback onTap;
   final VoidCallback onUnsave;
 
@@ -318,14 +313,13 @@ class _SavedMessageCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            // Footer: timestamp
+            // Footer: timestamp (leaf widget — only rebuilds on minute tick)
             Padding(
               padding: const EdgeInsets.only(
                 left: 32 + AppSpacing.sm,
               ),
-              child: Text(
-                formatRelativeTime(message.createdAt,
-                    now: now, l10n: context.l10n),
+              child: RelativeTimeText(
+                time: message.createdAt,
                 style:
                     AppTypography.caption.copyWith(color: colors.textSecondary),
               ),
