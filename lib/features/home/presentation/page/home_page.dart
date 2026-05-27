@@ -563,12 +563,16 @@ class _TasksUnavailableState extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        GestureDetector(
-          onTap: onRetry,
-          child: Icon(
-            Icons.refresh,
-            size: 20,
-            color: colors.primary,
+        Semantics(
+          button: true,
+          label: context.l10n.homeRetrySemantics,
+          child: GestureDetector(
+            onTap: onRetry,
+            child: Icon(
+              Icons.refresh,
+              size: 20,
+              color: colors.primary,
+            ),
           ),
         ),
       ],
@@ -863,18 +867,22 @@ class _InboxUnreadListContent extends ConsumerWidget {
             item: visible[i],
           ),
         if (overflowCount > 0)
-          GestureDetector(
-            key: const ValueKey('home-unread-overflow'),
-            onTap: onViewAll,
-            child: Padding(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.xs,
-              ),
-              child: Text(
-                l10n.homeCardUnreadOverflow(overflowCount),
-                style: AppTypography.caption.copyWith(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w500,
+          Semantics(
+            button: true,
+            label: l10n.homeUnreadOverflowSemantics,
+            child: GestureDetector(
+              key: const ValueKey('home-unread-overflow'),
+              onTap: onViewAll,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.xs,
+                ),
+                child: Text(
+                  l10n.homeCardUnreadOverflow(overflowCount),
+                  style: AppTypography.caption.copyWith(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
@@ -1276,17 +1284,21 @@ class _HomeAppBarTitle extends ConsumerWidget {
       }
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Text(title, overflow: TextOverflow.ellipsis),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.arrow_drop_down),
-        ],
+    return Semantics(
+      button: true,
+      label: context.l10n.homeServerSwitcherSemantics,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(title, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down),
+          ],
+        ),
       ),
     );
   }

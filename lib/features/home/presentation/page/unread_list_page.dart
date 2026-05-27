@@ -230,27 +230,31 @@ class _FilterChip extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(right: AppSpacing.sm),
-      child: GestureDetector(
-        key: const ValueKey('unread-filter-toggle'),
-        onTap: () {
-          onChanged(
-            isUnreadOnly ? InboxFilter.all : InboxFilter.unread,
-          );
-        },
-        child: Chip(
-          label: Text(
-            isUnreadOnly
-                ? context.l10n.unreadFilterLabel
-                : context.l10n.allFilterLabel,
-            style: AppTypography.caption.copyWith(
-              color: isUnreadOnly ? colors.primary : colors.textSecondary,
-              fontWeight: FontWeight.w500,
+      child: Semantics(
+        button: true,
+        label: context.l10n.unreadFilterToggleSemantics,
+        child: GestureDetector(
+          key: const ValueKey('unread-filter-toggle'),
+          onTap: () {
+            onChanged(
+              isUnreadOnly ? InboxFilter.all : InboxFilter.unread,
+            );
+          },
+          child: Chip(
+            label: Text(
+              isUnreadOnly
+                  ? context.l10n.unreadFilterLabel
+                  : context.l10n.allFilterLabel,
+              style: AppTypography.caption.copyWith(
+                color: isUnreadOnly ? colors.primary : colors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          backgroundColor:
-              isUnreadOnly ? colors.primary.withValues(alpha: 0.1) : null,
-          side: BorderSide(
-            color: isUnreadOnly ? colors.primary : colors.border,
+            backgroundColor:
+                isUnreadOnly ? colors.primary.withValues(alpha: 0.1) : null,
+            side: BorderSide(
+              color: isUnreadOnly ? colors.primary : colors.border,
+            ),
           ),
         ),
       ),
@@ -284,77 +288,81 @@ class _UnreadListRow extends StatelessWidget {
     final (glyph, colorFn) = _kindBadge;
     final badgeColor = colorFn(colors);
 
-    return GestureDetector(
-      onTap: () => _navigateTo(context),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-        child: Row(
-          children: [
-            Container(
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: badgeColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                glyph,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: badgeColor,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
+    return Semantics(
+      button: true,
+      label: context.l10n.unreadListItemSemantics(item.title),
+      child: GestureDetector(
+        onTap: () => _navigateTo(context),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Row(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  glyph,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: badgeColor,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.sourceLabel ?? item.title,
-                    style: AppTypography.body.copyWith(
-                      color: colors.text,
-                      fontWeight: FontWeight.w500,
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.sourceLabel ?? item.title,
+                      style: AppTypography.body.copyWith(
+                        color: colors.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    item.previewText,
-                    style: AppTypography.caption.copyWith(
-                      color: colors.textTertiary,
+                    const SizedBox(height: 2),
+                    Text(
+                      item.previewText,
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 6,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: colors.error,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                item.unreadCount > 99 ? '99+' : '${item.unreadCount}',
-                style: AppTypography.caption.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                  ],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.error,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  item.unreadCount > 99 ? '99+' : '${item.unreadCount}',
+                  style: AppTypography.caption.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

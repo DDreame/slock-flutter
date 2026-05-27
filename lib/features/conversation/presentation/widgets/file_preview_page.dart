@@ -458,54 +458,57 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       );
     }
 
-    return GestureDetector(
-      key: const ValueKey('media-viewer-dismiss-area'),
-      behavior: HitTestBehavior.translucent,
-      onVerticalDragUpdate: (details) {
-        if (!_isAtDefaultScale) return;
-        setState(() => _dragOffset += details.delta.dy);
-      },
-      onVerticalDragEnd: (details) {
-        if (_dragOffset > _dismissThreshold) {
-          Navigator.of(context).pop();
-        } else {
-          setState(() => _dragOffset = 0);
-        }
-      },
-      child: Transform.translate(
-        offset: Offset(0, _dragOffset),
-        child: Opacity(
-          opacity: (1 - (_dragOffset.abs() / 500)).clamp(0.3, 1.0),
-          child: Center(
-            child: Hero(
-              tag: HeroTags.imageAttachment(
-                  widget.attachment.id ?? widget.attachment.name),
-              child: InteractiveViewer(
-                key: const ValueKey('image-viewer-interactive'),
-                transformationController: _transformationController,
-                minScale: 0.5,
-                maxScale: 4.0,
-                child: CachedNetworkImage(
-                  imageUrl: displayUrl,
-                  fit: BoxFit.contain,
-                  errorWidget: (context, url, error) {
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.broken_image_outlined,
-                          color: Colors.white54,
-                          size: 48,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          'Unable to load image.',
-                          style: AppTypography.body
-                              .copyWith(color: Colors.white54),
-                        ),
-                      ],
-                    );
-                  },
+    return Semantics(
+      label: context.l10n.filePreviewDismissSemantics,
+      child: GestureDetector(
+        key: const ValueKey('media-viewer-dismiss-area'),
+        behavior: HitTestBehavior.translucent,
+        onVerticalDragUpdate: (details) {
+          if (!_isAtDefaultScale) return;
+          setState(() => _dragOffset += details.delta.dy);
+        },
+        onVerticalDragEnd: (details) {
+          if (_dragOffset > _dismissThreshold) {
+            Navigator.of(context).pop();
+          } else {
+            setState(() => _dragOffset = 0);
+          }
+        },
+        child: Transform.translate(
+          offset: Offset(0, _dragOffset),
+          child: Opacity(
+            opacity: (1 - (_dragOffset.abs() / 500)).clamp(0.3, 1.0),
+            child: Center(
+              child: Hero(
+                tag: HeroTags.imageAttachment(
+                    widget.attachment.id ?? widget.attachment.name),
+                child: InteractiveViewer(
+                  key: const ValueKey('image-viewer-interactive'),
+                  transformationController: _transformationController,
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: CachedNetworkImage(
+                    imageUrl: displayUrl,
+                    fit: BoxFit.contain,
+                    errorWidget: (context, url, error) {
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.broken_image_outlined,
+                            color: Colors.white54,
+                            size: 48,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            'Unable to load image.',
+                            style: AppTypography.body
+                                .copyWith(color: Colors.white54),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

@@ -1167,5 +1167,17 @@
   "taskStatusDescTodo": "未开始",
   "taskStatusDescInProgress": "进行中",
   "taskStatusDescInReview": "需要审核",
-  "taskStatusDescDone": "已完成"
+  "taskStatusDescDone": "已完成",
+
+  "homeRetrySemantics": "重试",
+  "homeUnreadOverflowSemantics": "查看所有未读对话",
+  "homeServerSwitcherSemantics": "切换工作区",
+  "unreadFilterToggleSemantics": "切换未读筛选",
+  "unreadListItemSemantics": "打开对话：{title}",
+  "inboxItemSemantics": "打开通知",
+  "inboxFilterTabSemantics": "筛选：{label}",
+  "searchScopeTabSemantics": "搜索范围：{label}",
+  "filePreviewDismissSemantics": "下滑关闭",
+  "messageLinkChipSemantics": "打开链接：{url}",
+  "attachmentImageFallbackSemantics": "图片附件"
 }

@@ -3403,4 +3403,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get taskStatusDescDone => 'Completed';
+
+  @override
+  String get homeRetrySemantics => 'Retry';
+
+  @override
+  String get homeUnreadOverflowSemantics => 'View all unread conversations';
+
+  @override
+  String get homeServerSwitcherSemantics => 'Switch workspace';
+
+  @override
+  String get unreadFilterToggleSemantics => 'Toggle unread filter';
+
+  @override
+  String unreadListItemSemantics(String title) {
+    return 'Open conversation: $title';
+  }
+
+  @override
+  String get inboxItemSemantics => 'Open notification';
+
+  @override
+  String inboxFilterTabSemantics(String label) {
+    return 'Filter: $label';
+  }
+
+  @override
+  String searchScopeTabSemantics(String label) {
+    return 'Search scope: $label';
+  }
+
+  @override
+  String get filePreviewDismissSemantics => 'Swipe down to close';
+
+  @override
+  String messageLinkChipSemantics(String url) {
+    return 'Open link: $url';
+  }
+
+  @override
+  String get attachmentImageFallbackSemantics => 'Image attachment';
 }

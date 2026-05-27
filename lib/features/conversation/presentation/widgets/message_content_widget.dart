@@ -8,6 +8,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/mention_syn
 import 'package:slock_app/features/link_preview/application/link_preview_store.dart';
 import 'package:slock_app/features/link_preview/data/link_preview_service.dart';
 import 'package:slock_app/features/link_preview/presentation/widgets/link_preview_card.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Public widget that renders message content, routing between
 /// Markdown rendering for non-system messages and plain italic
@@ -204,20 +205,24 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
         textWidget,
         Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: GestureDetector(
-            key: const ValueKey('link-fallback-chip'),
-            onTap: widget.onLinkTap != null
-                ? () => widget.onLinkTap!(domain, _detectedUrl, _detectedUrl!)
-                : null,
-            child: Text(
-              _detectedUrl!,
-              style: AppTypography.bodySmall.copyWith(
-                color: colors.primary,
-                decoration: TextDecoration.underline,
-                decorationColor: colors.primary,
+          child: Semantics(
+            button: true,
+            label: context.l10n.messageLinkChipSemantics(_detectedUrl!),
+            child: GestureDetector(
+              key: const ValueKey('link-fallback-chip'),
+              onTap: widget.onLinkTap != null
+                  ? () => widget.onLinkTap!(domain, _detectedUrl, _detectedUrl!)
+                  : null,
+              child: Text(
+                _detectedUrl!,
+                style: AppTypography.bodySmall.copyWith(
+                  color: colors.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: colors.primary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
