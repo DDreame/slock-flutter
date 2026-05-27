@@ -34,6 +34,7 @@ class FakeRealtimeIngress extends RealtimeReductionIngress {
   }
 
   /// Resets all tracked state without disposing the underlying stream.
+  @override
   void reset() {
     acceptedEnvelopes.clear();
     rejectedEnvelopes.clear();
