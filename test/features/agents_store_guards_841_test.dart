@@ -124,8 +124,7 @@ void main() {
       await loadFuture;
     });
 
-    test('load() after dispose returns immediately without throwing',
-        () async {
+    test('load() after dispose returns immediately without throwing', () async {
       // Load-bearing test for the TOP-OF-METHOD disposed guard in load().
       // Without `if (_disposed) return;`, the method proceeds past the guard:
       //   1. Sets state to loading (unnecessary mutation)
@@ -289,8 +288,7 @@ void main() {
       expect(
         capturedDelays.last,
         const Duration(milliseconds: 1000),
-        reason:
-            'Post-switch reconnect must use streak=0 base delay (1000ms), '
+        reason: 'Post-switch reconnect must use streak=0 base delay (1000ms), '
             'not elevated streak=3 delay (8000ms)',
       );
 
