@@ -16,6 +16,16 @@ import 'package:slock_app/l10n/l10n.dart';
 /// Static cache for [DateFormat.yMMMd] keyed by locale. INV-842-CACHE.
 final Map<String, DateFormat> _yMMMdFormatCache = {};
 
+/// INV-842-CACHE: @visibleForTesting — current size of the yMMMd cache.
+@visibleForTesting
+int get yMMMdFormatCacheSize => _yMMMdFormatCache.length;
+
+/// INV-842-CACHE: @visibleForTesting — reset cache between tests.
+@visibleForTesting
+void resetYMMMdFormatCache() {
+  _yMMMdFormatCache.clear();
+}
+
 class WorkspaceSettingsPage extends ConsumerWidget {
   const WorkspaceSettingsPage({required this.serverId, super.key});
 

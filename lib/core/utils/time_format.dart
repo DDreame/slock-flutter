@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
@@ -15,6 +16,23 @@ DateFormat _cachedWeekdayFormat(String locale) {
 
 DateFormat _cachedMonthDayFormat(String locale) {
   return _monthDayFormatCache[locale] ??= DateFormat.MMMd(locale);
+}
+
+/// INV-842-CACHE: @visibleForTesting — current size of the weekday cache.
+/// Used by tests to prove caching is load-bearing (removing cache → size grows
+/// unbounded on repeated calls with same locale).
+@visibleForTesting
+int get weekdayFormatCacheSize => _weekdayFormatCache.length;
+
+/// INV-842-CACHE: @visibleForTesting — current size of the month+day cache.
+@visibleForTesting
+int get monthDayFormatCacheSize => _monthDayFormatCache.length;
+
+/// INV-842-CACHE: @visibleForTesting — reset caches between tests.
+@visibleForTesting
+void resetDateFormatCaches() {
+  _weekdayFormatCache.clear();
+  _monthDayFormatCache.clear();
 }
 
 /// Formats [dt] relative to [now] using localized strings when [l10n] is

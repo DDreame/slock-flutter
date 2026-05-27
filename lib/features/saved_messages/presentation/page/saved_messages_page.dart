@@ -13,6 +13,12 @@ import 'package:slock_app/features/saved_messages/application/saved_messages_sto
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
+/// INV-842-LEAF: @visibleForTesting — build count for the list widget.
+/// Tests assert this does NOT increment when homeNowProvider ticks,
+/// proving the leaf isolation pattern is working.
+@visibleForTesting
+int savedMessagesListBuildCount = 0;
+
 class SavedMessagesPage extends StatelessWidget {
   const SavedMessagesPage({super.key, required this.serverId});
 
@@ -159,6 +165,7 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
 
   @override
   Widget build(BuildContext context) {
+    savedMessagesListBuildCount++;
     final items = widget.items;
     return RefreshIndicator(
       onRefresh: () => ref.read(savedMessagesStoreProvider.notifier).load(),
