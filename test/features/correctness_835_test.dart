@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_const_constructors
 // =============================================================================
 // #835 — P2 Correctness + Performance
 //
@@ -6,10 +7,12 @@
 //    mutations (INV-ROLLBACK-835)
 // 2. MachinesStore — reconnect listener triggers load on reconnect (INV-834)
 // 3. WorkspacesStore — reconnect listener triggers load on reconnect (INV-834)
+// 4. _HomeAppBarTitle — .select() isolates rebuild to active server name only
 // =============================================================================
 
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -24,6 +27,14 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_store.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/servers/application/server_list_state.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 // =============================================================================
 // Controllable RealtimeService
@@ -169,15 +180,17 @@ void main() {
 
     test(
       'markDone rollback re-inserts only the removed item, preserving '
-      'concurrent additions',
+      'concurrent additions that arrived mid-flight',
       () async {
         final item1 = makeThreadItem(threadChannelId: 'tc-1', title: 'A');
         final item2 = makeThreadItem(threadChannelId: 'tc-2', title: 'B');
+        final item3 = makeThreadItem(threadChannelId: 'tc-3', title: 'C');
         fakeRepo.items = [item1, item2];
 
         // Explicitly load (auto-load microtask may have already fired with
         // empty items before we set fakeRepo.items).
-        await container.read(threadsInboxStoreProvider.notifier).load();
+        final store = container.read(threadsInboxStoreProvider.notifier);
+        await store.load();
 
         expect(
           container.read(threadsInboxStoreProvider).items.length,
@@ -188,31 +201,42 @@ void main() {
         fakeRepo.markDoneCompleter = Completer<void>();
         fakeRepo.shouldFail = true;
 
-        final store = container.read(threadsInboxStoreProvider.notifier);
         final markDoneFuture = store.markDone(item1);
 
         // While markDone is in-flight, verify optimistic removal worked.
         await Future<void>.delayed(Duration.zero);
-        // The current list should have item2 (item1 was optimistically removed).
         final currentState = container.read(threadsInboxStoreProvider);
         expect(currentState.items.length, 1);
         expect(currentState.items[0].title, 'B');
+
+        // CONCURRENT MUTATION: Simulate a WS event adding item3 mid-flight
+        // (e.g. a reconnect refresh or push event). This is the key: a
+        // full-list rollback (state = previousItems) would lose item3.
+        fakeRepo.items = [item2, item3];
+        await store.load();
+        expect(
+          container.read(threadsInboxStoreProvider).items.length,
+          2,
+          reason: 'mid-flight: item2 + item3 present',
+        );
 
         // Complete the markDone call (which will fail).
         fakeRepo.markDoneCompleter!.complete();
         await markDoneFuture;
 
-        // After rollback, item1 should be re-inserted, and any concurrent
-        // state should not be erased. The important invariant: item2 must
-        // still be present (it was NOT in previousItems since we removed item1).
+        // After rollback: per-item rollback re-inserts item1 at original
+        // position while preserving item3 (the concurrent addition).
+        // Full-list rollback would restore [item1, item2] and lose item3.
         final afterRollback = container.read(threadsInboxStoreProvider);
         expect(afterRollback.failure, isNotNull);
-        // item1 was re-inserted at index 0 (its original position, clamped).
         final ids = afterRollback.items
             .map((i) => i.routeTarget.threadChannelId)
             .toList();
         expect(ids, contains('tc-1'), reason: 'removed item re-inserted');
-        expect(ids, contains('tc-2'), reason: 'concurrent item preserved');
+        expect(ids, contains('tc-2'), reason: 'existing item preserved');
+        expect(ids, contains('tc-3'),
+            reason: 'concurrent addition preserved — '
+                'full-list rollback would lose this');
       },
     );
 
@@ -360,4 +384,129 @@ void main() {
           reason: 'INV-834: no load when store not yet populated');
     });
   });
+
+  // ===========================================================================
+  // 4. _HomeAppBarTitle — .select() rebuild isolation (INV-835)
+  // ===========================================================================
+  group('_HomeAppBarTitle — INV-835 .select() rebuild isolation', () {
+    testWidgets(
+      'unrelated server name change does NOT rebuild HomeAppBarTitle',
+      (tester) async {
+        HomePage.appBarTitleBuildCount = 0;
+
+        final serverListStore = _ControllableServerListStore();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              activeServerScopeIdProvider.overrideWithValue(
+                const ServerScopeId('server-1'),
+              ),
+              serverListStoreProvider.overrideWith(() => serverListStore),
+              homeListStoreProvider.overrideWith(() => _LoadingHomeListStore()),
+              realtimeServiceProvider
+                  .overrideWith(() => _ControllableRealtimeService()),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const HomePage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // AppBar title must have built at least once, showing "Workspace A".
+        final countAfterLoad = HomePage.appBarTitleBuildCount;
+        expect(countAfterLoad, greaterThan(0));
+        expect(find.text('Workspace A'), findsOneWidget);
+
+        // Mutate an UNRELATED server (server-2) name — the active server's
+        // name (server-1 → "Workspace A") is unchanged, so the .select()
+        // should not fire and the widget should NOT rebuild.
+        serverListStore.setServerName('server-2', 'Renamed Server');
+        await tester.pump();
+
+        expect(HomePage.appBarTitleBuildCount, countAfterLoad,
+            reason: '_HomeAppBarTitle must NOT rebuild when an unrelated '
+                'server name changes. This test goes RED if .select() is '
+                'reverted to a full ref.watch(serverListStoreProvider).');
+      },
+    );
+
+    testWidgets(
+      'active server name change DOES rebuild HomeAppBarTitle',
+      (tester) async {
+        HomePage.appBarTitleBuildCount = 0;
+
+        final serverListStore = _ControllableServerListStore();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              activeServerScopeIdProvider.overrideWithValue(
+                const ServerScopeId('server-1'),
+              ),
+              serverListStoreProvider.overrideWith(() => serverListStore),
+              homeListStoreProvider.overrideWith(() => _LoadingHomeListStore()),
+              realtimeServiceProvider
+                  .overrideWith(() => _ControllableRealtimeService()),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const HomePage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final countAfterLoad = HomePage.appBarTitleBuildCount;
+        expect(countAfterLoad, greaterThan(0));
+
+        // Mutate the ACTIVE server's name — selector output changes.
+        serverListStore.setServerName('server-1', 'New Name');
+        await tester.pump();
+
+        expect(HomePage.appBarTitleBuildCount, greaterThan(countAfterLoad),
+            reason: 'Selector fires when active server name changes — '
+                'proves test is sensitive and not vacuously passing.');
+      },
+    );
+  });
+}
+
+// =============================================================================
+// Controllable ServerListStore
+// =============================================================================
+
+class _ControllableServerListStore extends ServerListStore {
+  @override
+  ServerListState build() => const ServerListState(
+        status: ServerListStatus.success,
+        servers: [
+          ServerSummary(id: 'server-1', name: 'Workspace A'),
+          ServerSummary(id: 'server-2', name: 'Workspace B'),
+        ],
+      );
+
+  void setServerName(String serverId, String newName) {
+    state = state.copyWith(
+      servers: state.servers
+          .map((s) => s.id == serverId ? s.copyWith(name: newName) : s)
+          .toList(),
+    );
+  }
+}
+
+// =============================================================================
+// Minimal HomeListStore — returns loading to avoid triggering body dependencies
+// =============================================================================
+
+class _LoadingHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => HomeListState(
+        status: HomeListStatus.loading,
+        isRefreshing: false,
+      );
 }
