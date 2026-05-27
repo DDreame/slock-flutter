@@ -73,6 +73,9 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
         // INV-839-SEQ-RESET: Clear stale seq tracking on server/token switch
         // so events from the new connection aren't rejected as duplicates.
         _ingress.reset();
+        // INV-841-BACKOFF: Reset backoff streak on server switch so the new
+        // connection doesn't inherit an elevated delay from the old server.
+        _backoffStreak = 0;
       }
     });
 
