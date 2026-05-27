@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/realtime/providers.dart';
@@ -13,6 +14,23 @@ typedef RealtimePeriodicTimerFactory = Timer Function(
     Duration interval, void Function() onTick);
 
 class RealtimeService extends Notifier<RealtimeConnectionState> {
+  /// INV-839-BACKOFF: Computes exponential backoff delay with jitter.
+  ///
+  /// Formula: min(baseDelay * 2^attempt, maxDelay) + random(0, 1000ms).
+  /// Prevents reconnection storms when multiple clients lose connection
+  /// simultaneously.
+  static Duration computeBackoffDelay({
+    required int attempt,
+    required Duration baseDelay,
+    required Duration maxDelay,
+    required Random random,
+  }) {
+    final exponentialMs = (baseDelay.inMilliseconds * pow(2, attempt)).toInt();
+    final cappedMs = min(exponentialMs, maxDelay.inMilliseconds);
+    final jitterMs = random.nextInt(1000);
+    return Duration(milliseconds: cappedMs + jitterMs);
+  }
+
   RealtimeSocketClient get _socketClient =>
       ref.read(realtimeSocketClientProvider);
   RealtimeReductionIngress get _ingress =>
@@ -46,6 +64,9 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
           unawaited(previousSub.cancel());
         }
         _boundSocketClient = null;
+        // INV-839-SEQ-RESET: Clear stale seq tracking on server/token switch
+        // so events from the new connection aren't rejected as duplicates.
+        _ingress.reset();
       }
     });
 
