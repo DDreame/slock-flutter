@@ -459,6 +459,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
     }
 
     return Semantics(
+      button: true,
       label: context.l10n.filePreviewDismissSemantics,
       child: GestureDetector(
         key: const ValueKey('media-viewer-dismiss-area'),
