@@ -3229,4 +3229,66 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shareTargetCancelTooltip => '取消';
+
+  @override
+  String get dmAgentBadge => '智能体';
+
+  @override
+  String get dmActionMoveUp => '上移';
+
+  @override
+  String get dmActionMoveDown => '下移';
+
+  @override
+  String get dmActionPin => '置顶对话';
+
+  @override
+  String get dmActionUnpin => '取消置顶';
+
+  @override
+  String get dmActionMarkUnread => '标为未读';
+
+  @override
+  String get dmActionClose => '关闭对话';
+
+  @override
+  String get taskOverlayDropTitle => '拖放以更改状态';
+
+  @override
+  String get taskOverlayCancelHint => '在方框外释放以取消';
+
+  @override
+  String taskOverlayMovedTo(String status) {
+    return '已移至$status';
+  }
+
+  @override
+  String get taskOverlayCurrentBadge => '当前';
+
+  @override
+  String get taskOverlayReleaseHint => '释放以移至此处';
+
+  @override
+  String get taskStatusTodo => '待办';
+
+  @override
+  String get taskStatusInProgress => '进行中';
+
+  @override
+  String get taskStatusInReview => '审核中';
+
+  @override
+  String get taskStatusDone => '已完成';
+
+  @override
+  String get taskStatusDescTodo => '未开始';
+
+  @override
+  String get taskStatusDescInProgress => '进行中';
+
+  @override
+  String get taskStatusDescInReview => '需要审核';
+
+  @override
+  String get taskStatusDescDone => '已完成';
 }

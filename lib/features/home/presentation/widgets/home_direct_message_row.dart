@@ -11,7 +11,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Whitespace splitter for avatar-initials extraction.
 ///
@@ -183,7 +183,7 @@ class HomeDirectMessageRow extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
-                                  'AGENT',
+                                  context.l10n.dmAgentBadge,
                                   style: AppTypography.caption.copyWith(
                                     color: colors.primary,
                                     fontSize: 9,
@@ -273,35 +273,36 @@ class HomeDirectMessageRow extends StatelessWidget {
       onMoveDown != null;
 
   Future<void> _showActionSheet(BuildContext context) async {
+    final l10n = context.l10n;
     final actions = <ListActionItem>[
       if (onMoveUp != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'dm-action-move-up',
-          label: 'Move up',
+          label: l10n.dmActionMoveUp,
           icon: Icons.arrow_upward,
         ),
       if (onMoveDown != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'dm-action-move-down',
-          label: 'Move down',
+          label: l10n.dmActionMoveDown,
           icon: Icons.arrow_downward,
         ),
       if (onTogglePin != null)
         ListActionItem(
           key: 'dm-action-toggle-pin',
-          label: isPinned ? 'Unpin conversation' : 'Pin conversation',
+          label: isPinned ? l10n.dmActionUnpin : l10n.dmActionPin,
           icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
         ),
       if (onMarkAsUnread != null && unreadCount == 0)
-        const ListActionItem(
+        ListActionItem(
           key: 'dm-action-mark-unread',
-          label: 'Mark as Unread',
+          label: l10n.dmActionMarkUnread,
           icon: Icons.mark_email_unread_outlined,
         ),
       if (onHide != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'dm-action-hide',
-          label: 'Close conversation',
+          label: l10n.dmActionClose,
           icon: Icons.close,
         ),
     ];

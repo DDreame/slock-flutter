@@ -3381,4 +3381,66 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get shareTargetCancelTooltip => 'Cancelar';
+
+  @override
+  String get dmAgentBadge => 'AGENTE';
+
+  @override
+  String get dmActionMoveUp => 'Subir';
+
+  @override
+  String get dmActionMoveDown => 'Bajar';
+
+  @override
+  String get dmActionPin => 'Fijar conversación';
+
+  @override
+  String get dmActionUnpin => 'Desfijar conversación';
+
+  @override
+  String get dmActionMarkUnread => 'Marcar como no leído';
+
+  @override
+  String get dmActionClose => 'Cerrar conversación';
+
+  @override
+  String get taskOverlayDropTitle => 'Soltar para cambiar estado';
+
+  @override
+  String get taskOverlayCancelHint => 'Soltar fuera de las cajas para cancelar';
+
+  @override
+  String taskOverlayMovedTo(String status) {
+    return 'Movido a $status';
+  }
+
+  @override
+  String get taskOverlayCurrentBadge => 'Actual';
+
+  @override
+  String get taskOverlayReleaseHint => 'Soltar para mover aquí';
+
+  @override
+  String get taskStatusTodo => 'Pendiente';
+
+  @override
+  String get taskStatusInProgress => 'En progreso';
+
+  @override
+  String get taskStatusInReview => 'En revisión';
+
+  @override
+  String get taskStatusDone => 'Hecho';
+
+  @override
+  String get taskStatusDescTodo => 'No iniciado';
+
+  @override
+  String get taskStatusDescInProgress => 'En proceso';
+
+  @override
+  String get taskStatusDescInReview => 'Necesita revisión';
+
+  @override
+  String get taskStatusDescDone => 'Completado';
 }

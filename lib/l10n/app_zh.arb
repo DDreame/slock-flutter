@@ -1145,5 +1145,27 @@
   "addAgentToChannelTooltip": "添加智能体到频道",
   "togglePasswordVisibilityTooltip": "切换密码可见性",
   "dismissAnnouncementTooltip": "关闭",
-  "shareTargetCancelTooltip": "取消"
+  "shareTargetCancelTooltip": "取消",
+
+  "dmAgentBadge": "智能体",
+  "dmActionMoveUp": "上移",
+  "dmActionMoveDown": "下移",
+  "dmActionPin": "置顶对话",
+  "dmActionUnpin": "取消置顶",
+  "dmActionMarkUnread": "标为未读",
+  "dmActionClose": "关闭对话",
+
+  "taskOverlayDropTitle": "拖放以更改状态",
+  "taskOverlayCancelHint": "在方框外释放以取消",
+  "taskOverlayMovedTo": "已移至{status}",
+  "taskOverlayCurrentBadge": "当前",
+  "taskOverlayReleaseHint": "释放以移至此处",
+  "taskStatusTodo": "待办",
+  "taskStatusInProgress": "进行中",
+  "taskStatusInReview": "审核中",
+  "taskStatusDone": "已完成",
+  "taskStatusDescTodo": "未开始",
+  "taskStatusDescInProgress": "进行中",
+  "taskStatusDescInReview": "需要审核",
+  "taskStatusDescDone": "已完成"
 }

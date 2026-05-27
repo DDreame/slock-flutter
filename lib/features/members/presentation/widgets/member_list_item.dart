@@ -97,7 +97,7 @@ class MemberListItem extends StatelessWidget {
           if (member.role != null)
             RoleBadge(
               key: ValueKey('member-role-${member.id}'),
-              label: formatMemberRoleLabel(member.role!),
+              label: formatMemberRoleLabel(member.role!, context.l10n),
               color: memberRoleColor(colors, member.role),
             ),
         ],
@@ -188,14 +188,14 @@ class MemberListItem extends StatelessWidget {
 
 enum _MemberAction { makeAdmin, makeMember, remove }
 
-String formatMemberRoleLabel(String role) {
+String formatMemberRoleLabel(String role, AppLocalizations l10n) {
   switch (role) {
     case 'owner':
-      return 'Owner';
+      return l10n.membersRoleOwner;
     case 'admin':
-      return 'Admin';
+      return l10n.membersRoleAdmin;
     case 'member':
-      return 'Member';
+      return l10n.membersRoleMember;
     default:
       return role;
   }
