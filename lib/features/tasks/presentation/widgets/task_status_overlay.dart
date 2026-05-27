@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #508: Task status drag overlay — 4-box drop zone grid + success animation
@@ -168,7 +169,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Drop to change status',
+            context.l10n.taskOverlayDropTitle,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -203,7 +204,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
                   BorderRadius.circular(AppSpacing.xl - AppSpacing.xs),
             ),
             child: Text(
-              'Release outside boxes to cancel',
+              context.l10n.taskOverlayCancelHint,
               style: TextStyle(
                 fontSize: 12,
                 color: colors.overlayForeground
@@ -289,7 +290,8 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Moved to ${_statusLabel(_acceptedStatus!)}',
+            context.l10n
+                .taskOverlayMovedTo(_statusLabel(context, _acceptedStatus!)),
             key: const ValueKey('drop-success-text'),
             style: TextStyle(
               fontSize: 16,
@@ -361,7 +363,7 @@ class _DropZoneBox extends StatelessWidget {
           _StatusIcon(status: status, colors: colors),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            _statusLabel(status),
+            _statusLabel(context, status),
             style: TextStyle(
               fontSize: isHovering ? 14 : 13,
               fontWeight: FontWeight.w600,
@@ -382,7 +384,7 @@ class _DropZoneBox extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
               child: Text(
-                'Current',
+                context.l10n.taskOverlayCurrentBadge,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -393,7 +395,9 @@ class _DropZoneBox extends StatelessWidget {
             )
           else
             Text(
-              isHovering ? 'Release to move here' : _statusDescription(status),
+              isHovering
+                  ? context.l10n.taskOverlayReleaseHint
+                  : _statusDescription(context, status),
               style: TextStyle(
                 fontSize: 11,
                 color: isHovering
@@ -440,22 +444,24 @@ class _StatusIcon extends StatelessWidget {
 // Status helpers
 // ---------------------------------------------------------------------------
 
-String _statusLabel(String status) {
+String _statusLabel(BuildContext context, String status) {
+  final l10n = context.l10n;
   return switch (status) {
-    'todo' => 'Todo',
-    'in_progress' => 'In Progress',
-    'in_review' => 'In Review',
-    'done' => 'Done',
+    'todo' => l10n.taskStatusTodo,
+    'in_progress' => l10n.taskStatusInProgress,
+    'in_review' => l10n.taskStatusInReview,
+    'done' => l10n.taskStatusDone,
     _ => status,
   };
 }
 
-String _statusDescription(String status) {
+String _statusDescription(BuildContext context, String status) {
+  final l10n = context.l10n;
   return switch (status) {
-    'todo' => 'Not started',
-    'in_progress' => 'Working on it',
-    'in_review' => 'Needs review',
-    'done' => 'Completed',
+    'todo' => l10n.taskStatusDescTodo,
+    'in_progress' => l10n.taskStatusDescInProgress,
+    'in_review' => l10n.taskStatusDescInReview,
+    'done' => l10n.taskStatusDescDone,
     _ => '',
   };
 }

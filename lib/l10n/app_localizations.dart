@@ -6274,6 +6274,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get shareTargetCancelTooltip;
+
+  /// No description provided for @dmAgentBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'AGENT'**
+  String get dmAgentBadge;
+
+  /// No description provided for @dmActionMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get dmActionMoveUp;
+
+  /// No description provided for @dmActionMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get dmActionMoveDown;
+
+  /// No description provided for @dmActionPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin conversation'**
+  String get dmActionPin;
+
+  /// No description provided for @dmActionUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin conversation'**
+  String get dmActionUnpin;
+
+  /// No description provided for @dmActionMarkUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Unread'**
+  String get dmActionMarkUnread;
+
+  /// No description provided for @dmActionClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close conversation'**
+  String get dmActionClose;
+
+  /// No description provided for @taskOverlayDropTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop to change status'**
+  String get taskOverlayDropTitle;
+
+  /// No description provided for @taskOverlayCancelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Release outside boxes to cancel'**
+  String get taskOverlayCancelHint;
+
+  /// No description provided for @taskOverlayMovedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to {status}'**
+  String taskOverlayMovedTo(String status);
+
+  /// No description provided for @taskOverlayCurrentBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Current'**
+  String get taskOverlayCurrentBadge;
+
+  /// No description provided for @taskOverlayReleaseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Release to move here'**
+  String get taskOverlayReleaseHint;
+
+  /// No description provided for @taskStatusTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'Todo'**
+  String get taskStatusTodo;
+
+  /// No description provided for @taskStatusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get taskStatusInProgress;
+
+  /// No description provided for @taskStatusInReview.
+  ///
+  /// In en, this message translates to:
+  /// **'In Review'**
+  String get taskStatusInReview;
+
+  /// No description provided for @taskStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get taskStatusDone;
+
+  /// No description provided for @taskStatusDescTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'Not started'**
+  String get taskStatusDescTodo;
+
+  /// No description provided for @taskStatusDescInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Working on it'**
+  String get taskStatusDescInProgress;
+
+  /// No description provided for @taskStatusDescInReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs review'**
+  String get taskStatusDescInReview;
+
+  /// No description provided for @taskStatusDescDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get taskStatusDescDone;
 }
 
 class _AppLocalizationsDelegate

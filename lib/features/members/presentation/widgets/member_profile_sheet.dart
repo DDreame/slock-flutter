@@ -111,7 +111,7 @@ class _MemberProfileSheet extends StatelessWidget {
             if (member.role != null)
               RoleBadge(
                 key: const ValueKey('profile-sheet-role'),
-                label: formatMemberRoleLabel(member.role!),
+                label: formatMemberRoleLabel(member.role!, context.l10n),
                 color: memberRoleColor(colors, member.role),
               ),
 

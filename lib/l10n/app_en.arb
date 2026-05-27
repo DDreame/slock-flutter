@@ -1372,5 +1372,28 @@
   "addAgentToChannelTooltip": "Add agent to channel",
   "togglePasswordVisibilityTooltip": "Toggle password visibility",
   "dismissAnnouncementTooltip": "Dismiss",
-  "shareTargetCancelTooltip": "Cancel"
+  "shareTargetCancelTooltip": "Cancel",
+
+  "dmAgentBadge": "AGENT",
+  "dmActionMoveUp": "Move up",
+  "dmActionMoveDown": "Move down",
+  "dmActionPin": "Pin conversation",
+  "dmActionUnpin": "Unpin conversation",
+  "dmActionMarkUnread": "Mark as Unread",
+  "dmActionClose": "Close conversation",
+
+  "taskOverlayDropTitle": "Drop to change status",
+  "taskOverlayCancelHint": "Release outside boxes to cancel",
+  "taskOverlayMovedTo": "Moved to {status}",
+  "@taskOverlayMovedTo": { "placeholders": { "status": { "type": "String" } } },
+  "taskOverlayCurrentBadge": "Current",
+  "taskOverlayReleaseHint": "Release to move here",
+  "taskStatusTodo": "Todo",
+  "taskStatusInProgress": "In Progress",
+  "taskStatusInReview": "In Review",
+  "taskStatusDone": "Done",
+  "taskStatusDescTodo": "Not started",
+  "taskStatusDescInProgress": "Working on it",
+  "taskStatusDescInReview": "Needs review",
+  "taskStatusDescDone": "Completed"
 }
