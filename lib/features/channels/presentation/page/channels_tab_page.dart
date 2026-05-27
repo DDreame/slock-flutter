@@ -38,6 +38,11 @@ class ChannelsTabPage extends ConsumerStatefulWidget {
   @visibleForTesting
   static int filterRecomputeCount = 0;
 
+  /// Number of times the pinnedIds Set was recomputed across all instances.
+  /// Exposed for testing to verify the memoization is load-bearing.
+  @visibleForTesting
+  static int pinnedIdsRecomputeCount = 0;
+
   @override
   ConsumerState<ChannelsTabPage> createState() => _ChannelsTabPageState();
 }
@@ -52,6 +57,11 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   List<HomeChannelSummary>? _cachedSorted;
   String _cachedSearchQuery = '';
   List<HomeChannelSummary>? _cachedDisplayList;
+
+  // PERF-830: Memoize pinnedIds — only recompute when pinnedChannels identity
+  // changes, not on every rebuild.
+  List<HomeChannelSummary>? _cachedPinnedChannels;
+  Set<String>? _cachedPinnedIds;
 
   @override
   void dispose() {
@@ -209,7 +219,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     }
     final displayList = _cachedDisplayList!;
 
-    final pinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
+    // PERF-830: Memoize pinnedIds — only recompute when list identity changes.
+    if (!identical(pinnedChannels, _cachedPinnedChannels)) {
+      _cachedPinnedChannels = pinnedChannels;
+      _cachedPinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
+      ChannelsTabPage.pinnedIdsRecomputeCount++;
+    }
+    final pinnedIds = _cachedPinnedIds!;
 
     if (displayList.isEmpty && _searchQuery.isEmpty) {
       return ListView(

@@ -10,6 +10,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
+import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -95,7 +96,6 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
     this.isCurrentSearchMatch = false,
     this.isQuoteJumpHighlighted = false,
     this.onScrollToMessage,
-    this.now,
   });
 
   final ConversationDetailTarget target;
@@ -106,10 +106,6 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
   final bool isCurrentSearchMatch;
   final bool isQuoteJumpHighlighted;
   final ValueChanged<String>? onScrollToMessage;
-
-  /// Shared current time for relative timestamp formatting.
-  /// When provided, avoids per-card DateTime.now() syscall.
-  final DateTime? now;
 
   // ---------------------------------------------------------------------------
   // #655: Exposed base style constants for test identity assertions.
@@ -271,8 +267,6 @@ class ConversationMessageCardState
     final highlightQuery = widget.highlightQuery;
     final isCurrentSearchMatch = widget.isCurrentSearchMatch;
     final onScrollToMessage = widget.onScrollToMessage;
-    final timestamp = formatRelativeTime(message.createdAt,
-        now: widget.now ?? DateTime.now());
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 
@@ -432,7 +426,8 @@ class ConversationMessageCardState
                         ),
                       ),
                     ),
-                  Text(timestamp, style: timestampStyle),
+                  RelativeTimeText(
+                      time: message.createdAt, style: timestampStyle),
                   if (message.linkedTask != null &&
                       target.surface == ConversationSurface.channel) ...[
                     const SizedBox(width: 8),
@@ -477,7 +472,8 @@ class ConversationMessageCardState
                         color: colors.primary,
                       ),
                     ),
-                  Text(timestamp, style: timestampStyle),
+                  RelativeTimeText(
+                      time: message.createdAt, style: timestampStyle),
                   if (message.linkedTask != null &&
                       target.surface == ConversationSurface.channel) ...[
                     const SizedBox(width: 8),

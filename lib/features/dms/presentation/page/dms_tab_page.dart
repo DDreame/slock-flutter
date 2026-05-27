@@ -49,6 +49,11 @@ typedef _DmsAgentProjection = ({
 class DmsTabPage extends ConsumerStatefulWidget {
   const DmsTabPage({super.key});
 
+  /// Number of times pinnedIds was recomputed (identity check failed).
+  /// Exposed for testing to verify memoization prevents redundant allocations.
+  @visibleForTesting
+  static int pinnedIdsRecomputeCount = 0;
+
   @override
   ConsumerState<DmsTabPage> createState() => _DmsTabPageState();
 }
@@ -68,6 +73,11 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   List<HomeDirectMessageSummary>? _lastUnpinnedDms;
   DmSortPreference? _lastSortPreference;
   String _lastSearchQuery = '';
+
+  // PERF-830: Memoize pinnedIds — only recompute when pinned list identity
+  // changes, not on every rebuild.
+  List<HomeDirectMessageSummary>? _cachedPinnedDmsList;
+  Set<String>? _cachedPinnedDmIds;
 
   @override
   void dispose() {
@@ -299,8 +309,14 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       sortPreference,
     );
 
-    final pinnedIds =
-        state.pinnedDirectMessages.map((dm) => dm.scopeId.value).toSet();
+    // PERF-830: Memoize pinnedIds — only recompute when list identity changes.
+    if (!identical(state.pinnedDirectMessages, _cachedPinnedDmsList)) {
+      _cachedPinnedDmsList = state.pinnedDirectMessages;
+      _cachedPinnedDmIds =
+          state.pinnedDirectMessages.map((dm) => dm.scopeId.value).toSet();
+      DmsTabPage.pinnedIdsRecomputeCount++;
+    }
+    final pinnedIds = _cachedPinnedDmIds!;
 
     if (sorted.isEmpty && _searchQuery.isEmpty) {
       return ListView(
