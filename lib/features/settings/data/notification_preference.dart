@@ -3,30 +3,14 @@ import 'package:slock_app/core/storage/notification_storage_keys.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 
 enum NotificationPreference {
-  all(
-    title: 'All Messages',
-    description: 'Receive notifications for all messages.',
-    storageValue: 'all',
-  ),
-  mentionsOnly(
-    title: 'Mentions & DMs Only',
-    description: 'Only receive notifications for direct messages.',
-    storageValue: 'mentions_only',
-  ),
-  mute(
-    title: 'Mute',
-    description: 'Do not show any foreground notifications.',
-    storageValue: 'mute',
-  );
+  all(storageValue: 'all'),
+  mentionsOnly(storageValue: 'mentions_only'),
+  mute(storageValue: 'mute');
 
   const NotificationPreference({
-    required this.title,
-    required this.description,
     required this.storageValue,
   });
 
-  final String title;
-  final String description;
   final String storageValue;
 
   static NotificationPreference fromStorageValue(String? value) {

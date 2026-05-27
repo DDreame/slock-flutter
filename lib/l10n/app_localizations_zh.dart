@@ -45,9 +45,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginPasswordRequiredError => '请输入密码。';
 
   @override
-  String get loginFailedFallback => '登录失败，请重试。';
-
-  @override
   String get registerTitle => '注册';
 
   @override
@@ -78,9 +75,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get registerPasswordTooShortError => '密码长度至少为 8 个字符。';
 
   @override
-  String get registerFailedFallback => '注册失败，请重试。';
-
-  @override
   String get forgotPasswordTitle => '忘记密码';
 
   @override
@@ -103,9 +97,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get forgotPasswordEmailInvalidError => '请输入有效的邮箱地址。';
-
-  @override
-  String get forgotPasswordFailedFallback => '发送重置邮件失败，请重试。';
 
   @override
   String get resetPasswordTitle => '重置密码';
@@ -133,9 +124,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get resetPasswordMismatchError => '两次输入的密码不一致。';
-
-  @override
-  String get resetPasswordFailedFallback => '密码重置失败，链接可能已过期。';
 
   @override
   String get verifyEmailTitle => '验证邮箱';
@@ -171,12 +159,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verifyEmailTokenRequiredError => '请输入验证码。';
 
   @override
-  String get verifyEmailFailedFallback => '验证失败，链接可能已过期。';
-
-  @override
-  String get verifyEmailResendFailedFallback => '重新发送验证邮件失败。';
-
-  @override
   String get navWorkspace => '首页';
 
   @override
@@ -192,82 +174,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentsNewTooltip => '新建智能体';
 
   @override
-  String get agentsNoMachineAssigned => '未分配机器';
-
-  @override
   String get releaseNotesTitle => '版本说明';
-
-  @override
-  String get navSettings => '设置';
-
-  @override
-  String get homeWorkspaceConsole => '工作区控制台';
-
-  @override
-  String get homeConsoleActivityTitle => '动态';
-
-  @override
-  String get homeConsoleActivityDescription => '已保存内容、话题、任务和搜索。';
-
-  @override
-  String get homeConsoleSavedMessages => '已保存消息';
-
-  @override
-  String get homeConsoleSavedMessagesDescription => '查看收藏的更新和引用。';
-
-  @override
-  String get homeConsoleThreads => '话题';
-
-  @override
-  String get homeConsoleThreadsDescription => '查看工作区内的活跃话题。';
-
-  @override
-  String get homeConsoleTasks => '任务';
-
-  @override
-  String get homeConsoleTasksDescription => '查看任务队列和执行状态。';
-
-  @override
-  String get homeConsoleSearch => '搜索';
-
-  @override
-  String get homeConsoleSearchDescription => '搜索频道、消息和工作区历史。';
-
-  @override
-  String get homeConsoleOperationsTitle => '运维';
-
-  @override
-  String get homeConsoleOperationsDescription => '成员、基础设施、账单和设置。';
 
   @override
   String get homeConsoleMembers => '成员';
 
   @override
-  String get homeConsoleMembersDescription => '管理工作区角色和邀请。';
-
-  @override
-  String get homeConsoleAgentControl => '智能体管理';
-
-  @override
-  String get homeConsoleAgentControlDescription => '查看智能体活动和分配情况。';
-
-  @override
-  String get homeConsoleMachines => '机器';
-
-  @override
-  String get homeConsoleMachinesDescription => '查看工作区运行时容量和主机。';
-
-  @override
   String get homeConsoleBilling => '账单';
 
   @override
-  String get homeConsoleBillingDescription => '查看套餐和账单管理。';
-
-  @override
   String get homeConsoleWorkspaceSettings => '工作区设置';
-
-  @override
-  String get homeConsoleWorkspaceSettingsDescription => '配置工作区级别的默认值和访问权限。';
 
   @override
   String get homeCardAgents => '智能体';
@@ -276,34 +192,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardAgentsSubtitle => '工作区中的智能体';
 
   @override
-  String homeCardAgentsOnline(int count) {
-    return '$count 在线';
-  }
-
-  @override
-  String homeCardAgentsError(int count) {
-    return '$count 错误';
-  }
-
-  @override
-  String homeCardAgentsStopped(int count) {
-    return '$count 已停止';
-  }
-
-  @override
   String get homeCardAgentsEmpty => '所有智能体离线';
 
   @override
   String get homeCardTasks => '任务';
 
   @override
-  String get homeCardTasksSubtitle => '全部任务';
-
-  @override
   String get homeCardTasksEmpty => '暂无活跃任务';
-
-  @override
-  String get homeCardTasksUnavailable => '任务加载失败';
 
   @override
   String homeCardTasksOverflow(int count) {
@@ -335,21 +230,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardViewAll => '查看全部';
 
   @override
-  String get homeCardAgentActivityOnline => '在线';
-
-  @override
-  String get homeCardAgentActivityThinking => '思考中';
-
-  @override
-  String get homeCardAgentActivityWorking => '工作中';
-
-  @override
-  String get homeCardAgentActivityError => '错误';
-
-  @override
-  String get homeCardAgentActivityOffline => '离线';
-
-  @override
   String get homeCardTimeAgoNow => '刚刚';
 
   @override
@@ -379,35 +259,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String homeCardUnreadBadge(int count) {
-    return '$count';
-  }
-
-  @override
-  String get homeCardUnreadMarkAllRead => '全部标为已读';
-
-  @override
-  String get homeSectionPinned => '已置顶';
-
-  @override
-  String get homeSectionChannels => '频道';
-
-  @override
-  String get homeSectionDirectMessages => '私信';
-
-  @override
-  String get homeSectionPinnedAgents => '已置顶智能体';
-
-  @override
-  String get homeSectionAgents => '智能体';
-
-  @override
-  String get homeChannelsEmpty => '暂无频道。';
-
-  @override
-  String get homeDirectMessagesEmpty => '暂无私信。';
-
-  @override
   String get homeCreateChannelTooltip => '创建频道';
 
   @override
@@ -425,12 +276,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeUnhide => '取消隐藏';
 
   @override
-  String get homePin => '置顶';
-
-  @override
-  String get homeUnpin => '取消置顶';
-
-  @override
   String get homeNoServerMessage => '选择一个服务器以开始。';
 
   @override
@@ -446,9 +291,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsTabTitle => '频道';
 
   @override
-  String get channelsTabPlaceholder => '频道列表即将上线。';
-
-  @override
   String get channelsTabSearchHint => '搜索频道';
 
   @override
@@ -456,12 +298,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dmsTabTitle => '消息';
-
-  @override
-  String get dmsTabHeadline => '私信';
-
-  @override
-  String get dmsTabPlaceholder => '私信列表即将上线。';
 
   @override
   String get dmsTabSearchHint => '搜索消息';
@@ -476,13 +312,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeChannelCreated => '频道已创建。';
 
   @override
-  String get homeChannelCreateFailed => '创建频道失败。';
-
-  @override
   String get homeChannelUpdated => '频道已更新。';
-
-  @override
-  String get homeChannelUpdateFailed => '更新频道失败。';
 
   @override
   String get homeDeleteChannelTitle => '删除频道';
@@ -499,9 +329,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeChannelDeleted => '频道已删除。';
 
   @override
-  String get homeChannelDeleteFailed => '删除频道失败。';
-
-  @override
   String get homeLeaveChannelTitle => '离开频道';
 
   @override
@@ -516,13 +343,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeChannelLeft => '已离开频道。';
 
   @override
-  String get homeChannelLeaveFailed => '离开频道失败。';
-
-  @override
   String get baseUrlSettingsTitle => '服务器配置';
-
-  @override
-  String get baseUrlSettingsSubtitle => '配置自定义 API 和 WebSocket 端点。';
 
   @override
   String get baseUrlApiLabel => 'API 地址';
@@ -575,9 +396,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get baseUrlEmptyDefault => '使用编译时默认值';
-
-  @override
-  String get baseUrlRestartRequired => '需重启应用以应用更改。';
 
   @override
   String get baseUrlSettingsSettingsTile => '服务器';
@@ -637,9 +455,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workspaceSettingsRenamedSnackbar => '工作区已重命名。';
 
   @override
-  String get workspaceSettingsRenameFailed => '重命名工作区失败。';
-
-  @override
   String get workspaceSettingsDeleteDialogTitle => '删除工作区？';
 
   @override
@@ -651,9 +466,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workspaceSettingsDeleteConfirmLabel => '删除';
 
   @override
-  String get workspaceSettingsDeleteFailed => '删除工作区失败。';
-
-  @override
   String get workspaceSettingsLeaveDialogTitle => '退出工作区？';
 
   @override
@@ -663,9 +475,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get workspaceSettingsLeaveConfirmLabel => '退出';
-
-  @override
-  String get workspaceSettingsLeaveFailed => '退出工作区失败。';
 
   @override
   String get previewDeleted => '消息已删除';
@@ -930,9 +739,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchRetry => '重试';
 
   @override
-  String get searchFailedFallback => '搜索失败。';
-
-  @override
   String get searchSectionChannels => '频道';
 
   @override
@@ -1033,9 +839,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get machinesRegisteredTitle => '机器已注册';
 
   @override
-  String get machinesRegisterFailed => '注册机器失败。';
-
-  @override
   String get machinesRenameTitle => '重命名机器';
 
   @override
@@ -1048,13 +851,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get machinesRenamedSnackbar => '机器已重命名。';
 
   @override
-  String get machinesRenameFailed => '重命名机器失败。';
-
-  @override
   String get machinesRotatedApiKeyTitle => 'API 密钥已轮换';
-
-  @override
-  String get machinesRotateApiKeyFailed => '轮换机器 API 密钥失败。';
 
   @override
   String get machinesDeleteTitle => '删除机器？';
@@ -1067,9 +864,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get machinesDeletedSnackbar => '机器已删除。';
-
-  @override
-  String get machinesDeleteFailed => '删除机器失败。';
 
   @override
   String get machinesApiKeyRevealedNote => '此密钥仅在创建或轮换时显示一次。';
@@ -1189,13 +983,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workspacesDeletedSnackbar => '工作区已删除。';
 
   @override
-  String get workspacesDeleteFailed => '删除工作区失败。';
-
-  @override
   String get workspacesMetaPath => '路径';
-
-  @override
-  String get workspacesMetaAgent => '代理';
 
   @override
   String get workspacesStatusActive => '活跃';
@@ -1216,12 +1004,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tasksCreatedSnackbar => '任务已创建。';
 
   @override
-  String get tasksCreateFailed => '创建任务失败。';
-
-  @override
-  String get tasksUpdateFailed => '更新任务失败。';
-
-  @override
   String get tasksRetryAction => '重试';
 
   @override
@@ -1240,15 +1022,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tasksDeletedSnackbar => '任务已删除。';
-
-  @override
-  String get tasksDeleteFailed => '删除任务失败。';
-
-  @override
-  String get tasksClaimFailed => '认领任务失败。';
-
-  @override
-  String get tasksUnclaimFailed => '取消认领任务失败。';
 
   @override
   String get tasksHeaderTitle => '任务';
@@ -1543,18 +1316,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationMessageDeletedPlaceholder => '[消息已删除]';
 
   @override
-  String get conversationReactionFailedFallback => '添加回应失败。';
-
-  @override
   String get conversationReactWithEmojiTitle => '用表情回应';
 
   @override
   String conversationReactWithEmojiSemantics(String emoji) {
     return '用 $emoji 回应';
   }
-
-  @override
-  String get conversationReactionUpdateFailedFallback => '更新回应失败。';
 
   @override
   String get conversationDeleteDialogTitle => '删除消息？';
@@ -1570,9 +1337,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get conversationDeleteSuccess => '消息已删除。';
-
-  @override
-  String get conversationDeleteFailedFallback => '删除消息失败。';
 
   @override
   String get conversationOpenLinkTitle => '打开链接';
@@ -3175,9 +2939,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get textPreviewShowMore => '展开更多';
-
-  @override
-  String get textPreviewShowLess => '收起';
 
   @override
   String get profileAvatarEditSemantics => '编辑头像';

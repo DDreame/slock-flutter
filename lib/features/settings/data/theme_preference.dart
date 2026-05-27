@@ -4,30 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _themePreferenceKey = 'theme_preference';
 
 enum ThemePreference {
-  system(
-    title: 'Follow System',
-    description: 'Use your device theme setting.',
-    storageValue: 'system',
-  ),
-  light(
-    title: 'Light',
-    description: 'Always use the light theme.',
-    storageValue: 'light',
-  ),
-  dark(
-    title: 'Dark',
-    description: 'Always use the dark theme.',
-    storageValue: 'dark',
-  );
+  system(storageValue: 'system'),
+  light(storageValue: 'light'),
+  dark(storageValue: 'dark');
 
   const ThemePreference({
-    required this.title,
-    required this.description,
     required this.storageValue,
   });
 
-  final String title;
-  final String description;
   final String storageValue;
 
   ThemeMode toThemeMode() => switch (this) {

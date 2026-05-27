@@ -12,8 +12,6 @@
   "loginEmailRequiredError": "Email is required.",
   "loginEmailInvalidError": "Enter a valid email address.",
   "loginPasswordRequiredError": "Password is required.",
-  "loginFailedFallback": "Login failed. Please try again.",
-
   "registerTitle": "Register",
   "registerDisplayNameLabel": "Display name",
   "registerEmailLabel": "Email",
@@ -24,8 +22,6 @@
   "registerEmailRequiredError": "Email is required.",
   "registerEmailInvalidError": "Enter a valid email address.",
   "registerPasswordTooShortError": "Password must be at least 8 characters.",
-  "registerFailedFallback": "Registration failed. Please try again.",
-
   "forgotPasswordTitle": "Forgot Password",
   "forgotPasswordSuccessTitle": "Check your email",
   "forgotPasswordSuccessMessage": "If that email is registered, a reset link has been sent. Check your inbox.",
@@ -34,8 +30,6 @@
   "forgotPasswordBackToLogin": "Back to login",
   "forgotPasswordEmailRequiredError": "Email is required.",
   "forgotPasswordEmailInvalidError": "Enter a valid email address.",
-  "forgotPasswordFailedFallback": "Failed to send reset email. Please try again.",
-
   "resetPasswordTitle": "Reset Password",
   "resetPasswordCompletedMessage": "Password reset complete. You can now sign in with your new password.",
   "resetPasswordNewPasswordLabel": "New password",
@@ -45,8 +39,6 @@
   "resetPasswordLinkInvalidError": "Reset link is missing or invalid.",
   "resetPasswordTooShortError": "Password must be at least 8 characters.",
   "resetPasswordMismatchError": "Passwords do not match.",
-  "resetPasswordFailedFallback": "Password reset failed. The link may be expired.",
-
   "verifyEmailTitle": "Verify Email",
   "verifyEmailInstructions": "Verify your email to continue.",
   "verifyEmailResentMessage": "Verification email resent. Check your inbox.",
@@ -58,93 +50,93 @@
   "verifyEmailSignOut": "Sign out",
   "verifyEmailBackToLogin": "Back to login",
   "verifyEmailTokenRequiredError": "Enter a verification token.",
-  "verifyEmailFailedFallback": "Verification failed. The link may be expired.",
-  "verifyEmailResendFailedFallback": "Failed to resend verification email.",
-
   "navWorkspace": "Home",
   "navChannels": "Channels",
   "navDms": "Messages",
   "navAgents": "Agents",
   "agentsNewTooltip": "New agent",
-  "agentsNoMachineAssigned": "No Machine Assigned",
   "releaseNotesTitle": "Release Notes",
-  "navSettings": "Settings",
-
-  "homeWorkspaceConsole": "Workspace Console",
-  "homeConsoleActivityTitle": "Activity",
-  "homeConsoleActivityDescription": "Saved context, threads, tasks, and search.",
-  "homeConsoleSavedMessages": "Saved Messages",
-  "homeConsoleSavedMessagesDescription": "Return to bookmarked updates and references.",
-  "homeConsoleThreads": "Threads",
-  "homeConsoleThreadsDescription": "Review active thread work across the workspace.",
-  "homeConsoleTasks": "Tasks",
-  "homeConsoleTasksDescription": "See task queues and execution status.",
-  "homeConsoleSearch": "Search",
-  "homeConsoleSearchDescription": "Find channels, messages, and workspace history.",
-  "homeConsoleOperationsTitle": "Operations",
-  "homeConsoleOperationsDescription": "People, infrastructure, billing, and settings.",
   "homeConsoleMembers": "Members",
-  "homeConsoleMembersDescription": "Manage workspace roles and invitations.",
-  "homeConsoleAgentControl": "Agent Control",
-  "homeConsoleAgentControlDescription": "Inspect agent activity and assignments.",
-  "homeConsoleMachines": "Machines",
-  "homeConsoleMachinesDescription": "Check workspace runtime capacity and hosts.",
   "homeConsoleBilling": "Billing",
-  "homeConsoleBillingDescription": "Review plan controls and billing management.",
   "homeConsoleWorkspaceSettings": "Workspace Settings",
-  "homeConsoleWorkspaceSettingsDescription": "Configure workspace-level defaults and access.",
-
   "homeCardAgents": "AGENTS",
   "homeCardAgentsSubtitle": "agents in workspace",
-  "homeCardAgentsOnline": "{count} online",
-  "@homeCardAgentsOnline": { "placeholders": { "count": { "type": "int" } } },
-  "homeCardAgentsError": "{count} error",
-  "@homeCardAgentsError": { "placeholders": { "count": { "type": "int" } } },
-  "homeCardAgentsStopped": "{count} stopped",
-  "@homeCardAgentsStopped": { "placeholders": { "count": { "type": "int" } } },
   "homeCardAgentsEmpty": "All agents offline",
   "homeCardTasks": "TASKS",
-  "homeCardTasksSubtitle": "total tasks",
   "homeCardTasksEmpty": "No active tasks",
-  "homeCardTasksUnavailable": "Tasks unavailable",
   "homeCardTasksOverflow": "+{count} more",
-  "@homeCardTasksOverflow": { "placeholders": { "count": { "type": "int" } } },
+  "@homeCardTasksOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardTasksInProgress": "In Progress",
   "homeCardTasksTodo": "To Do",
   "homeCardTasksDurationMinutes": "{count}m",
-  "@homeCardTasksDurationMinutes": { "placeholders": { "count": { "type": "int" } } },
+  "@homeCardTasksDurationMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardTasksDurationHours": "{hours}h {minutes}m",
-  "@homeCardTasksDurationHours": { "placeholders": { "hours": { "type": "int" }, "minutes": { "type": "int" } } },
+  "@homeCardTasksDurationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardTasksDurationHoursOnly": "{count}h",
-  "@homeCardTasksDurationHoursOnly": { "placeholders": { "count": { "type": "int" } } },
+  "@homeCardTasksDurationHoursOnly": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardViewAll": "View all",
-  "homeCardAgentActivityOnline": "online",
-  "homeCardAgentActivityThinking": "thinking",
-  "homeCardAgentActivityWorking": "working",
-  "homeCardAgentActivityError": "error",
-  "homeCardAgentActivityOffline": "offline",
   "homeCardTimeAgoNow": "now",
   "homeCardTimeAgoMinutes": "{count}m ago",
-  "@homeCardTimeAgoMinutes": { "placeholders": { "count": { "type": "int" } } },
+  "@homeCardTimeAgoMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardTimeAgoHours": "{count}h ago",
-  "@homeCardTimeAgoHours": { "placeholders": { "count": { "type": "int" } } },
+  "@homeCardTimeAgoHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardTimeAgoDays": "{count}d ago",
-  "@homeCardTimeAgoDays": { "placeholders": { "count": { "type": "int" } } },
+  "@homeCardTimeAgoDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCardUnread": "UNREAD",
   "homeCardUnreadEmpty": "All caught up",
   "homeCardUnreadOverflow": "+{count} more",
-  "@homeCardUnreadOverflow": { "placeholders": { "count": { "type": "int" } } },
-  "homeCardUnreadBadge": "{count}",
-  "@homeCardUnreadBadge": { "placeholders": { "count": { "type": "int" } } },
-  "homeCardUnreadMarkAllRead": "Mark all read",
-
-  "homeSectionPinned": "Pinned",
-  "homeSectionChannels": "Channels",
-  "homeSectionDirectMessages": "Direct Messages",
-  "homeSectionPinnedAgents": "Pinned Agents",
-  "homeSectionAgents": "Agents",
-  "homeChannelsEmpty": "No channels yet.",
-  "homeDirectMessagesEmpty": "No direct messages yet.",
+  "@homeCardUnreadOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "homeCreateChannelTooltip": "Create channel",
   "homeNewMessageTooltip": "New message",
   "homeHiddenConversationsCount": "Hidden conversations ({count})",
@@ -157,29 +149,19 @@
   },
   "homeHiddenConversationsTitle": "Hidden conversations",
   "homeUnhide": "Unhide",
-  "homePin": "Pin",
-  "homeUnpin": "Unpin",
-
   "homeNoServerMessage": "Select a server to get started.",
   "homeSelectWorkspace": "Select workspace",
   "homeLoadFailedFallback": "Unable to load conversations.",
   "homeRetry": "Retry",
-
   "channelsTabTitle": "Channels",
-  "channelsTabPlaceholder": "Channel list will be available here soon.",
   "channelsTabSearchHint": "Search channels",
   "channelsTabEmpty": "No channels yet.",
   "dmsTabTitle": "Messages",
-  "dmsTabHeadline": "Direct Messages",
-  "dmsTabPlaceholder": "Direct messages will be available here soon.",
   "dmsTabSearchHint": "Search messages",
   "dmsTabEmpty": "No direct messages yet.",
   "settingsTooltip": "Settings",
-
   "homeChannelCreated": "Channel created.",
-  "homeChannelCreateFailed": "Failed to create channel.",
   "homeChannelUpdated": "Channel updated.",
-  "homeChannelUpdateFailed": "Failed to update channel.",
   "homeDeleteChannelTitle": "Delete channel",
   "homeDeleteChannelMessage": "Delete {name}? This cannot be undone.",
   "@homeDeleteChannelMessage": {
@@ -191,7 +173,6 @@
   },
   "homeDeleteChannelConfirm": "Delete",
   "homeChannelDeleted": "Channel deleted.",
-  "homeChannelDeleteFailed": "Failed to delete channel.",
   "homeLeaveChannelTitle": "Leave channel",
   "homeLeaveChannelMessage": "Leave {name}?",
   "@homeLeaveChannelMessage": {
@@ -203,10 +184,7 @@
   },
   "homeLeaveChannelConfirm": "Leave",
   "homeChannelLeft": "Left channel.",
-  "homeChannelLeaveFailed": "Failed to leave channel.",
-
   "baseUrlSettingsTitle": "Server Configuration",
-  "baseUrlSettingsSubtitle": "Configure custom API and WebSocket endpoints.",
   "baseUrlApiLabel": "API Base URL",
   "baseUrlApiHint": "https://api.example.com",
   "baseUrlRealtimeLabel": "Realtime URL",
@@ -224,17 +202,13 @@
   "baseUrlResultTimeout": "Timeout",
   "baseUrlResultInvalid": "Invalid URL",
   "baseUrlEmptyDefault": "Using build-time default",
-  "baseUrlRestartRequired": "Restart required to apply changes.",
   "baseUrlSettingsSettingsTile": "Server",
   "baseUrlSettingsSettingsTileSubtitle": "Custom API and WebSocket endpoints.",
-
   "attachmentOpenInBrowser": "Open in browser",
   "attachmentUnableToLoadImage": "Unable to load image",
   "attachmentHtmlOpensInBrowser": "HTML • Opens in browser",
-
   "refreshFailedSnackbar": "Could not refresh. Showing cached data.",
   "refreshFailedRetry": "Retry",
-
   "workspaceSettingsUnavailableTitle": "Workspace settings unavailable",
   "workspaceSettingsUnavailableMessage": "We could not load workspace settings right now.",
   "workspaceSettingsNotFound": "Workspace not found.",
@@ -247,7 +221,6 @@
   "workspaceSettingsDeleteAction": "Delete workspace",
   "workspaceSettingsLeaveAction": "Leave workspace",
   "workspaceSettingsRenamedSnackbar": "Workspace renamed.",
-  "workspaceSettingsRenameFailed": "Failed to rename workspace.",
   "workspaceSettingsDeleteDialogTitle": "Delete workspace?",
   "workspaceSettingsDeleteDialogMessage": "Delete {name}? This permanently removes the workspace and all its data.",
   "@workspaceSettingsDeleteDialogMessage": {
@@ -258,7 +231,6 @@
     }
   },
   "workspaceSettingsDeleteConfirmLabel": "Delete",
-  "workspaceSettingsDeleteFailed": "Failed to delete workspace.",
   "workspaceSettingsLeaveDialogTitle": "Leave workspace?",
   "workspaceSettingsLeaveDialogMessage": "Leave {name}? You can rejoin later with a new invite.",
   "@workspaceSettingsLeaveDialogMessage": {
@@ -269,8 +241,6 @@
     }
   },
   "workspaceSettingsLeaveConfirmLabel": "Leave",
-  "workspaceSettingsLeaveFailed": "Failed to leave workspace.",
-
   "previewDeleted": "Message deleted",
   "previewSending": "Sending…",
   "previewFailed": "Not sent, tap to retry",
@@ -288,14 +258,12 @@
       }
     }
   },
-
   "agentStatusThinking": "Thinking",
   "agentStatusWorking": "Working",
   "agentStatusError": "Error",
   "agentStatusOnline": "Online",
   "agentStatusOffline": "Offline",
   "agentStatusStopped": "Stopped",
-
   "settingsTitle": "Settings",
   "settingsAccountSection": "Account",
   "settingsWorkspaceSection": "Workspace",
@@ -334,7 +302,6 @@
   "settingsNotificationDenied": "Denied",
   "settingsNotificationProvisional": "Provisional",
   "settingsNotificationNotRequested": "Not requested",
-
   "notificationSettingsTitle": "Notification Settings",
   "notificationSettingsPermissionSection": "Permission",
   "notificationSettingsPushNotifications": "Push Notifications",
@@ -370,12 +337,10 @@
   "notificationSettingsResultProvisional": "Notification access is provisional; device registration refreshed.",
   "notificationSettingsResultDenied": "Notification access was denied.",
   "notificationSettingsResultUnknown": "Notification status is still unavailable on this device.",
-
   "searchHintText": "Search messages, channels, or contacts...",
   "searchIdleText": "Type to search messages, channels, or contacts.",
   "searchNoResults": "No results found.",
   "searchRetry": "Retry",
-  "searchFailedFallback": "Search failed.",
   "searchSectionChannels": "Channels",
   "searchSectionContacts": "Contacts",
   "searchSectionMessages": "Messages",
@@ -387,9 +352,9 @@
   "searchFilterNewest": "Newest",
   "searchFilterOldest": "Oldest",
   "searchFilterBySenderTitle": "Filter by sender",
-  "searchFilterBySenderHint": "Enter sender name\u2026",
+  "searchFilterBySenderHint": "Enter sender name…",
   "searchFilterByChannelTitle": "Filter by channel",
-  "searchFilterByChannelHint": "Enter channel name\u2026",
+  "searchFilterByChannelHint": "Enter channel name…",
   "searchFilterCancel": "Cancel",
   "searchFilterApply": "Apply",
   "searchFilterDateAny": "Any time",
@@ -413,10 +378,8 @@
       }
     }
   },
-
   "searchRecentTitle": "Recent",
   "searchRecentClear": "Clear",
-
   "machinesPageTitle": "Machines",
   "machinesAddButton": "Add Machine",
   "machinesLoadFailed": "Failed to load machines.",
@@ -424,19 +387,15 @@
   "machinesRegisterAction": "Register",
   "machinesRegisterHelper": "Create a machine and reveal its API key once.",
   "machinesRegisteredTitle": "Machine Registered",
-  "machinesRegisterFailed": "Failed to register machine.",
   "machinesRenameTitle": "Rename Machine",
   "machinesRenameSaveAction": "Save",
   "machinesRenameHelper": "Update the machine label shown across the workspace.",
   "machinesRenamedSnackbar": "Machine renamed.",
-  "machinesRenameFailed": "Failed to rename machine.",
   "machinesRotatedApiKeyTitle": "Rotated API Key",
-  "machinesRotateApiKeyFailed": "Failed to rotate machine API key.",
   "machinesDeleteTitle": "Delete Machine?",
   "machinesDeleteCancel": "Cancel",
   "machinesDeleteConfirm": "Delete",
   "machinesDeletedSnackbar": "Machine deleted.",
-  "machinesDeleteFailed": "Failed to delete machine.",
   "machinesApiKeyRevealedNote": "This key is only revealed at creation or rotation time.",
   "machinesApiKeyCopied": "API key copied.",
   "machinesCopyButton": "Copy",
@@ -514,18 +473,13 @@
   "workspacesDeleteCancel": "Cancel",
   "workspacesDeleteConfirm": "Delete",
   "workspacesDeletedSnackbar": "Workspace deleted.",
-  "workspacesDeleteFailed": "Failed to delete workspace.",
   "workspacesMetaPath": "Path",
-  "workspacesMetaAgent": "Agent",
   "workspacesStatusActive": "Active",
   "workspacesStatusInactive": "Inactive",
-
   "tasksLoadFailed": "Failed to load tasks.",
   "tasksEmptyAll": "No tasks yet.",
   "tasksNoChannelsAvailable": "No channels available.",
   "tasksCreatedSnackbar": "Task created.",
-  "tasksCreateFailed": "Failed to create task.",
-  "tasksUpdateFailed": "Failed to update task.",
   "tasksRetryAction": "RETRY",
   "tasksDeleteTitle": "Delete Task?",
   "tasksDeleteMessage": "Delete \"{title}\"? This cannot be undone.",
@@ -539,9 +493,6 @@
   "tasksDeleteCancel": "Cancel",
   "tasksDeleteConfirm": "Delete",
   "tasksDeletedSnackbar": "Task deleted.",
-  "tasksDeleteFailed": "Failed to delete task.",
-  "tasksClaimFailed": "Failed to claim task.",
-  "tasksUnclaimFailed": "Failed to unclaim task.",
   "tasksHeaderTitle": "Tasks",
   "tasksNewButton": "New",
   "tasksSummaryTodo": "To Do",
@@ -579,7 +530,6 @@
   "tasksAccessibilityInReview": "In Review",
   "tasksAccessibilityDone": "Done",
   "tasksAccessibilityClosed": "Cancelled",
-
   "screenshotAnnotateNoCapture": "No screenshot captured",
   "screenshotAnnotateDiscardTooltip": "Discard",
   "screenshotAnnotateTitle": "Annotate Screenshot",
@@ -607,11 +557,8 @@
     }
   },
   "screenshotAnnotateShareSubject": "Screenshot",
-
   "dateSeparatorToday": "Today",
-  "dateSeparatorYesterday": "Yesterday"
-
-,
+  "dateSeparatorYesterday": "Yesterday",
   "conversationComposerHint": "Write a message",
   "conversationComposerAttachPhotoVideo": "Photo & Video",
   "conversationComposerAttachCamera": "Camera",
@@ -640,13 +587,49 @@
   "conversationSelectionExportAsImage": "Export as image",
   "conversationSelectionDelete": "Delete",
   "conversationSelectionSelected": "{count} selected",
-  "@conversationSelectionSelected": { "placeholders": { "count": { "type": "int" } } },
+  "@conversationSelectionSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionBatchSucceeded": "{count} {action}.",
-  "@conversationSelectionBatchSucceeded": { "placeholders": { "count": { "type": "int" }, "action": { "type": "String" } } },
+  "@conversationSelectionBatchSucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "conversationSelectionBatchFailed": "Failed to {action} {count} message(s).",
-  "@conversationSelectionBatchFailed": { "placeholders": { "action": { "type": "String" }, "count": { "type": "int" } } },
+  "@conversationSelectionBatchFailed": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionBatchPartial": "{succeeded} {action}, {failed} failed.",
-  "@conversationSelectionBatchPartial": { "placeholders": { "succeeded": { "type": "int" }, "action": { "type": "String" }, "failed": { "type": "int" } } },
+  "@conversationSelectionBatchPartial": {
+    "placeholders": {
+      "succeeded": {
+        "type": "int"
+      },
+      "action": {
+        "type": "String"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionActionSaveVerb": "save",
   "conversationSelectionActionSaved": "saved",
   "conversationSelectionActionDeleteVerb": "delete",
@@ -657,20 +640,29 @@
   "conversationEditSuccess": "Message edited.",
   "conversationEditFailedFallback": "Failed to edit message.",
   "conversationMessageDeletedPlaceholder": "[Message deleted]",
-  "conversationReactionFailedFallback": "Failed to add reaction.",
   "conversationReactWithEmojiTitle": "React with emoji",
   "conversationReactWithEmojiSemantics": "React with {emoji}",
-  "@conversationReactWithEmojiSemantics": { "placeholders": { "emoji": { "type": "String" } } },
-  "conversationReactionUpdateFailedFallback": "Failed to update reaction.",
+  "@conversationReactWithEmojiSemantics": {
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      }
+    }
+  },
   "conversationDeleteDialogTitle": "Delete message?",
   "conversationDeleteDialogContent": "This message will be permanently deleted.",
   "conversationDeleteDialogCancel": "Cancel",
   "conversationDeleteDialogConfirm": "Delete",
   "conversationDeleteSuccess": "Message deleted.",
-  "conversationDeleteFailedFallback": "Failed to delete message.",
   "conversationOpenLinkTitle": "Open Link",
   "conversationOpenLinkContent": "Open {url}?",
-  "@conversationOpenLinkContent": { "placeholders": { "url": { "type": "String" } } },
+  "@conversationOpenLinkContent": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "conversationOpenLinkCancel": "Cancel",
   "conversationOpenLinkConfirm": "Open",
   "conversationMessageActionsSemantics": "Message actions",
@@ -697,7 +689,6 @@
   "errorServer": "Server error. Please try again later.",
   "errorCancelled": "Request was cancelled.",
   "errorUnknown": "Something went wrong. Please try again.",
-
   "pendingNewMessages": "New messages",
   "pendingSending": "Sending...",
   "pendingQueued": "Queued — waiting for connection",
@@ -706,13 +697,10 @@
   "pendingRetry": "Retry",
   "pendingDismiss": "Dismiss",
   "pendingEarlierHistoryLimited": "Earlier history is limited.",
-
   "composerSendTooltip": "Send",
   "composerVoiceMessageTooltip": "Voice message",
   "composerFileTooLarge": "File too large. Maximum size: 50 MB",
-
   "messageSenderYou": "You",
-
   "channelActionMoveUp": "Move up",
   "channelActionMoveDown": "Move down",
   "channelActionPin": "Pin channel",
@@ -721,13 +709,11 @@
   "channelActionEdit": "Edit channel",
   "channelActionLeave": "Leave channel",
   "channelActionDelete": "Delete channel",
-
   "channelsSortAlphabetical": "Sort A-Z",
   "channelsSortRecent": "Sort by recent",
   "channelsMarkAllRead": "Mark all read",
   "channelsClearSearch": "Clear search",
   "channelsMarkedUnread": "Marked as unread",
-
   "channelsCreateTitle": "New Channel",
   "channelsCreateSectionName": "CHANNEL NAME",
   "channelsCreateNameHint": "channel-name",
@@ -741,7 +727,6 @@
   "channelsCreateVisibilityPublicSub": "Visible to all",
   "channelsCreateVisibilityPrivate": "Private",
   "channelsCreateVisibilityPrivateSub": "Invite only",
-
   "channelsMembersTitle": "Channel Members",
   "channelsMembersRetry": "Retry",
   "channelsMembersEmpty": "No members in this channel.",
@@ -752,19 +737,19 @@
   "channelsMembersRemoveMessage": "Remove {name} from this channel?",
   "@channelsMembersRemoveMessage": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "channelsMembersRemoveCancel": "Cancel",
   "channelsMembersRemoveConfirm": "Remove",
-
   "channelsAddMemberTitle": "Add Member",
   "channelsAddMemberTabHumans": "Humans",
   "channelsAddMemberTabAgents": "Agents",
   "channelsAddMemberClose": "Close",
   "channelsAddMemberNoHumans": "No more humans to add.",
   "channelsAddMemberNoAgents": "No more agents to add.",
-
   "channelsDialogCreateTitle": "Create channel",
   "channelsDialogCreateNameLabel": "Channel name",
   "channelsDialogCreateCancel": "Cancel",
@@ -777,7 +762,6 @@
   "channelsDialogEditSubmit": "Save",
   "channelsDialogConfirmCancel": "Cancel",
   "channelsDialogConfirmWorking": "Working...",
-
   "serversInviteTitle": "Join Workspace",
   "serversInviteJoining": "Joining workspace...",
   "serversInviteFailedFallback": "Failed to join workspace.",
@@ -789,12 +773,13 @@
   "serversInviteSuccessNamed": "Joined {name}!",
   "@serversInviteSuccessNamed": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "serversInviteSuccessGeneric": "Joined workspace!",
   "serversInviteContinue": "Continue",
-
   "serversDialogCreateTitle": "Create workspace",
   "serversDialogCreateNameLabel": "Workspace name",
   "serversDialogCreateCancel": "Cancel",
@@ -809,7 +794,6 @@
   "serversDialogJoinCancel": "Cancel",
   "serversDialogJoinSubmit": "Join",
   "serversDialogConfirmCancel": "Cancel",
-
   "serversSwitcherTitle": "Switch workspace",
   "serversSwitcherCreating": "Creating...",
   "serversSwitcherCreateAction": "Create workspace",
@@ -823,7 +807,9 @@
   "serversSwitcherDeleteMessage": "Delete {name}? This permanently removes the workspace.",
   "@serversSwitcherDeleteMessage": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "serversSwitcherDeleteConfirm": "Delete",
@@ -832,7 +818,9 @@
   "serversSwitcherLeaveMessage": "Leave {name}? You can rejoin later with a new invite.",
   "@serversSwitcherLeaveMessage": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "serversSwitcherLeaveConfirm": "Leave",
@@ -842,7 +830,6 @@
   "serversSwitcherRowDelete": "Delete workspace",
   "serversSwitcherRowLeave": "Leave workspace",
   "serversSwitcherRetry": "Retry",
-
   "onboardingWelcomeTitle": "Welcome to Slock",
   "onboardingBack": "Back",
   "onboardingSkip": "Skip",
@@ -856,7 +843,6 @@
   "onboardingProfileTitle": "Complete your profile",
   "onboardingProfileBody": "Add your display name, bio, or avatar so teammates can recognize you.",
   "onboardingProfileButton": "Edit profile",
-
   "agentsEmptyTitle": "No agents yet.",
   "agentsSelectServerFirst": "Select a server first.",
   "agentsCreated": "Agent created.",
@@ -865,15 +851,42 @@
   "agentsResetSuccess": "Agent reset.",
   "agentsDeleteTitle": "Delete Agent?",
   "agentsDeleteMessage": "Delete {name}? This removes the agent configuration from the workspace.",
-  "@agentsDeleteMessage": { "placeholders": { "name": { "type": "String" } } },
+  "@agentsDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "agentsStopTitle": "Stop Agent?",
   "agentsStopMessage": "Stop {name}? The agent will finish its current action before stopping.",
-  "@agentsStopMessage": { "placeholders": { "name": { "type": "String" } } },
+  "@agentsStopMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "agentsResetTitle": "Reset Session?",
   "agentsResetMessage": "Reset {name}? This clears the agent's conversation history.",
-  "@agentsResetMessage": { "placeholders": { "name": { "type": "String" } } },
+  "@agentsResetMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "agentsSummary": "{active} active / {stopped} stopped",
-  "@agentsSummary": { "placeholders": { "active": { "type": "int" }, "stopped": { "type": "int" } } },
+  "@agentsSummary": {
+    "placeholders": {
+      "active": {
+        "type": "int"
+      },
+      "stopped": {
+        "type": "int"
+      }
+    }
+  },
   "agentsActionStart": "Start",
   "agentsActionStop": "Stop",
   "agentsActionReset": "Reset",
@@ -898,7 +911,13 @@
   "agentsActivityWorking": "Working...",
   "agentsActivityError": "Error",
   "agentsActivityErrorDetail": "Error: {detail}",
-  "@agentsActivityErrorDetail": { "placeholders": { "detail": { "type": "String" } } },
+  "@agentsActivityErrorDetail": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "agentsActivityOffline": "Offline",
   "agentsFormEditTitle": "Edit Agent",
   "agentsFormCreateTitle": "Create Agent",
@@ -922,7 +941,6 @@
   "agentsReasoningHigh": "High",
   "agentsReasoningExtraHigh": "Extra High",
   "agentsFormConfiguredDefault": "Configured Default",
-
   "profileEditTitle": "Edit Profile",
   "profileEditSave": "Save",
   "profileEditSnackbarSaved": "Profile updated.",
@@ -933,7 +951,6 @@
   "profileEditDisplayNameLabel": "Display name",
   "profileEditDisplayNameRequired": "Display name is required.",
   "profileEditBioLabel": "Bio / status",
-
   "profileTitleSelf": "My Profile",
   "profileTitle": "Profile",
   "profileRetry": "Retry",
@@ -950,9 +967,15 @@
   "profileDateFormat": "{month} {day}, {year}",
   "@profileDateFormat": {
     "placeholders": {
-      "month": { "type": "String" },
-      "day": { "type": "int" },
-      "year": { "type": "int" }
+      "month": {
+        "type": "String"
+      },
+      "day": {
+        "type": "int"
+      },
+      "year": {
+        "type": "int"
+      }
     }
   },
   "profileMonthJan": "Jan",
@@ -967,10 +990,8 @@
   "profileMonthOct": "Oct",
   "profileMonthNov": "Nov",
   "profileMonthDec": "Dec",
-
   "settingsEditProfileTitle": "Edit profile",
   "settingsEditProfileSubtitle": "Update your display name, bio, and avatar",
-
   "inboxTitle": "Inbox",
   "inboxMarkAllReadTooltip": "Mark all read",
   "inboxLoadFailed": "Failed to load inbox",
@@ -988,23 +1009,28 @@
   "inboxTimeMinutes": "{count}m",
   "@inboxTimeMinutes": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inboxTimeHours": "{count}h",
   "@inboxTimeHours": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inboxTimeDays": "{count}d",
   "@inboxTimeDays": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inboxUnreadCountOverflow": "99+",
-
   "settingsAppearanceTitle": "Appearance",
   "settingsAppearanceThemeSection": "Theme",
   "settingsThemeSystemTitle": "Follow System",
@@ -1013,12 +1039,13 @@
   "settingsThemeLightDescription": "Always use the light theme.",
   "settingsThemeDarkTitle": "Dark",
   "settingsThemeDarkDescription": "Always use the dark theme.",
-
   "settingsDiagnosticsPageTitle": "Diagnostics",
   "settingsDiagnosticsEntryCount": "{count} {count, plural, =1{entry} other{entries}}",
   "@settingsDiagnosticsEntryCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "settingsDiagnosticsFilterAll": "All",
@@ -1030,7 +1057,6 @@
   "settingsDiagnosticsWorkerUnavailable": "Background worker diagnostics unavailable",
   "settingsDiagnosticsWorkerNotRunning": "Background worker: not running",
   "settingsDiagnosticsWorkerTitle": "Background worker",
-
   "settingsTranslationPageTitle": "Translation",
   "settingsTranslationNoActiveWorkspace": "No active workspace. Translation settings are workspace-level.",
   "settingsTranslationRetry": "Retry",
@@ -1042,7 +1068,6 @@
   "settingsTranslationModeAutoDescription": "Automatically translate messages when entering a conversation",
   "settingsTranslationModeManualDescription": "Translate only when you tap the translate button",
   "settingsTranslationModeOffDescription": "Translation is disabled",
-
   "billingTitle": "Billing",
   "billingUnavailableTitle": "Billing unavailable",
   "billingUnavailableMessage": "We could not load billing details right now.",
@@ -1072,7 +1097,9 @@
   "billingPlanDowngradedMessage": "This workspace plan was downgraded on {date}. Upgrade to restore higher limits.",
   "@billingPlanDowngradedMessage": {
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "billingNeedMoreCapacity": "Need more capacity?",
@@ -1083,23 +1110,28 @@
   "billingMessageHistoryDays": "{count} days",
   "@billingMessageHistoryDays": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "threadsTitle": "Threads",
   "threadsEmpty": "No followed threads yet.",
   "threadsSwipeDone": "Done",
   "threadsRepliesCount": "{count} replies",
   "@threadsRepliesCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "threadsUnreadCount": "{count} unread",
   "@threadsUnreadCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "threadsActionOpen": "Open thread",
@@ -1109,7 +1141,6 @@
   "threadRepliesRetry": "Retry",
   "threadRepliesFollowTooltip": "Follow thread",
   "threadRepliesDoneTooltip": "Mark thread done",
-
   "dmsSortAZ": "Sort A-Z",
   "dmsSortRecent": "Sort by recent",
   "dmsMarkAllRead": "Mark all read",
@@ -1122,14 +1153,12 @@
   "dmsNoAgentsFound": "No agents found.",
   "dmsNoMembersFound": "No members found.",
   "dmsRetry": "Retry",
-
   "searchScopeAll": "All",
   "searchScopeMessages": "Messages",
   "searchScopeChannels": "Channels",
   "searchScopeContacts": "Contacts",
   "searchBadgeDm": "DM",
   "searchBadgeChannel": "Channel",
-
   "conversationFilesTitle": "Files",
   "conversationFilesRetry": "Retry",
   "conversationFilesEmpty": "No files in this channel",
@@ -1138,7 +1167,9 @@
   "conversationMemberCount": "{count} {count, plural, =1{member} other{members}}",
   "@conversationMemberCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "conversationCloseSearch": "Close search",
@@ -1150,14 +1181,18 @@
   "conversationLoadFailed": "Could not load {title}.",
   "@conversationLoadFailed": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "conversationRetry": "Retry",
   "conversationEmpty": "No messages in {title} yet.",
   "@conversationEmpty": {
     "placeholders": {
-      "title": { "type": "String" }
+      "title": {
+        "type": "String"
+      }
     }
   },
   "conversationPresenceOnline": "Online",
@@ -1179,7 +1214,9 @@
   "conversationMessageReplyCount": "{count} {count, plural, =1{reply} other{replies}}",
   "@conversationMessageReplyCount": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "conversationMessageInThread": "In thread",
@@ -1199,7 +1236,6 @@
   "conversationFormatCodeBlock": "Code block",
   "conversationFormatLink": "Link",
   "conversationMessageListSemantics": "Message list",
-
   "membersTitle": "Members",
   "membersRemoveTitle": "Remove Member?",
   "membersCancel": "Cancel",
@@ -1208,7 +1244,9 @@
   "membersMemberRemoved": "{name} removed.",
   "@membersMemberRemoved": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "membersInviteCopied": "Invite link copied.",
@@ -1221,21 +1259,18 @@
   "membersMakeMember": "Make member",
   "membersRemoveMember": "Remove member",
   "membersProfileMessage": "Message",
-
   "savedMessagesRetry": "Retry",
-
   "biometricTryAgain": "Try again",
   "biometricDisableContinue": "Disable & Continue",
   "biometricSkipForNow": "Skip for now",
-
   "shareTargetTitle": "Share to...",
-
   "translationFailed": "Translation failed. Tap to retry.",
-
   "membersRemoveBody": "Remove {name} from this server?",
   "@membersRemoveBody": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "membersEmailValidationError": "Enter a valid email address",
@@ -1247,19 +1282,19 @@
   "membersInviteCopyLink": "Copy link",
   "membersRoleAdminSubtitle": "Can manage members and invite",
   "membersRoleMemberSubtitle": "Standard workspace access",
-
   "savedMessagesTitle": "Saved",
   "savedMessagesEmptyTitle": "No saved messages",
   "savedMessagesEmptySubtitle": "Long-press a message and tap \"Save\" to bookmark it.\nSaved messages appear here for quick reference.",
   "savedMessagesUnsaveTooltip": "Unsave",
-  "savedMessagesSourceDm": "\u00b7 DM",
-  "savedMessagesSourceChannel": "\u00b7 # {name}",
+  "savedMessagesSourceDm": "· DM",
+  "savedMessagesSourceChannel": "· # {name}",
   "@savedMessagesSourceChannel": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
-
   "biometricPrompt": "Authenticate to continue using Slock",
   "biometricLockTitle": "Authenticate to continue",
   "biometricLockSubtitle": "Verify your identity to access Slock",
@@ -1270,25 +1305,23 @@
   "biometricErrorGeneric": "Authentication failed. Try again ({count}/3).",
   "@biometricErrorGeneric": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
-
   "shareSearchHint": "Search conversations...",
   "shareSectionChannels": "Channels",
   "shareSectionDirectMessages": "Direct Messages",
-
   "translationShowOriginal": "Show original",
   "translationShowTranslation": "Show translation",
-  "translationPending": "Translating\u2026",
-
+  "translationPending": "Translating…",
   "notificationPrefAllTitle": "All Messages",
   "notificationPrefAllDescription": "Receive notifications for all messages.",
   "notificationPrefMentionsTitle": "Mentions & DMs Only",
   "notificationPrefMentionsDescription": "Only receive notifications for direct messages.",
   "notificationPrefMuteTitle": "Mute",
   "notificationPrefMuteDescription": "Do not show any foreground notifications.",
-
   "membersInviteHumanTooltip": "Invite human",
   "membersErrorTitle": "Members unavailable",
   "membersErrorMessage": "We could not load workspace members right now.",
@@ -1296,39 +1329,38 @@
   "membersInviteSent": "Invite email sent to {email}.",
   "@membersInviteSent": {
     "placeholders": {
-      "email": {"type": "String"}
+      "email": {
+        "type": "String"
+      }
     }
   },
-  "membersSearchHint": "Search members\u2026",
+  "membersSearchHint": "Search members…",
   "membersSearchEmpty": "No members match your search.",
   "membersSectionHumans": "Humans",
   "membersSectionAgents": "Agents",
   "membersRoleChanged": "{name} is now {role}.",
   "@membersRoleChanged": {
     "placeholders": {
-      "name": {"type": "String"},
-      "role": {"type": "String"}
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
     }
   },
   "membersRoleOwner": "Owner",
-  "membersRoleAdmin": "Admin",
-  "membersRoleMember": "Member",
-
   "homeSearchTooltip": "Search",
-
   "audioPlaybackFailed": "Audio playback failed",
-
   "crashRecoveryTitle": "App Recovered",
   "crashRecoveryMessage": "The app stopped unexpectedly during your last session. You can export diagnostic logs to help us investigate.",
   "crashRecoveryContinue": "Continue",
   "crashRecoveryExport": "Export Diagnostics",
-
   "filePreviewShareFailed": "Failed to share file.",
   "filePreviewShareTooltip": "Share",
   "filePreviewOpenExternal": "Open in external app",
   "filePreviewRetry": "Retry",
-  "filePreviewOpenWith": "Open with\u2026",
-
+  "filePreviewOpenWith": "Open with…",
   "annotationDraw": "Draw",
   "annotationText": "Text",
   "annotationArrow": "Arrow",
@@ -1340,27 +1372,28 @@
   "annotationColorYellow": "Yellow",
   "annotationColorWhite": "White",
   "annotationColorBlack": "Black",
-
   "voiceRecorderCancel": "Cancel recording",
   "voiceRecorderSend": "Send voice message",
   "voiceMessageScrubber": "Voice message scrubber",
-
   "voiceBubblePause": "Pause",
   "voiceBubblePlay": "Play",
   "memberListItemMessageTooltip": "Message",
   "memberListItemAdminActionsTooltip": "Member admin actions",
   "homeOverviewSemantics": "Home overview",
   "linkPreviewSemantics": "Link preview: {domain}",
-  "@linkPreviewSemantics": { "placeholders": { "domain": { "type": "String" } } },
+  "@linkPreviewSemantics": {
+    "placeholders": {
+      "domain": {
+        "type": "String"
+      }
+    }
+  },
   "textPreviewShowMore": "Show more",
-  "textPreviewShowLess": "Show less",
   "profileAvatarEditSemantics": "Edit profile avatar",
-
   "screenshotCanvasSemantics": "Screenshot annotation canvas",
   "voiceWaveformSemantics": "Recording waveform",
   "unreadFilterLabel": "Unread",
   "allFilterLabel": "All",
-
   "agentEditTooltip": "Edit agent",
   "agentDeleteTooltip": "Delete agent",
   "searchClearTooltip": "Clear search",
@@ -1373,7 +1406,6 @@
   "togglePasswordVisibilityTooltip": "Toggle password visibility",
   "dismissAnnouncementTooltip": "Dismiss",
   "shareTargetCancelTooltip": "Cancel",
-
   "dmAgentBadge": "AGENT",
   "dmActionMoveUp": "Move up",
   "dmActionMoveDown": "Move down",
@@ -1381,11 +1413,16 @@
   "dmActionUnpin": "Unpin conversation",
   "dmActionMarkUnread": "Mark as Unread",
   "dmActionClose": "Close conversation",
-
   "taskOverlayDropTitle": "Drop to change status",
   "taskOverlayCancelHint": "Release outside boxes to cancel",
   "taskOverlayMovedTo": "Moved to {status}",
-  "@taskOverlayMovedTo": { "placeholders": { "status": { "type": "String" } } },
+  "@taskOverlayMovedTo": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "taskOverlayCurrentBadge": "Current",
   "taskOverlayReleaseHint": "Release to move here",
   "taskStatusTodo": "Todo",
@@ -1396,18 +1433,35 @@
   "taskStatusDescInProgress": "Working on it",
   "taskStatusDescInReview": "Needs review",
   "taskStatusDescDone": "Completed",
-
   "homeRetrySemantics": "Retry",
   "homeUnreadOverflowSemantics": "View all unread conversations",
   "homeServerSwitcherSemantics": "Switch workspace",
   "unreadFilterToggleSemantics": "Toggle unread filter",
   "unreadListItemSemantics": "Open conversation: {title}",
-  "@unreadListItemSemantics": { "placeholders": { "title": { "type": "String" } } },
+  "@unreadListItemSemantics": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "inboxItemSemantics": "Open notification",
   "inboxFilterTabSemantics": "Filter: {label}",
-  "@inboxFilterTabSemantics": { "placeholders": { "label": { "type": "String" } } },
+  "@inboxFilterTabSemantics": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "searchScopeTabSemantics": "Search scope: {label}",
-  "@searchScopeTabSemantics": { "placeholders": { "label": { "type": "String" } } },
+  "@searchScopeTabSemantics": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "filePreviewDismissSemantics": "Swipe down to close",
   "messageLinkChipSemantics": "Open link: {url}",
   "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
