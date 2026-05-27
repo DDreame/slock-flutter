@@ -6322,6 +6322,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reconnecting...'**
   String get connectionReconnecting;
+
+  /// No description provided for @conversationDefaultTitleDm.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct message'**
+  String get conversationDefaultTitleDm;
+
+  /// No description provided for @userFallbackDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get userFallbackDisplayName;
 }
 
 class _AppLocalizationsDelegate

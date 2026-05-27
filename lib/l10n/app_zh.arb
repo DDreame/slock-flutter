@@ -1149,5 +1149,8 @@
   "typingIndicatorThreeOrMore": "{allButLast} 和 {last} 正在输入...",
   "@typingIndicatorThreeOrMore": { "placeholders": { "allButLast": { "type": "String" }, "last": { "type": "String" } } },
 
-  "connectionReconnecting": "重新连接中..."
+  "connectionReconnecting": "重新连接中...",
+
+  "conversationDefaultTitleDm": "私信",
+  "userFallbackDisplayName": "用户"
 }

@@ -18,32 +18,32 @@ class AppLocalizationsEs extends AppLocalizations {
   String get splashSubtitle => 'Preparando tu espacio de trabajo...';
 
   @override
-  String get loginTitle => 'Iniciar sesion';
+  String get loginTitle => 'Iniciar sesión';
 
   @override
-  String get loginEmailLabel => 'Correo electronico';
+  String get loginEmailLabel => 'Correo electrónico';
 
   @override
-  String get loginPasswordLabel => 'Contrasena';
+  String get loginPasswordLabel => 'Contraseña';
 
   @override
-  String get loginSubmitLabel => 'Iniciar sesion';
+  String get loginSubmitLabel => 'Iniciar sesión';
 
   @override
   String get loginCreateAccountCta => 'Crear cuenta';
 
   @override
-  String get loginForgotPasswordCta => 'Olvidaste tu contrasena?';
+  String get loginForgotPasswordCta => 'Olvidaste tu contraseña?';
 
   @override
-  String get loginEmailRequiredError => 'El correo electronico es obligatorio.';
+  String get loginEmailRequiredError => 'El correo electrónico es obligatorio.';
 
   @override
   String get loginEmailInvalidError =>
-      'Ingresa una direccion de correo electronico valida.';
+      'Ingresa una dirección de correo electrónico válida.';
 
   @override
-  String get loginPasswordRequiredError => 'La contrasena es obligatoria.';
+  String get loginPasswordRequiredError => 'La contraseña es obligatoria.';
 
   @override
   String get registerTitle => 'Crear cuenta';
@@ -52,17 +52,17 @@ class AppLocalizationsEs extends AppLocalizations {
   String get registerDisplayNameLabel => 'Nombre visible';
 
   @override
-  String get registerEmailLabel => 'Correo electronico';
+  String get registerEmailLabel => 'Correo electrónico';
 
   @override
-  String get registerPasswordLabel => 'Contrasena';
+  String get registerPasswordLabel => 'Contraseña';
 
   @override
   String get registerSubmitLabel => 'Crear cuenta';
 
   @override
   String get registerAlreadyHaveAccountCta =>
-      'Ya tienes una cuenta? Inicia sesion';
+      'Ya tienes una cuenta? Inicia sesión';
 
   @override
   String get registerDisplayNameRequiredError =>
@@ -70,15 +70,15 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get registerEmailRequiredError =>
-      'El correo electronico es obligatorio.';
+      'El correo electrónico es obligatorio.';
 
   @override
   String get registerEmailInvalidError =>
-      'Ingresa una direccion de correo electronico valida.';
+      'Ingresa una dirección de correo electrónico válida.';
 
   @override
   String get registerPasswordTooShortError =>
-      'La contrasena debe tener al menos 8 caracteres.';
+      'La contraseña debe tener al menos 8 caracteres.';
 
   @override
   String get forgotPasswordTitle => 'Olvidé mi contraseña';
@@ -267,11 +267,11 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeCardUnread => 'NO LEIDOS';
 
   @override
-  String get homeCardUnreadEmpty => 'Todo al dia';
+  String get homeCardUnreadEmpty => 'Todo al día';
 
   @override
   String homeCardUnreadOverflow(int count) {
-    return '+$count mas';
+    return '+$count más';
   }
 
   @override
@@ -312,7 +312,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get channelsTabSearchHint => 'Buscar canales';
 
   @override
-  String get channelsTabEmpty => 'Aun no hay canales.';
+  String get channelsTabEmpty => 'Aún no hay canales.';
 
   @override
   String get dmsTabTitle => 'Mensajes';
@@ -321,10 +321,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dmsTabSearchHint => 'Buscar mensajes';
 
   @override
-  String get dmsTabEmpty => 'Aun no hay mensajes directos.';
+  String get dmsTabEmpty => 'Aún no hay mensajes directos.';
 
   @override
-  String get settingsTooltip => 'Configuracion';
+  String get settingsTooltip => 'Configuración';
 
   @override
   String get homeChannelCreated => 'Canal creado.';
@@ -361,7 +361,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeChannelLeft => 'Has abandonado el canal.';
 
   @override
-  String get baseUrlSettingsTitle => 'Configuracion del servidor';
+  String get baseUrlSettingsTitle => 'Configuración del servidor';
 
   @override
   String get baseUrlApiLabel => 'URL base de API';
@@ -382,26 +382,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get baseUrlRestoreDefaults => 'Restaurar valores predeterminados';
 
   @override
-  String get baseUrlTestConnection => 'Probar conexion';
+  String get baseUrlTestConnection => 'Probar conexión';
 
   @override
   String get baseUrlTesting => 'Probando...';
 
   @override
   String get baseUrlSaved =>
-      'Configuracion guardada. Reinicia la aplicacion para aplicar los cambios.';
+      'Configuración guardada. Reinicia la aplicación para aplicar los cambios.';
 
   @override
   String get baseUrlRestored =>
-      'Valores predeterminados restaurados. Reinicia la aplicacion para aplicar los cambios.';
+      'Valores predeterminados restaurados. Reinicia la aplicación para aplicar los cambios.';
 
   @override
   String get baseUrlApiInvalidError =>
-      'Ingresa una URL valida con http:// o https://.';
+      'Ingresa una URL válida con http:// o https://.';
 
   @override
   String get baseUrlRealtimeInvalidError =>
-      'Ingresa una URL valida con ws://, wss://, http:// o https://.';
+      'Ingresa una URL válida con ws://, wss://, http:// o https://.';
 
   @override
   String get baseUrlResultReachable => 'Accesible';
@@ -413,7 +413,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get baseUrlResultTimeout => 'Tiempo agotado';
 
   @override
-  String get baseUrlResultInvalid => 'URL invalida';
+  String get baseUrlResultInvalid => 'URL inválida';
 
   @override
   String get baseUrlEmptyDefault => 'Usando valor predeterminado';
@@ -436,7 +436,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get refreshFailedSnackbar =>
-      'No se pudo actualizar. Mostrando datos en cache.';
+      'No se pudo actualizar. Mostrando datos en caché.';
 
   @override
   String get refreshFailedRetry => 'Reintentar';
@@ -3404,4 +3404,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get connectionReconnecting => 'Reconectando...';
+
+  @override
+  String get conversationDefaultTitleDm => 'Mensaje directo';
+
+  @override
+  String get userFallbackDisplayName => 'Usuario';
 }

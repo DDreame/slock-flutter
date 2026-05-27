@@ -465,7 +465,8 @@ class ConversationDetailStore
         state = state.copyWith(
           target: target,
           status: ConversationDetailStatus.failure,
-          title: target.defaultTitle,
+          title: target.localizedDefaultTitle(
+              ref.read(appLocalizationsProvider)),
           messages: const [],
           historyLimited: false,
           hasOlder: false,

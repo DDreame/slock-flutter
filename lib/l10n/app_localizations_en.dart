@@ -3367,4 +3367,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectionReconnecting => 'Reconnecting...';
+
+  @override
+  String get conversationDefaultTitleDm => 'Direct message';
+
+  @override
+  String get userFallbackDisplayName => 'User';
 }

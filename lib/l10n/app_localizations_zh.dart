@@ -3269,4 +3269,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get connectionReconnecting => '重新连接中...';
+
+  @override
+  String get conversationDefaultTitleDm => '私信';
+
+  @override
+  String get userFallbackDisplayName => '用户';
 }

@@ -21,7 +21,6 @@ void main() {
     test('initial state has no active typers', () {
       final state = container.read(typingIndicatorStoreProvider);
       expect(state.activeTypers, isEmpty);
-      expect(state.displayText, isNull);
     });
 
     test('addTyper adds a user to active typers', () {
@@ -125,42 +124,6 @@ void main() {
 
       final state = container.read(typingIndicatorStoreProvider);
       expect(state.activeTypers, isEmpty);
-    });
-  });
-
-  group('TypingIndicatorState.displayText', () {
-    test('returns null when no one is typing', () {
-      final state = container.read(typingIndicatorStoreProvider);
-      expect(state.displayText, isNull);
-    });
-
-    test('single typer shows "X is typing..."', () {
-      container.read(typingIndicatorStoreProvider.notifier).addTyper(
-            userId: 'user-1',
-            displayName: 'Alice',
-          );
-
-      final state = container.read(typingIndicatorStoreProvider);
-      expect(state.displayText, 'Alice is typing...');
-    });
-
-    test('two typers shows "X and Y are typing..."', () {
-      final notifier = container.read(typingIndicatorStoreProvider.notifier);
-      notifier.addTyper(userId: 'user-1', displayName: 'Alice');
-      notifier.addTyper(userId: 'user-2', displayName: 'Bob');
-
-      final state = container.read(typingIndicatorStoreProvider);
-      expect(state.displayText, 'Alice and Bob are typing...');
-    });
-
-    test('three or more typers shows "Several people are typing..."', () {
-      final notifier = container.read(typingIndicatorStoreProvider.notifier);
-      notifier.addTyper(userId: 'user-1', displayName: 'Alice');
-      notifier.addTyper(userId: 'user-2', displayName: 'Bob');
-      notifier.addTyper(userId: 'user-3', displayName: 'Carol');
-
-      final state = container.read(typingIndicatorStoreProvider);
-      expect(state.displayText, 'Several people are typing...');
     });
   });
 

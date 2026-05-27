@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// A convenience wrapper that provides a left-swipe "Mark Read" gesture.
 ///
@@ -40,7 +41,7 @@ class SwipeToMarkRead extends StatelessWidget {
       itemKey: itemKey,
       enabled: enabled,
       action: SwipeActionConfig(
-        label: 'Mark Read',
+        label: context.l10n.inboxActionMarkRead,
         icon: Icons.mark_email_read,
         color: colors.primary,
       ),

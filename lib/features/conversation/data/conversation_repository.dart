@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 enum ConversationSurface { channel, directMessage }
 
@@ -38,6 +39,12 @@ class ConversationDetailTarget {
   String get defaultTitle => switch (surface) {
         ConversationSurface.channel => '#$conversationId',
         ConversationSurface.directMessage => 'Direct message',
+      };
+
+  /// L10n-aware variant of [defaultTitle] for use in stores/providers.
+  String localizedDefaultTitle(AppLocalizations l10n) => switch (surface) {
+        ConversationSurface.channel => '#$conversationId',
+        ConversationSurface.directMessage => l10n.conversationDefaultTitleDm,
       };
 
   @override
