@@ -1179,5 +1179,54 @@
   "searchScopeTabSemantics": "搜索范围：{label}",
   "filePreviewDismissSemantics": "下滑关闭",
   "messageLinkChipSemantics": "打开链接：{url}",
-  "attachmentImageFallbackSemantics": "图片附件"
+  "attachmentImageFallbackSemantics": "图片附件",
+
+  "navInbox": "收件箱",
+  "homeAppBarFallbackTitle": "Slock",
+  "homeTypePillThread": "话题",
+  "homeTypePillChannel": "频道",
+  "homeTypePillDm": "私信",
+  "unreadOtherSources": "其他未读来源",
+
+  "routerPageNotFound": "页面未找到：{uri}",
+  "shareSendFailed": "发送失败，请重试。",
+  "filePreviewFallbackTitle": "文件预览",
+  "filePreviewFallbackBody": "文件预览不可用",
+  "filePreviewFallbackBack": "返回",
+
+  "errorRetry": "重试",
+  "errorShareDiagnostics": "分享诊断信息",
+
+  "fatalTitle": "无法启动",
+  "fatalBodyMissingConfig": "应用缺少必要的配置，无法启动。这通常意味着构建时未提供必要的环境设置。",
+  "fatalBodyGeneric": "启动过程中出现问题，请尝试重新启动应用。",
+  "fatalHintDeveloper": "如果您是开发者，请确保构建时提供了所有必要的 --dart-define 值。",
+  "fatalHintGeneric": "如果问题持续存在，请重新安装应用或联系支持。",
+  "fatalCopyDiagnostics": "复制诊断信息",
+  "fatalDiagnosticsCopied": "诊断信息已复制到剪贴板",
+
+  "diagExportTitle": "导出诊断信息",
+  "diagExportSubtitle": "将诊断日志分享给开发团队。",
+  "diagCopyToClipboard": "复制到剪贴板",
+  "diagShare": "分享",
+  "diagSaveToFile": "保存到文件",
+  "diagCopied": "已复制到剪贴板",
+  "diagCopyFailed": "复制失败",
+  "diagShared": "分享成功",
+  "diagShareFailed": "分享失败",
+  "diagSaved": "已保存到 {path}",
+  "diagSaveFailed": "保存失败",
+
+  "filePreviewNoUrl": "没有可用的下载链接。",
+  "filePreviewLoadFailed": "加载附件失败。",
+  "filePreviewPdfDownloadFailed": "下载 PDF 失败。",
+  "filePreviewDownloadingPdf": "正在下载 PDF…",
+  "filePreviewLoading": "加载中…",
+  "filePreviewPdfUnavailable": "PDF 文件不可用。",
+  "filePreviewPdfRenderFailed": "PDF 渲染失败。",
+  "filePreviewImageLoadFailed": "无法加载图片。",
+
+  "avatarUploadInvalidResponse": "服务器返回无效响应。",
+  "avatarUploadFailed": "上传失败。",
+  "avatarUploadFailedRetry": "上传失败，请重试。"
 }

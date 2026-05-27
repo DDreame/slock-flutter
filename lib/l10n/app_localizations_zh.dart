@@ -3332,4 +3332,134 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get attachmentImageFallbackSemantics => '图片附件';
+
+  @override
+  String get navInbox => '收件箱';
+
+  @override
+  String get homeAppBarFallbackTitle => 'Slock';
+
+  @override
+  String get homeTypePillThread => '话题';
+
+  @override
+  String get homeTypePillChannel => '频道';
+
+  @override
+  String get homeTypePillDm => '私信';
+
+  @override
+  String get unreadOtherSources => '其他未读来源';
+
+  @override
+  String routerPageNotFound(String uri) {
+    return '页面未找到：$uri';
+  }
+
+  @override
+  String get shareSendFailed => '发送失败，请重试。';
+
+  @override
+  String get filePreviewFallbackTitle => '文件预览';
+
+  @override
+  String get filePreviewFallbackBody => '文件预览不可用';
+
+  @override
+  String get filePreviewFallbackBack => '返回';
+
+  @override
+  String get errorRetry => '重试';
+
+  @override
+  String get errorShareDiagnostics => '分享诊断信息';
+
+  @override
+  String get fatalTitle => '无法启动';
+
+  @override
+  String get fatalBodyMissingConfig => '应用缺少必要的配置，无法启动。这通常意味着构建时未提供必要的环境设置。';
+
+  @override
+  String get fatalBodyGeneric => '启动过程中出现问题，请尝试重新启动应用。';
+
+  @override
+  String get fatalHintDeveloper => '如果您是开发者，请确保构建时提供了所有必要的 --dart-define 值。';
+
+  @override
+  String get fatalHintGeneric => '如果问题持续存在，请重新安装应用或联系支持。';
+
+  @override
+  String get fatalCopyDiagnostics => '复制诊断信息';
+
+  @override
+  String get fatalDiagnosticsCopied => '诊断信息已复制到剪贴板';
+
+  @override
+  String get diagExportTitle => '导出诊断信息';
+
+  @override
+  String get diagExportSubtitle => '将诊断日志分享给开发团队。';
+
+  @override
+  String get diagCopyToClipboard => '复制到剪贴板';
+
+  @override
+  String get diagShare => '分享';
+
+  @override
+  String get diagSaveToFile => '保存到文件';
+
+  @override
+  String get diagCopied => '已复制到剪贴板';
+
+  @override
+  String get diagCopyFailed => '复制失败';
+
+  @override
+  String get diagShared => '分享成功';
+
+  @override
+  String get diagShareFailed => '分享失败';
+
+  @override
+  String diagSaved(String path) {
+    return '已保存到 $path';
+  }
+
+  @override
+  String get diagSaveFailed => '保存失败';
+
+  @override
+  String get filePreviewNoUrl => '没有可用的下载链接。';
+
+  @override
+  String get filePreviewLoadFailed => '加载附件失败。';
+
+  @override
+  String get filePreviewPdfDownloadFailed => '下载 PDF 失败。';
+
+  @override
+  String get filePreviewDownloadingPdf => '正在下载 PDF…';
+
+  @override
+  String get filePreviewLoading => '加载中…';
+
+  @override
+  String get filePreviewPdfUnavailable => 'PDF 文件不可用。';
+
+  @override
+  String get filePreviewPdfRenderFailed => 'PDF 渲染失败。';
+
+  @override
+  String get filePreviewImageLoadFailed => '无法加载图片。';
+
+  @override
+  String get avatarUploadInvalidResponse => '服务器返回无效响应。';
+
+  @override
+  String get avatarUploadFailed => '上传失败。';
+
+  @override
+  String get avatarUploadFailedRetry => '上传失败，请重试。';
 }

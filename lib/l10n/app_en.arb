@@ -1411,5 +1411,56 @@
   "filePreviewDismissSemantics": "Swipe down to close",
   "messageLinkChipSemantics": "Open link: {url}",
   "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
-  "attachmentImageFallbackSemantics": "Image attachment"
+  "attachmentImageFallbackSemantics": "Image attachment",
+
+  "navInbox": "Inbox",
+  "homeAppBarFallbackTitle": "Slock",
+  "homeTypePillThread": "THREAD",
+  "homeTypePillChannel": "CHANNEL",
+  "homeTypePillDm": "DM",
+  "unreadOtherSources": "Other unread sources",
+
+  "routerPageNotFound": "Page not found: {uri}",
+  "@routerPageNotFound": { "placeholders": { "uri": { "type": "String" } } },
+  "shareSendFailed": "Failed to send. Please try again.",
+  "filePreviewFallbackTitle": "File Preview",
+  "filePreviewFallbackBody": "File preview unavailable",
+  "filePreviewFallbackBack": "Go back",
+
+  "errorRetry": "Retry",
+  "errorShareDiagnostics": "Share diagnostics",
+
+  "fatalTitle": "Unable to Start",
+  "fatalBodyMissingConfig": "The app is missing required configuration and cannot start. This usually means it was built without the necessary environment settings.",
+  "fatalBodyGeneric": "Something went wrong during startup. Please try restarting the app.",
+  "fatalHintDeveloper": "If you are a developer, ensure all required --dart-define values are provided at build time.",
+  "fatalHintGeneric": "If the problem persists, reinstall the app or contact support.",
+  "fatalCopyDiagnostics": "Copy diagnostics",
+  "fatalDiagnosticsCopied": "Diagnostics copied to clipboard",
+
+  "diagExportTitle": "Export Diagnostics",
+  "diagExportSubtitle": "Share diagnostic logs with the development team.",
+  "diagCopyToClipboard": "Copy to Clipboard",
+  "diagShare": "Share",
+  "diagSaveToFile": "Save to File",
+  "diagCopied": "Copied to clipboard",
+  "diagCopyFailed": "Copy failed",
+  "diagShared": "Shared successfully",
+  "diagShareFailed": "Share failed",
+  "diagSaved": "Saved to {path}",
+  "@diagSaved": { "placeholders": { "path": { "type": "String" } } },
+  "diagSaveFailed": "Save failed",
+
+  "filePreviewNoUrl": "No download URL available.",
+  "filePreviewLoadFailed": "Failed to load attachment.",
+  "filePreviewPdfDownloadFailed": "Failed to download PDF.",
+  "filePreviewDownloadingPdf": "Downloading PDF…",
+  "filePreviewLoading": "Loading…",
+  "filePreviewPdfUnavailable": "PDF file not available.",
+  "filePreviewPdfRenderFailed": "Failed to render PDF.",
+  "filePreviewImageLoadFailed": "Unable to load image.",
+
+  "avatarUploadInvalidResponse": "Invalid response from server.",
+  "avatarUploadFailed": "Upload failed.",
+  "avatarUploadFailedRetry": "Upload failed. Please try again."
 }

@@ -7,6 +7,7 @@ import 'package:slock_app/core/telemetry/crash_breadcrumb_observer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/app/shell/app_shell.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
 import 'package:slock_app/features/auth/presentation/page/login_page.dart';
@@ -564,8 +565,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
     ],
-    errorBuilder: (context, state) =>
-        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
+    errorBuilder: (context, state) => Scaffold(
+        body: Center(
+            child:
+                Text(context.l10n.routerPageNotFound(state.uri.toString())))),
     observers: [
       CrashBreadcrumbObserver(reporter: ref.read(crashReporterProvider)),
     ],
@@ -705,8 +708,8 @@ class _ShareTargetRoute extends StatelessWidget {
               .error('ShareIntent', 'Share send failed: $e');
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to send. Please try again.'),
+              SnackBar(
+                content: Text(context.l10n.shareSendFailed),
               ),
             );
           }
@@ -731,18 +734,18 @@ class _FilePreviewFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('File Preview')),
+      appBar: AppBar(title: Text(context.l10n.filePreviewFallbackTitle)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.broken_image_outlined, size: 64),
             const SizedBox(height: 16),
-            const Text('File preview unavailable'),
+            Text(context.l10n.filePreviewFallbackBody),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => context.pop(),
-              child: const Text('Go back'),
+              child: Text(context.l10n.filePreviewFallbackBack),
             ),
           ],
         ),

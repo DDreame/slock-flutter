@@ -3444,4 +3444,139 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attachmentImageFallbackSemantics => 'Image attachment';
+
+  @override
+  String get navInbox => 'Inbox';
+
+  @override
+  String get homeAppBarFallbackTitle => 'Slock';
+
+  @override
+  String get homeTypePillThread => 'THREAD';
+
+  @override
+  String get homeTypePillChannel => 'CHANNEL';
+
+  @override
+  String get homeTypePillDm => 'DM';
+
+  @override
+  String get unreadOtherSources => 'Other unread sources';
+
+  @override
+  String routerPageNotFound(String uri) {
+    return 'Page not found: $uri';
+  }
+
+  @override
+  String get shareSendFailed => 'Failed to send. Please try again.';
+
+  @override
+  String get filePreviewFallbackTitle => 'File Preview';
+
+  @override
+  String get filePreviewFallbackBody => 'File preview unavailable';
+
+  @override
+  String get filePreviewFallbackBack => 'Go back';
+
+  @override
+  String get errorRetry => 'Retry';
+
+  @override
+  String get errorShareDiagnostics => 'Share diagnostics';
+
+  @override
+  String get fatalTitle => 'Unable to Start';
+
+  @override
+  String get fatalBodyMissingConfig =>
+      'The app is missing required configuration and cannot start. This usually means it was built without the necessary environment settings.';
+
+  @override
+  String get fatalBodyGeneric =>
+      'Something went wrong during startup. Please try restarting the app.';
+
+  @override
+  String get fatalHintDeveloper =>
+      'If you are a developer, ensure all required --dart-define values are provided at build time.';
+
+  @override
+  String get fatalHintGeneric =>
+      'If the problem persists, reinstall the app or contact support.';
+
+  @override
+  String get fatalCopyDiagnostics => 'Copy diagnostics';
+
+  @override
+  String get fatalDiagnosticsCopied => 'Diagnostics copied to clipboard';
+
+  @override
+  String get diagExportTitle => 'Export Diagnostics';
+
+  @override
+  String get diagExportSubtitle =>
+      'Share diagnostic logs with the development team.';
+
+  @override
+  String get diagCopyToClipboard => 'Copy to Clipboard';
+
+  @override
+  String get diagShare => 'Share';
+
+  @override
+  String get diagSaveToFile => 'Save to File';
+
+  @override
+  String get diagCopied => 'Copied to clipboard';
+
+  @override
+  String get diagCopyFailed => 'Copy failed';
+
+  @override
+  String get diagShared => 'Shared successfully';
+
+  @override
+  String get diagShareFailed => 'Share failed';
+
+  @override
+  String diagSaved(String path) {
+    return 'Saved to $path';
+  }
+
+  @override
+  String get diagSaveFailed => 'Save failed';
+
+  @override
+  String get filePreviewNoUrl => 'No download URL available.';
+
+  @override
+  String get filePreviewLoadFailed => 'Failed to load attachment.';
+
+  @override
+  String get filePreviewPdfDownloadFailed => 'Failed to download PDF.';
+
+  @override
+  String get filePreviewDownloadingPdf => 'Downloading PDF…';
+
+  @override
+  String get filePreviewLoading => 'Loading…';
+
+  @override
+  String get filePreviewPdfUnavailable => 'PDF file not available.';
+
+  @override
+  String get filePreviewPdfRenderFailed => 'Failed to render PDF.';
+
+  @override
+  String get filePreviewImageLoadFailed => 'Unable to load image.';
+
+  @override
+  String get avatarUploadInvalidResponse => 'Invalid response from server.';
+
+  @override
+  String get avatarUploadFailed => 'Upload failed.';
+
+  @override
+  String get avatarUploadFailedRetry => 'Upload failed. Please try again.';
 }

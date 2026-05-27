@@ -6,6 +6,7 @@ import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_service.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   late DiagnosticsCollector collector;
@@ -29,6 +30,8 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(

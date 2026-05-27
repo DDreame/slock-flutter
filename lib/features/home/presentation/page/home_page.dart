@@ -947,14 +947,15 @@ class _UnreadItemRow extends ConsumerWidget {
   }
 
   /// Z2 type pill label per kind.
-  String get _typePillLabel {
+  String _typePillLabel(BuildContext context) {
+    final l10n = context.l10n;
     switch (item.kind) {
       case ConversationProjectionKind.thread:
-        return 'THREAD';
+        return l10n.homeTypePillThread;
       case ConversationProjectionKind.channel:
-        return 'CHANNEL';
+        return l10n.homeTypePillChannel;
       case ConversationProjectionKind.dm:
-        return 'DM';
+        return l10n.homeTypePillDm;
     }
   }
 
@@ -1025,7 +1026,7 @@ class _UnreadItemRow extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
-                            _typePillLabel,
+                            _typePillLabel(context),
                             style: TextStyle(
                               fontSize: 9,
                               color: badgeColor,
@@ -1280,14 +1281,14 @@ class _HomeAppBarTitle extends ConsumerWidget {
     final title = ref.watch(
       serverListStoreProvider.select((s) {
         if (activeServer == null || s.status != ServerListStatus.success) {
-          return 'Slock';
+          return context.l10n.homeAppBarFallbackTitle;
         }
         for (final server in s.servers) {
           if (server.id == activeServer.value) {
             return server.name;
           }
         }
-        return 'Slock';
+        return context.l10n.homeAppBarFallbackTitle;
       }),
     );
 

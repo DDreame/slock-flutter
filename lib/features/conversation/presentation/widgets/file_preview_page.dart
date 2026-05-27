@@ -72,7 +72,10 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
   void initState() {
     super.initState();
     _attachmentTypeLower = widget.attachment.type.toLowerCase();
-    _loadAttachment();
+    // Deferred to post-frame because _loadAttachment may call context.l10n
+    // synchronously (e.g. when attachment has no id/url), and inherited
+    // widgets aren't accessible during initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAttachment());
   }
 
   @override
@@ -112,7 +115,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
         setState(() {
           _signedUrl = att.url;
           _loading = false;
-          if (att.url == null) _error = 'No download URL available.';
+          if (att.url == null) _error = context.l10n.filePreviewNoUrl;
         });
       }
       return;
@@ -153,7 +156,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           }
         } else {
           setState(() {
-            _error = 'Failed to load attachment.';
+            _error = context.l10n.filePreviewLoadFailed;
             _loading = false;
           });
         }
@@ -173,7 +176,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           }
         } else {
           setState(() {
-            _error = 'Failed to load attachment.';
+            _error = context.l10n.filePreviewLoadFailed;
             _loading = false;
           });
         }
@@ -202,7 +205,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           .error('FilePreview', 'PDF download failed: $e');
       if (mounted) {
         setState(() {
-          _error = 'Failed to download PDF.';
+          _error = context.l10n.filePreviewPdfDownloadFailed;
           _loading = false;
         });
       }
@@ -320,7 +323,9 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              _isPdf ? 'Downloading PDF…' : 'Loading…',
+              _isPdf
+                  ? context.l10n.filePreviewDownloadingPdf
+                  : context.l10n.filePreviewLoading,
               style: AppTypography.body.copyWith(
                 color: _isImage ? Colors.white54 : colors.textSecondary,
               ),
@@ -377,7 +382,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       return Center(
         key: const ValueKey('file-preview-error'),
         child: Text(
-          'PDF file not available.',
+          context.l10n.filePreviewPdfUnavailable,
           style: AppTypography.body.copyWith(color: colors.textSecondary),
         ),
       );
@@ -404,7 +409,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           },
           onError: (error) {
             if (mounted) {
-              setState(() => _error = 'Failed to render PDF.');
+              setState(() => _error = context.l10n.filePreviewPdfRenderFailed);
             }
           },
         ),
@@ -450,7 +455,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Unable to load image.',
+              context.l10n.filePreviewImageLoadFailed,
               style: AppTypography.body.copyWith(color: Colors.white54),
             ),
           ],
@@ -502,7 +507,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                           ),
                           const SizedBox(height: AppSpacing.md),
                           Text(
-                            'Unable to load image.',
+                            context.l10n.filePreviewImageLoadFailed,
                             style: AppTypography.body
                                 .copyWith(color: Colors.white54),
                           ),

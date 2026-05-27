@@ -297,11 +297,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Error snackbar should appear.
+      // Error snackbar should appear with the l10n-mapped message for the
+      // error code (avatarUploadFailed → "Upload failed.").
       expect(
-        find.text('File too large'),
+        find.text('Upload failed.'),
         findsOneWidget,
-        reason: 'Upload failure must show an error snackbar with message',
+        reason: 'Upload failure must show an error snackbar with l10n message',
       );
     },
   );
@@ -355,7 +356,10 @@ class _FakeAvatarUploadService implements AvatarUploadService {
   Future<String> upload(String filePath) async {
     onUpload?.call(filePath);
     if (shouldFail) {
-      throw AvatarUploadException(errorMessage ?? 'Upload failed');
+      throw AvatarUploadException(
+        errorMessage ?? 'Upload failed',
+        code: AvatarUploadErrorCode.uploadFailed,
+      );
     }
     return resultUrl ?? 'https://example.com/avatar.png';
   }

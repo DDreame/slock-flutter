@@ -167,10 +167,17 @@ class _ProfileSuccessBody extends ConsumerWidget {
       // Persist to session so avatar survives page rebuild/reopen.
       ref.read(sessionStoreProvider.notifier).updateAvatarUrl(newUrl);
     } on AvatarUploadException catch (e) {
+      final localizedMsg = e.failure?.userMessage(l10n) ??
+          switch (e.code) {
+            AvatarUploadErrorCode.invalidResponse =>
+              l10n.avatarUploadInvalidResponse,
+            AvatarUploadErrorCode.uploadFailed => l10n.avatarUploadFailed,
+            AvatarUploadErrorCode.uploadFailedRetry =>
+              l10n.avatarUploadFailedRetry,
+          };
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-            SnackBar(content: Text(e.failure?.userMessage(l10n) ?? e.message)));
+        ..showSnackBar(SnackBar(content: Text(localizedMsg)));
     } on Exception catch (e) {
       ref.read(diagnosticsCollectorProvider).error(
             'ProfilePage',
