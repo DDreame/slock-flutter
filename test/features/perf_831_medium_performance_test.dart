@@ -304,6 +304,8 @@ void main() {
                   .overrideWith(() => _FakeTypingIndicatorStore()),
             ],
             child: const MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(body: TypingIndicatorWidget()),
             ),
           ),

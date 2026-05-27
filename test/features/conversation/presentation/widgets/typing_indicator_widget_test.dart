@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/application/typing_indicator_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   Widget buildApp({
@@ -15,6 +16,8 @@ void main() {
         }),
       ],
       child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: TypingIndicatorWidget(),
         ),

@@ -15,24 +15,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 @immutable
 class ListTypingIndicatorState {
   const ListTypingIndicatorState({
-    this.displayText,
+    this.typerNames = const [],
   });
 
-  /// Text to show in the list row (e.g. "Alice is typing...").
-  /// Null when nobody is typing in this channel.
-  final String? displayText;
+  /// Ordered list of display names of users currently typing.
+  /// Empty when nobody is typing.
+  final List<String> typerNames;
 
-  bool get isActive => displayText != null;
+  bool get isActive => typerNames.isNotEmpty;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ListTypingIndicatorState &&
           runtimeType == other.runtimeType &&
-          displayText == other.displayText;
+          listEquals(typerNames, other.typerNames);
 
   @override
-  int get hashCode => displayText.hashCode;
+  int get hashCode => Object.hashAll(typerNames);
 }
 
 /// Family provider keyed by scope key (e.g. "server:s1/channel:ch1").
@@ -92,10 +92,10 @@ class ListTypingIndicatorNotifier
       if (_disposed) return;
       _typers.remove(userId);
       _timers.remove(userId);
-      state = ListTypingIndicatorState(displayText: _buildDisplayText());
+      state = ListTypingIndicatorState(typerNames: _typers.values.toList());
     });
 
-    state = ListTypingIndicatorState(displayText: _buildDisplayText());
+    state = ListTypingIndicatorState(typerNames: _typers.values.toList());
   }
 
   /// Remove a specific user's typing indicator.
@@ -105,22 +105,6 @@ class ListTypingIndicatorNotifier
     _timers[userId]?.cancel();
     _timers.remove(userId);
     _typers.remove(userId);
-    state = ListTypingIndicatorState(displayText: _buildDisplayText());
-  }
-
-  /// Builds the combined display text from active typers.
-  String? _buildDisplayText() {
-    if (_typers.isEmpty) return null;
-
-    final names = _typers.values.toList();
-    if (names.length == 1) {
-      return '${names[0]} is typing...';
-    }
-    if (names.length == 2) {
-      return '${names[0]} and ${names[1]} are typing...';
-    }
-    // 3+ typers: "X, Y, and Z are typing..."
-    final allButLast = names.sublist(0, names.length - 1).join(', ');
-    return '$allButLast, and ${names.last} are typing...';
+    state = ListTypingIndicatorState(typerNames: _typers.values.toList());
   }
 }
