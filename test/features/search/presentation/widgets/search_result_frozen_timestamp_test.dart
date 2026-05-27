@@ -17,6 +17,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
 import 'package:slock_app/features/search/presentation/widgets/search_result_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -53,6 +54,8 @@ void main() {
               homeNowProvider.overrideWith((ref) => controller.stream),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: SearchResultItem(
                   result: result,
@@ -118,6 +121,8 @@ void main() {
               homeNowProvider.overrideWith((ref) => controller.stream),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: SearchResultItem(
                   result: result,

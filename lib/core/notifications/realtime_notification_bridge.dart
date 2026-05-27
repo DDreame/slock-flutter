@@ -333,8 +333,9 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     final isDeleted = map['isDeleted'] == true ||
         (map['deletedAt'] is String && (map['deletedAt'] as String).isNotEmpty);
     final attachments = parseAttachments(map['attachments']);
+    final l10n = ref.read(appLocalizationsProvider);
     final body = MessagePreviewResolver.resolve(
-      l10n: ref.read(appLocalizationsProvider),
+      l10n: l10n,
       content: content,
       messageType: messageType,
       isDeleted: isDeleted,
@@ -342,7 +343,7 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     );
 
     final notificationPayload = <String, dynamic>{
-      'title': senderName ?? 'New message',
+      'title': senderName ?? l10n.notificationNewMessageFallback,
       'body': body,
       'channelId': resolved.parentChannelId ?? channelId,
       if (resolved.serverId != null) 'serverId': resolved.serverId,

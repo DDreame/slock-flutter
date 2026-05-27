@@ -3223,4 +3223,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get avatarUploadFailedRetry => '上传失败，请重试。';
+
+  @override
+  String get timeJustNow => '刚刚';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count分钟前';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count小时前';
+  }
+
+  @override
+  String get billingResourceAgents => '智能体';
+
+  @override
+  String get billingResourceMachines => '机器';
+
+  @override
+  String get billingResourceChannels => '频道';
+
+  @override
+  String get notificationNewMessageFallback => '新消息';
 }

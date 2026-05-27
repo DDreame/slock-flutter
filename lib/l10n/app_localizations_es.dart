@@ -271,10 +271,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get homeCreateChannelTooltip => 'Create channel';
+  String get homeCreateChannelTooltip => 'Crear canal';
 
   @override
-  String get homeNewMessageTooltip => 'New message';
+  String get homeNewMessageTooltip => 'Nuevo mensaje';
 
   @override
   String homeHiddenConversationsCount(int count) {
@@ -3352,4 +3352,29 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get avatarUploadFailedRetry => 'Error de subida. Inténtalo de nuevo.';
+
+  @override
+  String get timeJustNow => 'ahora mismo';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return 'hace ${count}m';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return 'hace ${count}h';
+  }
+
+  @override
+  String get billingResourceAgents => 'Agentes';
+
+  @override
+  String get billingResourceMachines => 'Máquinas';
+
+  @override
+  String get billingResourceChannels => 'Canales';
+
+  @override
+  String get notificationNewMessageFallback => 'Mensaje nuevo';
 }

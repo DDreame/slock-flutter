@@ -1127,5 +1127,17 @@
 
   "avatarUploadInvalidResponse": "服务器返回无效响应。",
   "avatarUploadFailed": "上传失败。",
-  "avatarUploadFailedRetry": "上传失败，请重试。"
+  "avatarUploadFailedRetry": "上传失败，请重试。",
+
+  "timeJustNow": "刚刚",
+  "timeMinutesAgo": "{count}分钟前",
+  "@timeMinutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "timeHoursAgo": "{count}小时前",
+  "@timeHoursAgo": { "placeholders": { "count": { "type": "int" } } },
+
+  "billingResourceAgents": "智能体",
+  "billingResourceMachines": "机器",
+  "billingResourceChannels": "频道",
+
+  "notificationNewMessageFallback": "新消息"
 }

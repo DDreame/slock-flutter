@@ -3321,4 +3321,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get avatarUploadFailedRetry => 'Upload failed. Please try again.';
+
+  @override
+  String get timeJustNow => 'just now';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '${count}m ago';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '${count}h ago';
+  }
+
+  @override
+  String get billingResourceAgents => 'Agents';
+
+  @override
+  String get billingResourceMachines => 'Machines';
+
+  @override
+  String get billingResourceChannels => 'Channels';
+
+  @override
+  String get notificationNewMessageFallback => 'New message';
 }

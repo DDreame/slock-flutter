@@ -78,8 +78,8 @@
   "homeCardUnread": "NO LEIDOS",
   "homeCardUnreadEmpty": "Todo al dia",
   "homeCardUnreadOverflow": "+{count} mas",
-  "homeCreateChannelTooltip": "Create channel",
-  "homeNewMessageTooltip": "New message",
+  "homeCreateChannelTooltip": "Crear canal",
+  "homeNewMessageTooltip": "Nuevo mensaje",
   "homeHiddenConversationsCount": "Hidden conversations ({count})",
   "homeHiddenConversationsTitle": "Hidden conversations",
   "homeUnhide": "Unhide",
@@ -1287,5 +1287,17 @@
 
   "avatarUploadInvalidResponse": "Respuesta inválida del servidor.",
   "avatarUploadFailed": "Error de subida.",
-  "avatarUploadFailedRetry": "Error de subida. Inténtalo de nuevo."
+  "avatarUploadFailedRetry": "Error de subida. Inténtalo de nuevo.",
+
+  "timeJustNow": "ahora mismo",
+  "timeMinutesAgo": "hace {count}m",
+  "@timeMinutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "timeHoursAgo": "hace {count}h",
+  "@timeHoursAgo": { "placeholders": { "count": { "type": "int" } } },
+
+  "billingResourceAgents": "Agentes",
+  "billingResourceMachines": "Máquinas",
+  "billingResourceChannels": "Canales",
+
+  "notificationNewMessageFallback": "Mensaje nuevo"
 }

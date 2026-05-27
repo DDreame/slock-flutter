@@ -1,18 +1,46 @@
-String formatRelativeTime(DateTime dt, {DateTime? now}) {
+import 'package:intl/intl.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+/// Formats [dt] relative to [now] using localized strings when [l10n] is
+/// provided. Falls back to hardcoded English when [l10n] is null (legacy
+/// compatibility).
+///
+/// When [l10n] is provided, weekday and month names use ICU DateFormat
+/// with the locale from [l10n.localeName], producing localized output
+/// (e.g. ZH: "周一 14:30", "5月 27, 14:30").
+String formatRelativeTime(
+  DateTime dt, {
+  DateTime? now,
+  AppLocalizations? l10n,
+}) {
   final local = dt.toLocal();
   final currentTime = now ?? DateTime.now();
   final diff = currentTime.difference(local);
 
-  if (diff.inMinutes < 1) return 'just now';
-  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  if (diff.inMinutes < 1) {
+    return l10n?.timeJustNow ?? 'just now';
+  }
+  if (diff.inMinutes < 60) {
+    return l10n?.timeMinutesAgo(diff.inMinutes) ?? '${diff.inMinutes}m ago';
+  }
+  if (diff.inHours < 24) {
+    return l10n?.timeHoursAgo(diff.inHours) ?? '${diff.inHours}h ago';
+  }
 
   final localTime = _formatTime(local);
 
   if (diff.inDays < 7) {
+    if (l10n != null) {
+      final weekday = DateFormat.E(l10n.localeName).format(local);
+      return '$weekday $localTime';
+    }
     return '${_weekday(local.weekday)} $localTime';
   }
 
+  if (l10n != null) {
+    final monthDay = DateFormat.MMMd(l10n.localeName).format(local);
+    return '$monthDay, $localTime';
+  }
   return '${_month(local.month)} ${local.day}, $localTime';
 }
 
