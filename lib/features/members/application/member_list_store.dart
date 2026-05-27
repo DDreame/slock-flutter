@@ -25,6 +25,17 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     _disposed = false;
     ref.onDispose(() => _disposed = true);
     ref.watch(currentMembersServerIdProvider);
+
+    // INV-834: Re-fetch on WebSocket reconnect — data may be stale.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == MemberListStatus.success) {
+          load();
+        }
+      }
+    });
+
     return MemberListState();
   }
 

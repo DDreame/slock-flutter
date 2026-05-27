@@ -27,6 +27,17 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
     _disposed = false;
     ref.onDispose(() => _disposed = true);
     final routeTarget = ref.watch(currentThreadRouteTargetProvider);
+
+    // INV-834: Re-fetch on WebSocket reconnect — data may be stale.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == ThreadRepliesStatus.success) {
+          load();
+        }
+      }
+    });
+
     Future.microtask(() {
       if (state.status == ThreadRepliesStatus.initial) {
         ensureLoaded();

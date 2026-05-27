@@ -24,6 +24,17 @@ class AgentsStore extends Notifier<AgentsState> {
   AgentsState build() {
     _disposed = false;
     ref.onDispose(() => _disposed = true);
+
+    // INV-834: Re-fetch on WebSocket reconnect — data may be stale.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == AgentsStatus.success) {
+          load();
+        }
+      }
+    });
+
     return const AgentsState();
   }
 
