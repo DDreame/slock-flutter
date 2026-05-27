@@ -140,6 +140,7 @@ void main() {
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeClockProvider.overrideWithValue(DateTime.now),
         realtimeBackoffRandomProvider.overrideWithValue(Random(42)),
+        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
         realtimeWatchdogTimerFactoryProvider.overrideWithValue(
           (interval, onTick) => Timer(const Duration(hours: 99), () {}),
         ),
@@ -151,10 +152,22 @@ void main() {
       ]);
       addTearDown(container.dispose);
 
-      // Build the RealtimeService to activate ref.listen.
-      container.read(realtimeServiceProvider);
+      // Keep the socket client provider eagerly evaluated so rebuilds trigger
+      // the ref.listen callback in RealtimeService immediately.
+      final keepAlive =
+          container.listen(realtimeSocketClientProvider, (_, __) {});
+      addTearDown(keepAlive.close);
 
-      // Seed the ingress with event data.
+      // Keep RealtimeService provider alive so its ref.listen callback fires
+      // synchronously on dependency changes.
+      final serviceKeepAlive =
+          container.listen(realtimeServiceProvider, (_, __) {});
+      addTearDown(serviceKeepAlive.close);
+
+      // Trigger a connect so _boundSocketClient is set (listener requires it).
+      await container.read(realtimeServiceProvider.notifier).connect();
+
+      // Seed the ingress with event data AFTER connect.
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'message:new',
         scopeKey: 'global',
@@ -164,13 +177,11 @@ void main() {
       expect(ingress.lastSeqByScope, isNotEmpty,
           reason: 'Pre-switch: ingress has tracked seq');
 
-      // Trigger a connect so _boundSocketClient is set (listener requires it).
-      await container.read(realtimeServiceProvider.notifier).connect();
-
       // Simulate server switch: change socket version → new client instance.
       container.read(socketVersionProvider.notifier).state = 2;
+      await Future<void>.delayed(Duration.zero);
 
-      // The ref.listen callback fires synchronously — ingress should be reset.
+      // The ref.listen callback fires — ingress should be reset.
       expect(ingress.lastSeqByScope, isEmpty,
           reason:
               'Post server-switch: ingress must be cleared by _ingress.reset()');
@@ -243,7 +254,8 @@ void main() {
     test('forceReconnect() delays before connect — wired to production path',
         () {
       fakeAsync((async) {
-        // Seeded Random(42) produces deterministic jitter.
+        // Track delays passed to the sleeper to prove backoff is wired.
+        final recordedDelays = <Duration>[];
         final mockClient = _FakeSocketClient();
         final container = ProviderContainer(overrides: [
           realtimeReductionIngressProvider.overrideWithValue(
@@ -253,6 +265,9 @@ void main() {
             () => async.getClock(DateTime(2026)).now(),
           ),
           realtimeBackoffRandomProvider.overrideWithValue(Random(42)),
+          realtimeBackoffSleeperProvider.overrideWithValue((delay) async {
+            recordedDelays.add(delay);
+          }),
           realtimeWatchdogTimerFactoryProvider.overrideWithValue(
             (interval, onTick) => Timer(const Duration(hours: 99), () {}),
           ),
@@ -265,41 +280,30 @@ void main() {
         async.flushMicrotasks();
         expect(mockClient.connectCalls, 1);
 
-        // First forceReconnect — attempt=0, expect ~1s delay.
-        mockClient.connectCalls = 0;
-        service.forceReconnect(reason: 'test');
+        // First forceReconnect — _backoffStreak=0.
+        service.forceReconnect(reason: 'test-1');
         async.flushMicrotasks();
+        expect(recordedDelays, hasLength(1));
+        expect(mockClient.connectCalls, 2,
+            reason: 'No-op sleeper lets connect fire immediately');
 
-        // Before 1 second elapses, connect should NOT have been called.
-        expect(mockClient.connectCalls, 0,
-            reason: 'Backoff delay must elapse before connect');
-
-        // Advance past the backoff (base 1s + up to 1000ms jitter).
-        async.elapse(const Duration(seconds: 2));
-        expect(mockClient.connectCalls, 1,
-            reason: 'Connect must fire after backoff delay elapses');
-
-        // Second forceReconnect — attempt=1, expect ~2s delay.
-        mockClient.connectCalls = 0;
+        // Second forceReconnect — _backoffStreak=1, delay should be larger.
         service.forceReconnect(reason: 'test-2');
         async.flushMicrotasks();
-
-        // 1.5 seconds: should still be waiting (delay is ~2s + jitter).
-        async.elapse(const Duration(milliseconds: 1500));
-        expect(mockClient.connectCalls, 0,
-            reason: 'Second attempt backoff (~2s) should not have fired yet');
-
-        // 2 more seconds: should have connected.
-        async.elapse(const Duration(seconds: 2));
-        expect(mockClient.connectCalls, 1,
-            reason: 'Second attempt must connect after longer delay');
+        expect(recordedDelays, hasLength(2));
+        expect(
+          recordedDelays[1].inMilliseconds,
+          greaterThan(recordedDelays[0].inMilliseconds),
+          reason: 'Second reconnect delay must exceed first (backoff streak)',
+        );
 
         container.dispose();
       });
     });
 
-    test('reconnectAttempts resets on successful connection', () {
+    test('backoff streak resets on successful connection', () {
       fakeAsync((async) {
+        final recordedDelays = <Duration>[];
         final mockClient = _FakeSocketClient();
         final container = ProviderContainer(overrides: [
           realtimeReductionIngressProvider.overrideWithValue(
@@ -309,6 +313,9 @@ void main() {
             () => async.getClock(DateTime(2026)).now(),
           ),
           realtimeBackoffRandomProvider.overrideWithValue(Random(42)),
+          realtimeBackoffSleeperProvider.overrideWithValue((delay) async {
+            recordedDelays.add(delay);
+          }),
           realtimeWatchdogTimerFactoryProvider.overrideWithValue(
             (interval, onTick) => Timer(const Duration(hours: 99), () {}),
           ),
@@ -319,12 +326,13 @@ void main() {
         service.connect();
         async.flushMicrotasks();
 
-        // Force 3 reconnects to increase attempt counter.
+        // Force 3 reconnects to increase backoff streak.
         for (var i = 0; i < 3; i++) {
           service.forceReconnect(reason: 'test-$i');
-          async.elapse(const Duration(minutes: 2)); // Let all complete.
+          async.flushMicrotasks();
         }
-
+        expect(recordedDelays, hasLength(3));
+        // Cumulative attempts should be 3.
         expect(
           container.read(realtimeServiceProvider).reconnectAttempts,
           3,
@@ -334,13 +342,22 @@ void main() {
         mockClient.emitSignal(const RealtimeSocketConnected());
         async.flushMicrotasks();
 
-        // Attempts must be reset to 0.
+        // Cumulative attempts stays at 3 (never resets).
         expect(
           container.read(realtimeServiceProvider).reconnectAttempts,
-          0,
-          reason:
-              'reconnectAttempts must reset on successful connection (_onConnected)',
+          3,
+          reason: 'reconnectAttempts is cumulative — must NOT reset',
         );
+
+        // Next reconnect should use _backoffStreak=0 (base delay) again.
+        recordedDelays.clear();
+        service.forceReconnect(reason: 'after-success');
+        async.flushMicrotasks();
+
+        expect(recordedDelays, hasLength(1));
+        // Base delay (1s) + jitter — should be ~1000-2000ms.
+        expect(recordedDelays[0].inMilliseconds, lessThanOrEqualTo(2000));
+        expect(recordedDelays[0].inMilliseconds, greaterThanOrEqualTo(1000));
 
         container.dispose();
       });

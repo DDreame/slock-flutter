@@ -41,6 +41,7 @@ void main() {
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeSocketClientProvider.overrideWithValue(socket),
         realtimeClockProvider.overrideWithValue(() => fakeNow),
+        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
         realtimeWatchdogTimerFactoryProvider.overrideWithValue((_, __) {
           return _NoOpTimer();
         }),

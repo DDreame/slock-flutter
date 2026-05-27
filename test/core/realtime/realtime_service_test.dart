@@ -104,6 +104,7 @@ void main() {
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeSocketClientProvider.overrideWithValue(socket),
         realtimeClockProvider.overrideWithValue(() => now),
+        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
         realtimeWatchdogConfigProvider.overrideWithValue(
           const RealtimeWatchdogConfig(
             interval: Duration(seconds: 5),
@@ -153,6 +154,7 @@ void main() {
       overrides: [
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
       ],
     );
     addTearDown(() async {

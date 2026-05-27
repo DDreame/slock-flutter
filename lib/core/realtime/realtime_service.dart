@@ -49,6 +49,12 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
   Timer? _watchdogTimer;
   bool _isReconnecting = false;
 
+  /// INV-839-BACKOFF: Tracks consecutive failed reconnect attempts for backoff
+  /// calculation. Resets to 0 on successful connection. Separate from the
+  /// cumulative [RealtimeConnectionState.reconnectAttempts] which is used for
+  /// monitoring/analytics and never resets.
+  int _backoffStreak = 0;
+
   @override
   RealtimeConnectionState build() {
     ref.onDispose(_disposeResources);
@@ -101,22 +107,24 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
     final socketClient = _boundSocketClient ?? _socketClient;
     try {
       _bindSignalsIfNeeded(socketClient);
-      final attempt = state.reconnectAttempts;
       state = state.copyWith(
         status: RealtimeConnectionStatus.reconnecting,
-        reconnectAttempts: attempt + 1,
+        reconnectAttempts: state.reconnectAttempts + 1,
         lastForcedReconnectAt: _clock(),
         disconnectReason: reason,
       );
       await socketClient.disconnect();
       // INV-839-BACKOFF: Wait exponential backoff delay before reconnecting.
+      // Uses _backoffStreak (resets on success) rather than the cumulative
+      // reconnectAttempts (lifetime counter for analytics).
       final delay = computeBackoffDelay(
-        attempt: attempt,
+        attempt: _backoffStreak,
         baseDelay: realtimeBackoffBaseDelay,
         maxDelay: realtimeBackoffMaxDelay,
         random: ref.read(realtimeBackoffRandomProvider),
       );
-      await Future<void>.delayed(delay);
+      _backoffStreak++;
+      await ref.read(realtimeBackoffSleeperProvider)(delay);
       await socketClient.connect();
     } finally {
       _isReconnecting = false;
@@ -184,13 +192,14 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
 
   void _onConnected() {
     final now = _clock();
+    // INV-839-BACKOFF: Reset backoff streak on successful connection so next
+    // failure starts from base delay. The cumulative reconnectAttempts is
+    // intentionally NOT reset — it's a lifetime counter for monitoring.
+    _backoffStreak = 0;
     state = state.copyWith(
       status: RealtimeConnectionStatus.connected,
       lastConnectedAt: now,
       lastAnyEventAt: now,
-      // INV-839-BACKOFF: Reset attempt counter on successful connection
-      // so next failure starts backoff from base delay.
-      reconnectAttempts: 0,
       clearDisconnectReason: true,
     );
 
