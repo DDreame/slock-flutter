@@ -326,6 +326,7 @@ class _BillingUsageRow extends StatelessWidget {
     final value = resource.hasFiniteLimit
         ? '${resource.used} / ${resource.limit}'
         : '${resource.used}';
+    final localizedLabel = _localizeResourceLabel(context, resource.label);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -333,7 +334,7 @@ class _BillingUsageRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              resource.label,
+              localizedLabel,
               style: Theme.of(context).textTheme.labelLarge,
             ),
           ),
@@ -361,4 +362,15 @@ String _formatMessageHistoryDays(int days, AppLocalizations l10n) {
     return l10n.billingMessageHistoryOneDay;
   }
   return l10n.billingMessageHistoryDays(days);
+}
+
+/// Maps repository-layer resource labels to localized display strings.
+String _localizeResourceLabel(BuildContext context, String label) {
+  final l10n = context.l10n;
+  return switch (label) {
+    'Agents' => l10n.billingResourceAgents,
+    'Machines' => l10n.billingResourceMachines,
+    'Channels' => l10n.billingResourceChannels,
+    _ => label,
+  };
 }

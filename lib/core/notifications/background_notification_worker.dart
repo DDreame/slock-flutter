@@ -330,7 +330,7 @@ class BackgroundNotificationWorker {
     );
 
     final notificationPayload = <String, dynamic>{
-      'title': senderName ?? 'New message',
+      'title': senderName ?? l10n.notificationNewMessageFallback,
       'body': body,
       'channelId': channelId,
       if (_authProvider.serverId != null) 'serverId': _authProvider.serverId,

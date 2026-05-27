@@ -6250,6 +6250,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upload failed. Please try again.'**
   String get avatarUploadFailedRetry;
+
+  /// No description provided for @timeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'just now'**
+  String get timeJustNow;
+
+  /// No description provided for @timeMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m ago'**
+  String timeMinutesAgo(int count);
+
+  /// No description provided for @timeHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String timeHoursAgo(int count);
+
+  /// No description provided for @billingResourceAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents'**
+  String get billingResourceAgents;
+
+  /// No description provided for @billingResourceMachines.
+  ///
+  /// In en, this message translates to:
+  /// **'Machines'**
+  String get billingResourceMachines;
+
+  /// No description provided for @billingResourceChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get billingResourceChannels;
+
+  /// No description provided for @notificationNewMessageFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get notificationNewMessageFallback;
 }
 
 class _AppLocalizationsDelegate

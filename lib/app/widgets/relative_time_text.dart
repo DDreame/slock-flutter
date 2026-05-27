@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/utils/time_format.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// A leaf ConsumerWidget that watches [homeNowProvider] internally and renders
 /// a relative time string via [formatRelativeTime].
@@ -42,7 +43,7 @@ class RelativeTimeText extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(homeNowProvider).value ?? DateTime.now();
     return Text(
-      formatRelativeTime(time, now: now),
+      formatRelativeTime(time, now: now, l10n: context.l10n),
       style: style,
       maxLines: maxLines,
       overflow: overflow,
