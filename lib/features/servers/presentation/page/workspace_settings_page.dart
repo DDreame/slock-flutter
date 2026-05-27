@@ -13,6 +13,19 @@ import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_management_dialogs.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
+/// Static cache for [DateFormat.yMMMd] keyed by locale. INV-842-CACHE.
+final Map<String, DateFormat> _yMMMdFormatCache = {};
+
+/// INV-842-CACHE: @visibleForTesting — current size of the yMMMd cache.
+@visibleForTesting
+int get yMMMdFormatCacheSize => _yMMMdFormatCache.length;
+
+/// INV-842-CACHE: @visibleForTesting — reset cache between tests.
+@visibleForTesting
+void resetYMMMdFormatCache() {
+  _yMMMdFormatCache.clear();
+}
+
 class WorkspaceSettingsPage extends ConsumerWidget {
   const WorkspaceSettingsPage({required this.serverId, super.key});
 
@@ -123,8 +136,9 @@ class _InfoSection extends StatelessWidget {
           if (server.createdAt != null)
             _InfoRow(
               label: l10n.workspaceSettingsCreatedLabel,
-              value:
-                  DateFormat.yMMMd(l10n.localeName).format(server.createdAt!),
+              value: (_yMMMdFormatCache[l10n.localeName] ??=
+                      DateFormat.yMMMd(l10n.localeName))
+                  .format(server.createdAt!),
             ),
         ],
       ),
