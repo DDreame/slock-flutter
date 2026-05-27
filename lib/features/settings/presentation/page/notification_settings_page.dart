@@ -19,8 +19,56 @@ typedef _NotifySettingsProjection = ({
   NotificationPreference notificationPreference,
 });
 
+/// PERF-831: Static cache for DateFormat instances used in notification
+/// settings. Keyed by locale to avoid allocating a new DateFormat per build.
+final Map<String, DateFormat> _notificationDateFormatCache = {};
+
+/// Number of new DateFormat instances created (cache misses).
+/// Increments only when a locale is seen for the first time.
+int _notificationDateFormatCreateCount = 0;
+
+/// Number of times _formatNotificationTimestamp has been called.
+/// Proves both production call sites route through this helper.
+int _notificationDateFormatHelperCallCount = 0;
+
+/// Cached DateFormat formatter for notification timestamps.
+/// Both formatting sites in this file MUST use this helper.
+String _formatNotificationTimestamp(DateTime date, String locale) {
+  _notificationDateFormatHelperCallCount++;
+  if (!_notificationDateFormatCache.containsKey(locale)) {
+    _notificationDateFormatCreateCount++;
+    _notificationDateFormatCache[locale] = DateFormat.yMMMd(locale).add_Hm();
+  }
+  return _notificationDateFormatCache[locale]!.format(date);
+}
+
 class NotificationSettingsPage extends ConsumerStatefulWidget {
   const NotificationSettingsPage({super.key});
+
+  /// Number of entries in the notification DateFormat cache.
+  /// Exposed for testing to verify the cache grows per locale.
+  @visibleForTesting
+  static int get dateFormatCacheSize => _notificationDateFormatCache.length;
+
+  /// Number of DateFormat instances created (cache misses).
+  /// Exposed for testing to verify both call sites use the cache helper.
+  @visibleForTesting
+  static int get dateFormatCreateCount => _notificationDateFormatCreateCount;
+
+  /// Number of times the helper was called (proves both call sites use it).
+  /// Exposed for testing — if either site reverts to direct DateFormat,
+  /// call count drops and the test goes RED.
+  @visibleForTesting
+  static int get dateFormatHelperCallCount =>
+      _notificationDateFormatHelperCallCount;
+
+  /// Clears the notification DateFormat cache for test isolation.
+  @visibleForTesting
+  static void clearDateFormatCache() {
+    _notificationDateFormatCache.clear();
+    _notificationDateFormatCreateCount = 0;
+    _notificationDateFormatHelperCallCount = 0;
+  }
 
   @override
   ConsumerState<NotificationSettingsPage> createState() =>
@@ -154,9 +202,10 @@ class _NotificationSettingsPageState
                   title: Text(l10n.notificationSettingsLastRegistration),
                   subtitle: Text(
                     notificationState.pushTokenUpdatedAt != null
-                        ? DateFormat.yMMMd(l10n.localeName)
-                            .add_Hm()
-                            .format(notificationState.pushTokenUpdatedAt!)
+                        ? _formatNotificationTimestamp(
+                            notificationState.pushTokenUpdatedAt!,
+                            l10n.localeName,
+                          )
                         : l10n.notificationSettingsNotRegistered,
                   ),
                 ),
@@ -330,9 +379,8 @@ String _permissionSubtitle(
       ? l10n.notificationSettingsDeviceNotRegistered
       : l10n.notificationSettingsDeviceRegistered(
           state.pushTokenUpdatedAt != null
-              ? DateFormat.yMMMd(l10n.localeName)
-                  .add_Hm()
-                  .format(state.pushTokenUpdatedAt!)
+              ? _formatNotificationTimestamp(
+                  state.pushTokenUpdatedAt!, l10n.localeName)
               : l10n.notificationSettingsDateRecently,
         );
   return '$status\n$tokenState';

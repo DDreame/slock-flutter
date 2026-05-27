@@ -11,11 +11,43 @@ import 'package:slock_app/features/machines/data/machines_repository_provider.da
 import 'package:slock_app/features/machines/presentation/page/workspaces_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
+/// PERF-831: Select projection for _MachinesSuccessView — excludes status and
+/// failure so the success view does not rebuild on transient errors.
+/// Exposed for testing to verify the production select is stable across
+/// status/failure-only mutations.
+@visibleForTesting
+typedef MachinesSuccessProjection = ({
+  List<MachineItem> items,
+  String? latestDaemonVersion,
+  bool isCreating,
+  Set<String> renamingMachineIds,
+  Set<String> rotatingKeyMachineIds,
+  Set<String> deletingMachineIds,
+});
+
+/// The select function used by _MachinesSuccessView.build(). Exposed for
+/// testing so the test can listen via the exact same projection.
+@visibleForTesting
+MachinesSuccessProjection machinesSuccessViewProjection(MachinesState s) => (
+      items: s.items,
+      latestDaemonVersion: s.latestDaemonVersion,
+      isCreating: s.isCreating,
+      renamingMachineIds: s.renamingMachineIds,
+      rotatingKeyMachineIds: s.rotatingKeyMachineIds,
+      deletingMachineIds: s.deletingMachineIds,
+    );
+
 class MachinesPage extends StatelessWidget {
   MachinesPage({super.key, required String serverId})
       : _serverId = ServerScopeId(serverId);
 
   final ServerScopeId _serverId;
+
+  /// Number of times _MachinesSuccessView.build has been invoked.
+  /// Exposed for testing to verify that status/failure changes do NOT trigger
+  /// rebuilds of the success view.
+  @visibleForTesting
+  static int successViewBuildCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +77,12 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(machinesRealtimeBindingProvider);
-    // PERF-819: Narrow watch to only the fields used by the parent scaffold
-    // (status, isCreating, failure). Per-item busy states only rebuild the
-    // success view, not the AppBar/FAB.
-    final (:status, :isCreating, :failure) = ref.watch(
+    // PERF-831: Narrow watch to only status + isCreating. Failure is only
+    // consumed inside the failure branch, so reading it there avoids
+    // rebuilding the success view when a transient background error arrives.
+    final (:status, :isCreating) = ref.watch(
       machinesStoreProvider.select(
-        (s) => (status: s.status, isCreating: s.isCreating, failure: s.failure),
+        (s) => (status: s.status, isCreating: s.isCreating),
       ),
     );
 
@@ -76,7 +108,9 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             child: CircularProgressIndicator(),
           ),
         MachinesStatus.failure => _MachinesFailureView(
-            message: failure?.userMessage(context.l10n) ??
+            message: ref.read(machinesStoreProvider).failure?.userMessage(
+                      context.l10n,
+                    ) ??
                 context.l10n.machinesLoadFailed,
             onRetry: ref.read(machinesStoreProvider.notifier).load,
           ),
@@ -357,7 +391,12 @@ class _MachinesSuccessView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(machinesStoreProvider);
+    MachinesPage.successViewBuildCount++;
+    // PERF-831: Narrow watch to only consumed fields. Status/failure changes
+    // (e.g. transient background errors) do NOT rebuild this success view.
+    final state = ref.watch(
+      machinesStoreProvider.select(machinesSuccessViewProjection),
+    );
     final l10n = context.l10n;
     final connectedCount = state.items.where((item) => item.isOnline).length;
 
@@ -391,7 +430,9 @@ class _MachinesSuccessView extends ConsumerWidget {
             for (final machine in state.items) ...[
               _MachineCard(
                 machine: machine,
-                isBusy: state.isBusy(machine.id),
+                isBusy: state.renamingMachineIds.contains(machine.id) ||
+                    state.rotatingKeyMachineIds.contains(machine.id) ||
+                    state.deletingMachineIds.contains(machine.id),
                 serverId: serverId,
                 onRename: () => onRename(machine),
                 onRotateApiKey: () => onRotateApiKey(machine),

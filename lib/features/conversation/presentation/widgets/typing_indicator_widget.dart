@@ -36,8 +36,12 @@ class TypingIndicatorWidget extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const _AnimatedDots(
-            key: ValueKey('typing-dots'),
+          // PERF-831: RepaintBoundary isolates the animation repaints from
+          // propagating to parent Column (composer, message list siblings).
+          const RepaintBoundary(
+            child: _AnimatedDots(
+              key: ValueKey('typing-dots'),
+            ),
           ),
           const SizedBox(width: 8),
           Flexible(
