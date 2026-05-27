@@ -80,6 +80,7 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
     final machineId = ref.read(currentWorkspacesMachineIdProvider);
     // INV-ROLLBACK-829: Snapshot item + index for per-item rollback.
     final removedIndex = state.items.indexWhere((w) => w.id == workspaceId);
+    if (removedIndex < 0) return;
     final removedItem = state.items[removedIndex];
 
     // Optimistic: remove from list and add to deleting set.

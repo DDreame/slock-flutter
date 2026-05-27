@@ -304,6 +304,8 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       },
     );
 
+    if (_disposed) return;
+
     // Auto-show translation after manual trigger.
     if (state.translations[messageId]?.status ==
         TranslationEntryStatus.translated) {

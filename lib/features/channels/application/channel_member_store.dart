@@ -136,6 +136,7 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
     // INV-ROLLBACK-829: Snapshot item + index for per-item rollback.
     final removedIndex = state.items.indexWhere((m) => m.userId == userId);
+    if (removedIndex < 0) return;
     final removedItem = state.items[removedIndex];
     state = state.copyWith(
       items: state.items.where((m) => m.userId != userId).toList(),
@@ -171,6 +172,7 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
     // INV-ROLLBACK-829: Snapshot item + index for per-item rollback.
     final removedIndex = state.items.indexWhere((m) => m.agentId == agentId);
+    if (removedIndex < 0) return;
     final removedItem = state.items[removedIndex];
     state = state.copyWith(
       items: state.items.where((m) => m.agentId != agentId).toList(),

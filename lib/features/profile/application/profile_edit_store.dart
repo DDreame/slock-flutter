@@ -118,7 +118,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
 
   Future<void> pickAvatar() async {
     final path = await ref.read(imagePickerProvider).pickImage();
-    if (path == null) return;
+    if (path == null || _disposed) return;
     setSelectedAvatarPath(path);
   }
 
