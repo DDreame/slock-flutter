@@ -35,6 +35,7 @@ import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 
 // =============================================================================
 // Controllable RealtimeService
@@ -408,6 +409,7 @@ void main() {
                   .overrideWith(() => _ControllableRealtimeService()),
             ],
             child: MaterialApp(
+              theme: AppTheme.light,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               home: const HomePage(),
@@ -453,6 +455,7 @@ void main() {
                   .overrideWith(() => _ControllableRealtimeService()),
             ],
             child: MaterialApp(
+              theme: AppTheme.light,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               home: const HomePage(),
@@ -506,7 +509,7 @@ class _ControllableServerListStore extends ServerListStore {
 class _LoadingHomeListStore extends HomeListStore {
   @override
   HomeListState build() => HomeListState(
-        status: HomeListStatus.loading,
+        status: HomeListStatus.noActiveServer,
         isRefreshing: false,
       );
 }
