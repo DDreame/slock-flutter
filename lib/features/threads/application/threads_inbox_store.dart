@@ -92,9 +92,16 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       return;
     }
 
+    // INV-ROLLBACK-835: Per-item rollback — snapshot the removed item and its
+    // original index. Restoring the full `previousItems` would erase concurrent
+    // mutations (reconnect refresh, other markDone calls).
+    final removedIndex = state.items.indexWhere(
+      (entry) => entry.routeTarget.threadChannelId == threadChannelId,
+    );
+    final removedItem = removedIndex >= 0 ? state.items[removedIndex] : null;
+
     // Optimistically remove the item from the list immediately so that
     // the Dismissible animation and store state stay consistent.
-    final previousItems = state.items;
     state = state.copyWith(
       items: state.items
           .where(
@@ -113,19 +120,22 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
             threadChannelId: threadChannelId,
           );
     } on AppFailure catch (failure) {
-      // Restore the item on failure so the user can retry.
+      // Per-item rollback: re-insert the single item at its original position
+      // instead of restoring the full previous list snapshot.
       try {
-        state = state.copyWith(
-          items: previousItems,
-          failure: failure,
-        );
+        if (removedItem != null) {
+          _reinsertAtPosition(removedItem, removedIndex);
+        }
+        state = state.copyWith(failure: failure);
       } on StateError catch (_) {
         // Provider disposed mid-flight — state write guard.
       }
     } catch (error) {
       try {
+        if (removedItem != null) {
+          _reinsertAtPosition(removedItem, removedIndex);
+        }
         state = state.copyWith(
-          items: previousItems,
           failure: UnknownFailure(
             message: 'Failed to mark thread done.',
             causeType: error.runtimeType.toString(),
@@ -145,5 +155,15 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
         // Provider disposed mid-flight — finally guard.
       }
     }
+  }
+
+  /// Re-inserts [item] at [originalIndex], clamped to the current list length.
+  /// Preserves ordering in the simple case while tolerating concurrent list
+  /// mutations (additions/removals) that shift boundaries.
+  void _reinsertAtPosition(ThreadInboxItem item, int originalIndex) {
+    final current = state.items.toList();
+    final insertAt = originalIndex.clamp(0, current.length);
+    current.insert(insertAt, item);
+    state = state.copyWith(items: current);
   }
 }
