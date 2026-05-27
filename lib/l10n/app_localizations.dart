@@ -6334,6 +6334,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'User'**
   String get userFallbackDisplayName;
+
+  /// No description provided for @agentsActivityLogOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get agentsActivityLogOnline;
+
+  /// No description provided for @agentsActivityLogThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking'**
+  String get agentsActivityLogThinking;
+
+  /// No description provided for @agentsActivityLogWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working'**
+  String get agentsActivityLogWorking;
+
+  /// No description provided for @agentsActivityLogError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get agentsActivityLogError;
+
+  /// No description provided for @agentsActivityLogErrorDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {detail}'**
+  String agentsActivityLogErrorDetail(String detail);
+
+  /// No description provided for @agentsActivityLogOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get agentsActivityLogOffline;
 }
 
 class _AppLocalizationsDelegate

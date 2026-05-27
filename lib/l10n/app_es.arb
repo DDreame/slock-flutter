@@ -1312,5 +1312,11 @@
   "connectionReconnecting": "Reconectando...",
 
   "conversationDefaultTitleDm": "Mensaje directo",
-  "userFallbackDisplayName": "Usuario"
+  "userFallbackDisplayName": "Usuario",
+  "agentsActivityLogOnline": "En línea",
+  "agentsActivityLogThinking": "Pensando",
+  "agentsActivityLogWorking": "Trabajando",
+  "agentsActivityLogError": "Error",
+  "agentsActivityLogErrorDetail": "Error: {detail}",
+  "agentsActivityLogOffline": "Sin conexión"
 }

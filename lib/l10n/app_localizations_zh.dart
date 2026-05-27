@@ -3275,4 +3275,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get userFallbackDisplayName => '用户';
+
+  @override
+  String get agentsActivityLogOnline => '在线';
+
+  @override
+  String get agentsActivityLogThinking => '思考中';
+
+  @override
+  String get agentsActivityLogWorking => '工作中';
+
+  @override
+  String get agentsActivityLogError => '错误';
+
+  @override
+  String agentsActivityLogErrorDetail(String detail) {
+    return '错误：$detail';
+  }
+
+  @override
+  String get agentsActivityLogOffline => '离线';
 }

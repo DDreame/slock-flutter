@@ -1152,5 +1152,11 @@
   "connectionReconnecting": "重新连接中...",
 
   "conversationDefaultTitleDm": "私信",
-  "userFallbackDisplayName": "用户"
+  "userFallbackDisplayName": "用户",
+  "agentsActivityLogOnline": "在线",
+  "agentsActivityLogThinking": "思考中",
+  "agentsActivityLogWorking": "工作中",
+  "agentsActivityLogError": "错误",
+  "agentsActivityLogErrorDetail": "错误：{detail}",
+  "agentsActivityLogOffline": "离线"
 }

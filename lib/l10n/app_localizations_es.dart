@@ -3410,4 +3410,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get userFallbackDisplayName => 'Usuario';
+
+  @override
+  String get agentsActivityLogOnline => 'En línea';
+
+  @override
+  String get agentsActivityLogThinking => 'Pensando';
+
+  @override
+  String get agentsActivityLogWorking => 'Trabajando';
+
+  @override
+  String get agentsActivityLogError => 'Error';
+
+  @override
+  String agentsActivityLogErrorDetail(String detail) {
+    return 'Error: $detail';
+  }
+
+  @override
+  String get agentsActivityLogOffline => 'Sin conexión';
 }

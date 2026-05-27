@@ -545,13 +545,13 @@ String _formatActivityLogEntry(
   final normalizedDetail = detail?.trim();
   final hasDetail = normalizedDetail != null && normalizedDetail.isNotEmpty;
   final activityLabel = switch (activity) {
-    'online' => l10n.agentsActivityOnline,
-    'thinking' => l10n.agentsActivityThinking,
-    'working' => l10n.agentsActivityWorking,
+    'online' => l10n.agentsActivityLogOnline,
+    'thinking' => l10n.agentsActivityLogThinking,
+    'working' => l10n.agentsActivityLogWorking,
     'error' => hasDetail
-        ? l10n.agentsActivityErrorDetail(normalizedDetail)
-        : l10n.agentsActivityError,
-    'offline' => l10n.agentsActivityOffline,
+        ? l10n.agentsActivityLogErrorDetail(normalizedDetail)
+        : l10n.agentsActivityLogError,
+    'offline' => l10n.agentsActivityLogOffline,
     _ => activity,
   };
   // For 'error' with detail, the label already includes ": detail".

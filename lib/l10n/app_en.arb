@@ -1541,5 +1541,18 @@
   "connectionReconnecting": "Reconnecting...",
 
   "conversationDefaultTitleDm": "Direct message",
-  "userFallbackDisplayName": "User"
+  "userFallbackDisplayName": "User",
+  "agentsActivityLogOnline": "Online",
+  "agentsActivityLogThinking": "Thinking",
+  "agentsActivityLogWorking": "Working",
+  "agentsActivityLogError": "Error",
+  "agentsActivityLogErrorDetail": "Error: {detail}",
+  "@agentsActivityLogErrorDetail": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "agentsActivityLogOffline": "Offline"
 }
