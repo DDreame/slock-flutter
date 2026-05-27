@@ -1528,5 +1528,15 @@
   "billingResourceMachines": "Machines",
   "billingResourceChannels": "Channels",
 
-  "notificationNewMessageFallback": "New message"
+  "notificationNewMessageFallback": "New message",
+
+  "typingIndicatorOne": "{name} is typing...",
+  "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },
+  "typingIndicatorTwo": "{first} and {second} are typing...",
+  "@typingIndicatorTwo": { "placeholders": { "first": { "type": "String" }, "second": { "type": "String" } } },
+  "typingIndicatorSeveral": "Several people are typing...",
+  "typingIndicatorThreeOrMore": "{allButLast}, and {last} are typing...",
+  "@typingIndicatorThreeOrMore": { "placeholders": { "allButLast": { "type": "String" }, "last": { "type": "String" } } },
+
+  "connectionReconnecting": "Reconnecting..."
 }

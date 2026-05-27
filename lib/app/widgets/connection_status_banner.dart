@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Banner that shows "Reconnecting..." when the WebSocket is disconnected
 /// or reconnecting. Auto-dismisses when the connection is restored.
@@ -42,7 +43,7 @@ class ConnectionStatusBanner extends ConsumerWidget {
                   color: colors.surfaceAlt,
                 ),
                 child: Text(
-                  'Reconnecting...',
+                  context.l10n.connectionReconnecting,
                   textAlign: TextAlign.center,
                   style: AppTypography.caption.copyWith(
                     color: colors.textSecondary,

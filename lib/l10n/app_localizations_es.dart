@@ -81,97 +81,101 @@ class AppLocalizationsEs extends AppLocalizations {
       'La contrasena debe tener al menos 8 caracteres.';
 
   @override
-  String get forgotPasswordTitle => 'Forgot Password';
+  String get forgotPasswordTitle => 'Olvidé mi contraseña';
 
   @override
-  String get forgotPasswordSuccessTitle => 'Check your email';
+  String get forgotPasswordSuccessTitle => 'Revisa tu correo';
 
   @override
   String get forgotPasswordSuccessMessage =>
-      'If that email is registered, a reset link has been sent. Check your inbox.';
+      'Si ese correo está registrado, se ha enviado un enlace de restablecimiento. Revisa tu bandeja de entrada.';
 
   @override
-  String get forgotPasswordEmailLabel => 'Email';
+  String get forgotPasswordEmailLabel => 'Correo electrónico';
 
   @override
-  String get forgotPasswordSubmitLabel => 'Reset Password';
+  String get forgotPasswordSubmitLabel => 'Restablecer contraseña';
 
   @override
-  String get forgotPasswordBackToLogin => 'Back to login';
+  String get forgotPasswordBackToLogin => 'Volver al inicio de sesión';
 
   @override
-  String get forgotPasswordEmailRequiredError => 'Email is required.';
+  String get forgotPasswordEmailRequiredError =>
+      'El correo electrónico es obligatorio.';
 
   @override
-  String get forgotPasswordEmailInvalidError => 'Enter a valid email address.';
+  String get forgotPasswordEmailInvalidError =>
+      'Ingresa una dirección de correo electrónico válida.';
 
   @override
-  String get resetPasswordTitle => 'Reset Password';
+  String get resetPasswordTitle => 'Restablecer contraseña';
 
   @override
   String get resetPasswordCompletedMessage =>
-      'Password reset complete. You can now sign in with your new password.';
+      'Contraseña restablecida. Ya puedes iniciar sesión con tu nueva contraseña.';
 
   @override
-  String get resetPasswordNewPasswordLabel => 'New password';
+  String get resetPasswordNewPasswordLabel => 'Nueva contraseña';
 
   @override
-  String get resetPasswordConfirmPasswordLabel => 'Confirm new password';
+  String get resetPasswordConfirmPasswordLabel => 'Confirmar nueva contraseña';
 
   @override
-  String get resetPasswordSubmitLabel => 'Set new password';
+  String get resetPasswordSubmitLabel => 'Establecer nueva contraseña';
 
   @override
-  String get resetPasswordBackToLogin => 'Back to login';
+  String get resetPasswordBackToLogin => 'Volver al inicio de sesión';
 
   @override
   String get resetPasswordLinkInvalidError =>
-      'Reset link is missing or invalid.';
+      'El enlace de restablecimiento no es válido o ha expirado.';
 
   @override
   String get resetPasswordTooShortError =>
-      'Password must be at least 8 characters.';
+      'La contraseña debe tener al menos 8 caracteres.';
 
   @override
-  String get resetPasswordMismatchError => 'Passwords do not match.';
+  String get resetPasswordMismatchError => 'Las contraseñas no coinciden.';
 
   @override
-  String get verifyEmailTitle => 'Verify Email';
+  String get verifyEmailTitle => 'Verificar correo electrónico';
 
   @override
-  String get verifyEmailInstructions => 'Verify your email to continue.';
+  String get verifyEmailInstructions =>
+      'Verifica tu correo electrónico para continuar.';
 
   @override
   String get verifyEmailResentMessage =>
-      'Verification email resent. Check your inbox.';
+      'Correo de verificación reenviado. Revisa tu bandeja de entrada.';
 
   @override
-  String get verifyEmailResendButton => 'Resend verification email';
+  String get verifyEmailResendButton => 'Reenviar correo de verificación';
 
   @override
-  String get verifyEmailTokenLabel => 'Verification token';
+  String get verifyEmailTokenLabel => 'Token de verificación';
 
   @override
-  String get verifyEmailSubmitLabel => 'Verify';
+  String get verifyEmailSubmitLabel => 'Verificar';
 
   @override
   String get verifyEmailSuccessMessage =>
-      'Email verified. You can continue to the app.';
+      'Correo verificado. Ya puedes continuar a la aplicación.';
 
   @override
-  String get verifyEmailContinueButton => 'Continue to Slock';
+  String get verifyEmailContinueButton => 'Continuar a Slock';
 
   @override
-  String get verifyEmailSignOut => 'Sign out';
+  String get verifyEmailSignOut => 'Cerrar sesión';
 
   @override
-  String get verifyEmailBackToLogin => 'Back to login';
+  String get verifyEmailBackToLogin => 'Volver al inicio de sesión';
 
   @override
-  String get verifyEmailTokenRequiredError => 'Enter a verification token.';
+  String get verifyEmailTokenRequiredError =>
+      'Ingresa un token de verificación.';
 
   @override
-  String get navWorkspace => 'Home';
+  String get navWorkspace => 'Inicio';
 
   @override
   String get navChannels => 'Canales';
@@ -180,7 +184,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navDms => 'Mensajes';
 
   @override
-  String get navAgents => 'Agents';
+  String get navAgents => 'Agentes';
 
   @override
   String get agentsNewTooltip => 'Nuevo agente';
@@ -189,13 +193,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get releaseNotesTitle => 'Notas de versión';
 
   @override
-  String get homeConsoleMembers => 'Members';
+  String get homeConsoleMembers => 'Miembros';
 
   @override
-  String get homeConsoleBilling => 'Billing';
+  String get homeConsoleBilling => 'Facturación';
 
   @override
-  String get homeConsoleWorkspaceSettings => 'Workspace Settings';
+  String get homeConsoleWorkspaceSettings => 'Configuración del espacio';
 
   @override
   String get homeCardAgents => 'AGENTES';
@@ -225,12 +229,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String homeCardTasksDurationMinutes(int count) {
-    return '${count}m';
+    return '${count}min';
   }
 
   @override
   String homeCardTasksDurationHours(int hours, int minutes) {
-    return '${hours}h ${minutes}m';
+    return '${hours}h ${minutes}min';
   }
 
   @override
@@ -278,26 +282,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String homeHiddenConversationsCount(int count) {
-    return 'Hidden conversations ($count)';
+    return 'Conversaciones ocultas ($count)';
   }
 
   @override
-  String get homeHiddenConversationsTitle => 'Hidden conversations';
+  String get homeHiddenConversationsTitle => 'Conversaciones ocultas';
 
   @override
-  String get homeUnhide => 'Unhide';
+  String get homeUnhide => 'Mostrar';
 
   @override
-  String get homeNoServerMessage => 'Select a server to get started.';
+  String get homeNoServerMessage =>
+      'Selecciona un espacio de trabajo para comenzar.';
 
   @override
-  String get homeSelectWorkspace => 'Select workspace';
+  String get homeSelectWorkspace => 'Seleccionar espacio';
 
   @override
-  String get homeLoadFailedFallback => 'Unable to load conversations.';
+  String get homeLoadFailedFallback =>
+      'No se pudieron cargar las conversaciones.';
 
   @override
-  String get homeRetry => 'Retry';
+  String get homeRetry => 'Reintentar';
 
   @override
   String get channelsTabTitle => 'Canales';
@@ -321,38 +327,38 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsTooltip => 'Configuracion';
 
   @override
-  String get homeChannelCreated => 'Channel created.';
+  String get homeChannelCreated => 'Canal creado.';
 
   @override
-  String get homeChannelUpdated => 'Channel updated.';
+  String get homeChannelUpdated => 'Canal actualizado.';
 
   @override
-  String get homeDeleteChannelTitle => 'Delete channel';
+  String get homeDeleteChannelTitle => 'Eliminar canal';
 
   @override
   String homeDeleteChannelMessage(String name) {
-    return 'Delete $name? This cannot be undone.';
+    return '¿Eliminar $name? Esta acción no se puede deshacer.';
   }
 
   @override
-  String get homeDeleteChannelConfirm => 'Delete';
+  String get homeDeleteChannelConfirm => 'Eliminar';
 
   @override
-  String get homeChannelDeleted => 'Channel deleted.';
+  String get homeChannelDeleted => 'Canal eliminado.';
 
   @override
-  String get homeLeaveChannelTitle => 'Leave channel';
+  String get homeLeaveChannelTitle => 'Abandonar canal';
 
   @override
   String homeLeaveChannelMessage(String name) {
-    return 'Leave $name?';
+    return '¿Abandonar $name?';
   }
 
   @override
-  String get homeLeaveChannelConfirm => 'Leave';
+  String get homeLeaveChannelConfirm => 'Abandonar';
 
   @override
-  String get homeChannelLeft => 'Left channel.';
+  String get homeChannelLeft => 'Has abandonado el canal.';
 
   @override
   String get baseUrlSettingsTitle => 'Configuracion del servidor';
@@ -3377,4 +3383,25 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get notificationNewMessageFallback => 'Mensaje nuevo';
+
+  @override
+  String typingIndicatorOne(String name) {
+    return '$name está escribiendo...';
+  }
+
+  @override
+  String typingIndicatorTwo(String first, String second) {
+    return '$first y $second están escribiendo...';
+  }
+
+  @override
+  String get typingIndicatorSeveral => 'Varias personas están escribiendo...';
+
+  @override
+  String typingIndicatorThreeOrMore(String allButLast, String last) {
+    return '$allButLast y $last están escribiendo...';
+  }
+
+  @override
+  String get connectionReconnecting => 'Reconectando...';
 }

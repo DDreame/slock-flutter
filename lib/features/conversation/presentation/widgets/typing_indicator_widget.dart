@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/application/typing_indicator_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Displays a typing indicator with animated dots and descriptive text.
 ///
@@ -22,13 +23,23 @@ class TypingIndicatorWidget extends ConsumerWidget {
       debugBuildCount++;
       return true;
     }());
-    final displayText = ref.watch(
-      typingIndicatorStoreProvider.select((s) => s.displayText),
+    final activeTypers = ref.watch(
+      typingIndicatorStoreProvider.select((s) => s.activeTypers),
     );
 
-    if (displayText == null) {
+    if (activeTypers.isEmpty) {
       return const SizedBox.shrink();
     }
+
+    final l10n = context.l10n;
+    final displayText = switch (activeTypers.length) {
+      1 => l10n.typingIndicatorOne(activeTypers[0].displayName),
+      2 => l10n.typingIndicatorTwo(
+          activeTypers[0].displayName,
+          activeTypers[1].displayName,
+        ),
+      _ => l10n.typingIndicatorSeveral,
+    };
 
     return Padding(
       key: const ValueKey('typing-indicator'),

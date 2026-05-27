@@ -137,8 +137,8 @@ void main() {
         reason: 'After addTyper, the indicator should be active',
       );
       expect(
-        stateAfterAdd.displayText,
-        'Alice is typing...',
+        stateAfterAdd.typerNames,
+        ['Alice'],
         reason: 'Display text should show the typer name',
       );
 
@@ -153,9 +153,9 @@ void main() {
         reason: 'After 5-second timeout, typing indicator must clear',
       );
       expect(
-        stateAfterExpiry.displayText,
-        isNull,
-        reason: 'Display text must be null after timeout clears the typer',
+        stateAfterExpiry.typerNames,
+        isEmpty,
+        reason: 'Typer names must be empty after timeout clears the typer',
       );
     },
   );
@@ -179,9 +179,9 @@ void main() {
       final state =
           container.read(listTypingIndicatorStoreProvider(channelScopeKey));
       expect(
-        state.displayText,
-        'Alice and Bob are typing...',
-        reason: 'Two typers must show "X and Y are typing..."',
+        state.typerNames,
+        ['Alice', 'Bob'],
+        reason: 'Two typers must show both names',
       );
     },
   );

@@ -6292,6 +6292,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New message'**
   String get notificationNewMessageFallback;
+
+  /// No description provided for @typingIndicatorOne.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is typing...'**
+  String typingIndicatorOne(String name);
+
+  /// No description provided for @typingIndicatorTwo.
+  ///
+  /// In en, this message translates to:
+  /// **'{first} and {second} are typing...'**
+  String typingIndicatorTwo(String first, String second);
+
+  /// No description provided for @typingIndicatorSeveral.
+  ///
+  /// In en, this message translates to:
+  /// **'Several people are typing...'**
+  String get typingIndicatorSeveral;
+
+  /// No description provided for @typingIndicatorThreeOrMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{allButLast}, and {last} are typing...'**
+  String typingIndicatorThreeOrMore(String allButLast, String last);
+
+  /// No description provided for @connectionReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Reconnecting...'**
+  String get connectionReconnecting;
 }
 
 class _AppLocalizationsDelegate

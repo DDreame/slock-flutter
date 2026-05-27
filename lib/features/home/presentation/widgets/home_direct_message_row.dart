@@ -210,8 +210,19 @@ class HomeDirectMessageRow extends StatelessWidget {
                         final colors =
                             Theme.of(context).extension<AppColors>()!;
                         if (typingState.isActive) {
+                          final l10n = AppLocalizations.of(context)!;
+                          final names = typingState.typerNames;
+                          final text = switch (names.length) {
+                            1 => l10n.typingIndicatorOne(names[0]),
+                            2 => l10n.typingIndicatorTwo(names[0], names[1]),
+                            3 => l10n.typingIndicatorThreeOrMore(
+                                names.sublist(0, 2).join(', '),
+                                names[2],
+                              ),
+                            _ => l10n.typingIndicatorSeveral,
+                          };
                           return Text(
-                            typingState.displayText!,
+                            text,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.bodySmall.copyWith(

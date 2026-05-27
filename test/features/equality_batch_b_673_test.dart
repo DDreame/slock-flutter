@@ -441,13 +441,11 @@ void main() {
               as _ControllableListTypingStore;
 
       // Set initial state.
-      store.setStateDirect(
-          ListTypingIndicatorState(displayText: 'Alice is typing...'));
+      store.setStateDirect(ListTypingIndicatorState(typerNames: ['Alice']));
       expect(notifyCount, 1);
 
-      // Set identical state (same displayText, new object).
-      store.setStateDirect(
-          ListTypingIndicatorState(displayText: 'Alice is typing...'));
+      // Set identical state (same typerNames, new object).
+      store.setStateDirect(ListTypingIndicatorState(typerNames: ['Alice']));
 
       expect(notifyCount, 1,
           reason: 'identical ListTypingIndicatorState must not notify');
@@ -474,13 +472,12 @@ void main() {
           container.read(listTypingIndicatorStoreProvider('scope-1').notifier)
               as _ControllableListTypingStore;
 
-      store.setStateDirect(
-          ListTypingIndicatorState(displayText: 'Alice is typing...'));
+      store.setStateDirect(ListTypingIndicatorState(typerNames: ['Alice']));
       expect(notifyCount, 1);
 
-      // Change displayText.
+      // Change typerNames.
       store.setStateDirect(
-          ListTypingIndicatorState(displayText: 'Alice and Bob are typing...'));
+          ListTypingIndicatorState(typerNames: ['Alice', 'Bob']));
       expect(notifyCount, 2,
           reason: 'changed ListTypingIndicatorState must notify');
     });
@@ -507,18 +504,17 @@ void main() {
 
       // Start with null (nobody typing) — initial state already null so
       // set to non-null first.
-      store.setStateDirect(
-          ListTypingIndicatorState(displayText: 'Alice is typing...'));
+      store.setStateDirect(ListTypingIndicatorState(typerNames: ['Alice']));
       expect(notifyCount, 1);
 
-      // Back to null.
-      store.setStateDirect(ListTypingIndicatorState(displayText: null));
+      // Back to empty.
+      store.setStateDirect(ListTypingIndicatorState(typerNames: []));
       expect(notifyCount, 2, reason: 'text → null must notify');
     });
 
     test('INV-EQ-673-LIST-TYPING: hashCode is consistent with ==', () {
-      final a = ListTypingIndicatorState(displayText: 'Alice is typing...');
-      final b = ListTypingIndicatorState(displayText: 'Alice is typing...');
+      final a = ListTypingIndicatorState(typerNames: ['Alice']);
+      final b = ListTypingIndicatorState(typerNames: ['Alice']);
 
       expect(a == b, isTrue);
       expect(a.hashCode, b.hashCode);

@@ -3346,4 +3346,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationNewMessageFallback => 'New message';
+
+  @override
+  String typingIndicatorOne(String name) {
+    return '$name is typing...';
+  }
+
+  @override
+  String typingIndicatorTwo(String first, String second) {
+    return '$first and $second are typing...';
+  }
+
+  @override
+  String get typingIndicatorSeveral => 'Several people are typing...';
+
+  @override
+  String typingIndicatorThreeOrMore(String allButLast, String last) {
+    return '$allButLast, and $last are typing...';
+  }
+
+  @override
+  String get connectionReconnecting => 'Reconnecting...';
 }

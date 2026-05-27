@@ -8,8 +8,8 @@
 //
 // Fix 2 Invariant: INV-SELECT-671-TYPING
 //   TypingIndicatorWidget watches typingIndicatorStoreProvider via
-//   .select((s) => s.displayText) so that mutations to the store that
-//   don't change displayText (e.g. timer refresh of same typer) don't
+//   .select((s) => s.activeTypers) so that mutations to the store that
+//   don't change activeTypers (e.g. timer refresh of same typer) don't
 //   cause a rebuild.
 //
 // Both groups render REAL production widgets and use
@@ -320,13 +320,15 @@ void main() {
             container: container,
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const Scaffold(
                 body: TypingIndicatorWidget(),
               ),
             ),
           ),
         );
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Sanity check: counter incremented during initial builds.
         expect(TypingIndicatorWidget.debugBuildCount, greaterThan(0),
@@ -348,15 +350,15 @@ void main() {
             reason: 'Adding Alice must have triggered at least one rebuild');
 
         // Refresh Alice (same userId, same displayName).
-        // This mutates the store state (new list object) but displayText
-        // remains "Alice is typing..." — .select() should suppress rebuild.
+        // This mutates the store state (new list object) but activeTypers
+        // remains identical — .select() should suppress rebuild.
         store.addTyper(userId: 'u1', displayName: 'Alice');
         await tester.pump();
 
         expect(
           TypingIndicatorWidget.debugBuildCount,
           countAfterAlice,
-          reason: 'Refreshing the same typer does not change displayText — '
+          reason: 'Refreshing the same typer does not change activeTypers — '
               'widget must not rebuild when using .select()',
         );
 
@@ -381,13 +383,15 @@ void main() {
             container: container,
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const Scaffold(
                 body: TypingIndicatorWidget(),
               ),
             ),
           ),
         );
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Add Alice.
         store = container.read(typingIndicatorStoreProvider.notifier);
@@ -398,15 +402,14 @@ void main() {
         // Record count.
         final countAfterAlice = TypingIndicatorWidget.debugBuildCount;
 
-        // Add Bob — displayText changes from "Alice is typing..." to
-        // "Alice and Bob are typing..."
+        // Add Bob — activeTypers changes from [Alice] to [Alice, Bob]
         store.addTyper(userId: 'u2', displayName: 'Bob');
         await tester.pump();
 
         expect(
           TypingIndicatorWidget.debugBuildCount,
           countAfterAlice + 1,
-          reason: 'Adding a second typer changes displayText — widget must '
+          reason: 'Adding a second typer changes activeTypers — widget must '
               'rebuild',
         );
         expect(find.text('Alice and Bob are typing...'), findsOneWidget);
@@ -429,13 +432,15 @@ void main() {
             container: container,
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const Scaffold(
                 body: TypingIndicatorWidget(),
               ),
             ),
           ),
         );
-        await tester.pump();
+        await tester.pumpAndSettle();
 
         // Add Alice.
         store = container.read(typingIndicatorStoreProvider.notifier);
@@ -446,14 +451,14 @@ void main() {
         // Record count.
         final countAfterAlice = TypingIndicatorWidget.debugBuildCount;
 
-        // Remove Alice — displayText changes from "Alice is typing..." to null.
+        // Remove Alice — activeTypers changes from [Alice] to [].
         store.removeTyper('u1');
         await tester.pump();
 
         expect(
           TypingIndicatorWidget.debugBuildCount,
           countAfterAlice + 1,
-          reason: 'Removing the last typer changes displayText to null — '
+          reason: 'Removing the last typer changes activeTypers to empty — '
               'widget must rebuild',
         );
         expect(find.byKey(const ValueKey('typing-indicator')), findsNothing);

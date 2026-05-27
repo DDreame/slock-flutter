@@ -1139,5 +1139,15 @@
   "billingResourceMachines": "机器",
   "billingResourceChannels": "频道",
 
-  "notificationNewMessageFallback": "新消息"
+  "notificationNewMessageFallback": "新消息",
+
+  "typingIndicatorOne": "{name} 正在输入...",
+  "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },
+  "typingIndicatorTwo": "{first} 和 {second} 正在输入...",
+  "@typingIndicatorTwo": { "placeholders": { "first": { "type": "String" }, "second": { "type": "String" } } },
+  "typingIndicatorSeveral": "多人正在输入...",
+  "typingIndicatorThreeOrMore": "{allButLast} 和 {last} 正在输入...",
+  "@typingIndicatorThreeOrMore": { "placeholders": { "allButLast": { "type": "String" }, "last": { "type": "String" } } },
+
+  "connectionReconnecting": "重新连接中..."
 }

@@ -3248,4 +3248,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationNewMessageFallback => '新消息';
+
+  @override
+  String typingIndicatorOne(String name) {
+    return '$name 正在输入...';
+  }
+
+  @override
+  String typingIndicatorTwo(String first, String second) {
+    return '$first 和 $second 正在输入...';
+  }
+
+  @override
+  String get typingIndicatorSeveral => '多人正在输入...';
+
+  @override
+  String typingIndicatorThreeOrMore(String allButLast, String last) {
+    return '$allButLast 和 $last 正在输入...';
+  }
+
+  @override
+  String get connectionReconnecting => '重新连接中...';
 }
