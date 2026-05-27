@@ -24,6 +24,12 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   /// Prevents post-await state mutations after the store is disposed.
   bool _disposed = false;
 
+  /// INV-838-GUARD-3: Prevents double-tap re-entrancy on per-task operations.
+  final _busyTaskIds = <String>{};
+
+  /// INV-838-GUARD-4: Request epoch for load deduplication.
+  int _loadEpoch = 0;
+
   @override
   TasksState build() {
     _disposed = false;
@@ -46,6 +52,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     final serverId = ref.read(currentTasksServerIdProvider);
     final hasStaleData = state.status == TasksStatus.success;
 
+    // INV-838-GUARD-4: Capture epoch — if a newer load() starts while we await,
+    // this response is stale and must be discarded.
+    final epoch = ++_loadEpoch;
+
     if (hasStaleData) {
       // SWR: keep status=success, signal refresh via isRefreshing.
       state = state.copyWith(
@@ -63,6 +73,9 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       final repo = ref.read(tasksRepositoryProvider);
       final tasks = await repo.listServerTasks(serverId);
       if (_disposed) return;
+      if (epoch != _loadEpoch) {
+        return; // INV-838-GUARD-4: superseded by newer load.
+      }
       state = state.copyWith(
         status: TasksStatus.success,
         items: tasks,
@@ -71,6 +84,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       );
     } on AppFailure catch (failure) {
       if (_disposed) return;
+      if (epoch != _loadEpoch) return; // INV-838-GUARD-4
       if (hasStaleData) {
         // SWR: preserve success status, surface error as overlay.
         state = state.copyWith(
@@ -85,6 +99,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       }
     } catch (e, st) {
       if (_disposed) return;
+      if (epoch != _loadEpoch) return; // INV-838-GUARD-4
       _reportUnexpectedError('load', e, st);
       if (hasStaleData) {
         state = state.copyWith(
@@ -136,9 +151,25 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     required String taskId,
     required String status,
   }) async {
+    // INV-838-GUARD-3: Double-tap protection.
+    if (!_busyTaskIds.add(taskId)) return;
+    try {
+      await _updateTaskStatusInner(taskId: taskId, status: status);
+    } finally {
+      _busyTaskIds.remove(taskId);
+    }
+  }
+
+  Future<void> _updateTaskStatusInner({
+    required String taskId,
+    required String status,
+  }) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    // INV-ROLLBACK-817: Snapshot only the target item, not full list.
-    final previousItem = state.items.firstWhere((t) => t.id == taskId);
+    // INV-838-GUARD-1: Null-safe lookup — task may have been deleted by WS.
+    final matchingItems = state.items.where((t) => t.id == taskId).toList();
+    if (matchingItems.isEmpty) return;
+    final previousItem = matchingItems.first;
+
     state = state.copyWith(
       items: state.items
           .map((t) => t.id == taskId ? t.copyWith(status: status) : t)
@@ -179,9 +210,20 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   }
 
   Future<void> deleteTask(String taskId) async {
+    // INV-838-GUARD-3: Double-tap protection.
+    if (!_busyTaskIds.add(taskId)) return;
+    try {
+      await _deleteTaskInner(taskId);
+    } finally {
+      _busyTaskIds.remove(taskId);
+    }
+  }
+
+  Future<void> _deleteTaskInner(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    // INV-ROLLBACK-817: Snapshot the deleted item and its original index.
+    // INV-838-GUARD-2: Bounds check — task may have been deleted by WS.
     final deletedIndex = state.items.indexWhere((t) => t.id == taskId);
+    if (deletedIndex == -1) return;
     final deletedItem = state.items[deletedIndex];
     state = state.copyWith(
       items: state.items.where((t) => t.id != taskId).toList(),
@@ -219,9 +261,21 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   }
 
   Future<void> claimTask(String taskId) async {
+    // INV-838-GUARD-3: Double-tap protection.
+    if (!_busyTaskIds.add(taskId)) return;
+    try {
+      await _claimTaskInner(taskId);
+    } finally {
+      _busyTaskIds.remove(taskId);
+    }
+  }
+
+  Future<void> _claimTaskInner(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    // INV-ROLLBACK-817: Snapshot only the target item for rollback.
-    final previousItem = state.items.firstWhere((t) => t.id == taskId);
+    // INV-838-GUARD-1: Null-safe lookup — task may have been deleted by WS.
+    final matchingItems = state.items.where((t) => t.id == taskId).toList();
+    if (matchingItems.isEmpty) return;
+    final previousItem = matchingItems.first;
 
     // Optimistic: immediately show current user as assignee.
     final session = ref.read(sessionStoreProvider);
@@ -267,9 +321,21 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   }
 
   Future<void> unclaimTask(String taskId) async {
+    // INV-838-GUARD-3: Double-tap protection.
+    if (!_busyTaskIds.add(taskId)) return;
+    try {
+      await _unclaimTaskInner(taskId);
+    } finally {
+      _busyTaskIds.remove(taskId);
+    }
+  }
+
+  Future<void> _unclaimTaskInner(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    // INV-ROLLBACK-817: Snapshot only the target item for rollback.
-    final previousItem = state.items.firstWhere((t) => t.id == taskId);
+    // INV-838-GUARD-1: Null-safe lookup — task may have been deleted by WS.
+    final matchingItems = state.items.where((t) => t.id == taskId).toList();
+    if (matchingItems.isEmpty) return;
+    final previousItem = matchingItems.first;
 
     // Optimistic: immediately clear assignee.
     state = state.copyWith(
