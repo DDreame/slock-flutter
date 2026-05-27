@@ -322,7 +322,6 @@ void main() {
     serverId: 'server-1',
     parentChannelId: 'channel-1',
     parentMessageId: 'msg-1',
-    threadChannelId: 'tc-1',
   );
 
   // ===========================================================================
@@ -544,40 +543,30 @@ void main() {
 
     test('reconnecting → connected while success triggers load', () async {
       // ThreadRepliesStore auto-loads via microtask in build().
+      // With threadChannelId == null, load() calls resolveThread.
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
-      // After the auto-load, the store should resolve the thread and reach
-      // success status (since we provided a threadChannelId in the route
-      // target, it skips resolveThread and goes straight to success).
-      final storeState = container.read(threadRepliesStoreProvider);
-      expect(
-        storeState.status,
-        anyOf(
-          equals(ThreadRepliesStatus.success),
-          equals(ThreadRepliesStatus.loading),
-        ),
-      );
+      await Future<void>.delayed(Duration.zero);
 
-      // If still loading, wait for it to finish.
-      if (storeState.status != ThreadRepliesStatus.success) {
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
-      }
+      expect(
+        container.read(threadRepliesStoreProvider).status,
+        ThreadRepliesStatus.success,
+      );
+      // Initial load should have called resolveThread exactly once.
+      final callsBefore = fakeRepo.resolveCalls;
+      expect(callsBefore, 1, reason: 'initial load calls resolveThread');
 
       realtimeService.transitionTo(RealtimeConnectionStatus.reconnecting);
       realtimeService.transitionTo(RealtimeConnectionStatus.connected);
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
-      // ThreadRepliesStore.load() only calls resolveThread when
-      // threadChannelId is null. Since we provided it, load() doesn't call
-      // resolveThread — but it still transitions through loading → success.
-      // We verify by checking that the store went through a re-load cycle.
-      // The simplest signal: store status is still success (not broken).
       expect(
-        container.read(threadRepliesStoreProvider).status,
-        ThreadRepliesStatus.success,
-        reason: 'INV-834: thread replies store must survive reconnect re-load',
+        fakeRepo.resolveCalls,
+        callsBefore + 1,
+        reason:
+            'INV-834: thread replies must re-fetch (resolveThread) on reconnect',
       );
     });
   });
