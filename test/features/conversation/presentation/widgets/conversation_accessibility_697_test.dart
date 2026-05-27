@@ -22,6 +22,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_reactions.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Helper to create a MaterialApp with the AppColors theme extension.
 Widget _wrapWithTheme(Widget child) {
@@ -29,6 +30,8 @@ Widget _wrapWithTheme(Widget child) {
     theme: ThemeData.light().copyWith(
       extensions: const [AppColors.light],
     ),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
   );
 }
