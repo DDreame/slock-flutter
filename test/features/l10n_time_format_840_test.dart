@@ -25,7 +25,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:slock_app/app/widgets/relative_time_text.dart';
-import 'package:slock_app/core/utils/time_format.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/billing/data/billing_repository.dart';
+import 'package:slock_app/features/billing/data/billing_repository_provider.dart';
+import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -235,21 +239,62 @@ void main() {
   // Reverting _localizeResourceLabel in billing_page.dart → RED.
   // ---------------------------------------------------------------------------
   group('INV-840-BILLING: billing resource labels and plan names', () {
-    test('ZH locale has distinct billing resource labels', () {
-      final en = lookupAppLocalizations(const Locale('en'));
+    testWidgets(
+        'BillingPage renders Chinese resource labels under ZH locale '
+        '(load-bearing)', (tester) async {
       final zh = lookupAppLocalizations(const Locale('zh'));
 
-      expect(zh.billingResourceAgents, isNot(en.billingResourceAgents));
-      expect(zh.billingResourceMachines, isNot(en.billingResourceMachines));
-      expect(zh.billingResourceChannels, isNot(en.billingResourceChannels));
-    });
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            billingRepositoryProvider.overrideWithValue(
+              const _FakeBillingRepository(
+                summary: BillingSummary(
+                  planName: 'Pro',
+                  status: 'active',
+                  manageUrl: 'https://billing.example.com/manage',
+                ),
+                usage: BillingUsageSummary(
+                  planCode: 'pro',
+                  planName: 'Pro',
+                  messageHistoryDays: -1,
+                  resources: [
+                    BillingUsageResource(label: 'Agents', used: 2, limit: 5),
+                    BillingUsageResource(label: 'Machines', used: 1, limit: 3),
+                    BillingUsageResource(label: 'Channels', used: 4, limit: 20),
+                  ],
+                ),
+              ),
+            ),
+            activeServerScopeIdProvider
+                .overrideWithValue(const ServerScopeId('server-1')),
+          ],
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale('zh'),
+            home: BillingPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    test('EN locale billing resource labels are correct', () {
-      final en = lookupAppLocalizations(const Locale('en'));
+      // Must show Chinese resource labels, not English.
+      expect(find.text(zh.billingResourceAgents), findsOneWidget,
+          reason: 'BillingPage must show Chinese "Agents" label');
+      expect(find.text(zh.billingResourceMachines), findsOneWidget,
+          reason: 'BillingPage must show Chinese "Machines" label');
+      expect(find.text(zh.billingResourceChannels), findsOneWidget,
+          reason: 'BillingPage must show Chinese "Channels" label');
 
-      expect(en.billingResourceAgents, 'Agents');
-      expect(en.billingResourceMachines, 'Machines');
-      expect(en.billingResourceChannels, 'Channels');
+      // Must NOT show English labels.
+      expect(find.text('Agents'), findsNothing,
+          reason:
+              'English "Agents" must NOT appear under ZH locale (load-bearing)');
+      expect(find.text('Machines'), findsNothing,
+          reason: 'English "Machines" must NOT appear under ZH locale');
+      expect(find.text('Channels'), findsNothing,
+          reason: 'English "Channels" must NOT appear under ZH locale');
     });
 
     test('ZH locale has distinct notification fallback', () {
@@ -308,5 +353,24 @@ class _TestRelativeTimeHostState extends State<_TestRelativeTimeHost> {
       time: _time,
       style: const TextStyle(),
     );
+  }
+}
+
+/// Minimal fake [BillingRepository] for widget tests.
+/// Returns canned [summary] and [usage] without network calls.
+class _FakeBillingRepository implements BillingRepository {
+  const _FakeBillingRepository({this.summary, this.usage});
+
+  final BillingSummary? summary;
+  final BillingUsageSummary? usage;
+
+  @override
+  Future<BillingSummary> loadSubscription() async {
+    return summary ?? const BillingSummary();
+  }
+
+  @override
+  Future<BillingUsageSummary> loadServerUsage(ServerScopeId serverId) async {
+    return usage ?? const BillingUsageSummary();
   }
 }
