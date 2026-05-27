@@ -129,7 +129,10 @@ void main() {
           responses: [
             // First: upload fails
             _UploadResponse.failure(
-              AvatarUploadException('Network error'),
+              AvatarUploadException(
+                'Network error',
+                code: AvatarUploadErrorCode.uploadFailed,
+              ),
             ),
             // Second (retry): upload succeeds
             _UploadResponse.success('https://cdn.example.com/new-avatar.png'),

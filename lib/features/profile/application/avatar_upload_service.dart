@@ -39,12 +39,21 @@ abstract class AvatarUploadService {
 
 /// Exception thrown when avatar upload fails.
 class AvatarUploadException implements Exception {
-  AvatarUploadException(this.message, {this.failure});
+  AvatarUploadException(this.message, {this.failure, required this.code});
   final String message;
   final AppFailure? failure;
+  final AvatarUploadErrorCode code;
 
   @override
   String toString() => 'AvatarUploadException: $message';
+}
+
+/// Error codes for [AvatarUploadException], enabling localized messages
+/// at the presentation layer without a [BuildContext] dependency in the service.
+enum AvatarUploadErrorCode {
+  invalidResponse,
+  uploadFailed,
+  uploadFailedRetry,
 }
 
 // ---------------------------------------------------------------------------
@@ -121,16 +130,23 @@ class _ApiAvatarUploadService implements AvatarUploadService {
         }
       }
 
-      throw AvatarUploadException('Invalid response from server.');
+      throw AvatarUploadException(
+        'Invalid response from server.',
+        code: AvatarUploadErrorCode.invalidResponse,
+      );
     } on AvatarUploadException {
       rethrow;
     } on AppFailure catch (failure) {
       throw AvatarUploadException(
         'Upload failed.',
         failure: failure,
+        code: AvatarUploadErrorCode.uploadFailed,
       );
     } catch (error) {
-      throw AvatarUploadException('Upload failed. Please try again.');
+      throw AvatarUploadException(
+        'Upload failed. Please try again.',
+        code: AvatarUploadErrorCode.uploadFailedRetry,
+      );
     }
   }
 }

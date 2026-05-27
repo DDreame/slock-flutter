@@ -148,7 +148,10 @@ void main() {
 
       // Upload fails after disposal — catch block should bail out.
       uploadCompleter.completeError(
-        AvatarUploadException('Upload failed'),
+        AvatarUploadException(
+          'Upload failed',
+          code: AvatarUploadErrorCode.uploadFailed,
+        ),
       );
       await saveFuture;
     });

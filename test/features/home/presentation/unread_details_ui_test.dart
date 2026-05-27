@@ -284,7 +284,7 @@ void main() {
         reason: 'Thread items should be excluded from Home card',
       );
       expect(
-        find.text('THREAD'),
+        find.text('话题'),
         findsNothing,
         reason: 'No THREAD pill on Home card under hidden-thread contract',
       );
@@ -307,9 +307,9 @@ void main() {
       );
 
       expect(
-        find.text('CHANNEL'),
+        find.text('频道'),
         findsOneWidget,
-        reason: 'Channel type pill should say CHANNEL',
+        reason: 'Channel type pill should say 频道 (ZH locale)',
       );
     });
 
@@ -329,9 +329,9 @@ void main() {
       );
 
       expect(
-        find.text('DM'),
+        find.text('私信'),
         findsOneWidget,
-        reason: 'DM type pill should say DM',
+        reason: 'DM type pill should say 私信 (ZH locale)',
       );
     });
 

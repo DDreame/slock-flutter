@@ -3485,4 +3485,139 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get attachmentImageFallbackSemantics => 'Imagen adjunta';
+
+  @override
+  String get navInbox => 'Bandeja';
+
+  @override
+  String get homeAppBarFallbackTitle => 'Slock';
+
+  @override
+  String get homeTypePillThread => 'HILO';
+
+  @override
+  String get homeTypePillChannel => 'CANAL';
+
+  @override
+  String get homeTypePillDm => 'MD';
+
+  @override
+  String get unreadOtherSources => 'Otras fuentes no leídas';
+
+  @override
+  String routerPageNotFound(String uri) {
+    return 'Página no encontrada: $uri';
+  }
+
+  @override
+  String get shareSendFailed => 'Error al enviar. Inténtalo de nuevo.';
+
+  @override
+  String get filePreviewFallbackTitle => 'Vista previa';
+
+  @override
+  String get filePreviewFallbackBody => 'Vista previa no disponible';
+
+  @override
+  String get filePreviewFallbackBack => 'Volver';
+
+  @override
+  String get errorRetry => 'Reintentar';
+
+  @override
+  String get errorShareDiagnostics => 'Compartir diagnósticos';
+
+  @override
+  String get fatalTitle => 'No se puede iniciar';
+
+  @override
+  String get fatalBodyMissingConfig =>
+      'La aplicación carece de la configuración necesaria y no puede iniciarse. Esto suele significar que se compiló sin las variables de entorno requeridas.';
+
+  @override
+  String get fatalBodyGeneric =>
+      'Algo salió mal durante el inicio. Por favor, reinicia la aplicación.';
+
+  @override
+  String get fatalHintDeveloper =>
+      'Si eres desarrollador, asegúrate de que todos los valores --dart-define requeridos se proporcionan al compilar.';
+
+  @override
+  String get fatalHintGeneric =>
+      'Si el problema persiste, reinstala la aplicación o contacta con soporte.';
+
+  @override
+  String get fatalCopyDiagnostics => 'Copiar diagnósticos';
+
+  @override
+  String get fatalDiagnosticsCopied => 'Diagnósticos copiados al portapapeles';
+
+  @override
+  String get diagExportTitle => 'Exportar diagnósticos';
+
+  @override
+  String get diagExportSubtitle =>
+      'Comparte los registros de diagnóstico con el equipo de desarrollo.';
+
+  @override
+  String get diagCopyToClipboard => 'Copiar al portapapeles';
+
+  @override
+  String get diagShare => 'Compartir';
+
+  @override
+  String get diagSaveToFile => 'Guardar en archivo';
+
+  @override
+  String get diagCopied => 'Copiado al portapapeles';
+
+  @override
+  String get diagCopyFailed => 'Error al copiar';
+
+  @override
+  String get diagShared => 'Compartido correctamente';
+
+  @override
+  String get diagShareFailed => 'Error al compartir';
+
+  @override
+  String diagSaved(String path) {
+    return 'Guardado en $path';
+  }
+
+  @override
+  String get diagSaveFailed => 'Error al guardar';
+
+  @override
+  String get filePreviewNoUrl => 'No hay URL de descarga disponible.';
+
+  @override
+  String get filePreviewLoadFailed => 'Error al cargar el archivo adjunto.';
+
+  @override
+  String get filePreviewPdfDownloadFailed => 'Error al descargar el PDF.';
+
+  @override
+  String get filePreviewDownloadingPdf => 'Descargando PDF…';
+
+  @override
+  String get filePreviewLoading => 'Cargando…';
+
+  @override
+  String get filePreviewPdfUnavailable => 'Archivo PDF no disponible.';
+
+  @override
+  String get filePreviewPdfRenderFailed => 'Error al renderizar el PDF.';
+
+  @override
+  String get filePreviewImageLoadFailed => 'No se puede cargar la imagen.';
+
+  @override
+  String get avatarUploadInvalidResponse => 'Respuesta inválida del servidor.';
+
+  @override
+  String get avatarUploadFailed => 'Error de subida.';
+
+  @override
+  String get avatarUploadFailedRetry => 'Error de subida. Inténtalo de nuevo.';
 }

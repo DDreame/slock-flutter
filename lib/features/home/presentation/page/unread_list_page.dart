@@ -174,7 +174,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
                   AppSpacing.sm,
                 ),
                 child: Text(
-                  'Other unread sources',
+                  context.l10n.unreadOtherSources,
                   style: AppTypography.label.copyWith(
                     color: colors.textSecondary,
                     fontWeight: FontWeight.w600,

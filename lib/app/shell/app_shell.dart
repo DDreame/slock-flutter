@@ -142,7 +142,7 @@ class AppShell extends ConsumerWidget {
                     label: Text(homeBadgeLabel),
                     child: const Icon(Icons.inbox),
                   ),
-                  label: 'Inbox',
+                  label: l10n.navInbox,
                 ),
               ],
             )

@@ -6460,6 +6460,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image attachment'**
   String get attachmentImageFallbackSemantics;
+
+  /// No description provided for @navInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get navInbox;
+
+  /// No description provided for @homeAppBarFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Slock'**
+  String get homeAppBarFallbackTitle;
+
+  /// No description provided for @homeTypePillThread.
+  ///
+  /// In en, this message translates to:
+  /// **'THREAD'**
+  String get homeTypePillThread;
+
+  /// No description provided for @homeTypePillChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANNEL'**
+  String get homeTypePillChannel;
+
+  /// No description provided for @homeTypePillDm.
+  ///
+  /// In en, this message translates to:
+  /// **'DM'**
+  String get homeTypePillDm;
+
+  /// No description provided for @unreadOtherSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Other unread sources'**
+  String get unreadOtherSources;
+
+  /// No description provided for @routerPageNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Page not found: {uri}'**
+  String routerPageNotFound(String uri);
+
+  /// No description provided for @shareSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send. Please try again.'**
+  String get shareSendFailed;
+
+  /// No description provided for @filePreviewFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'File Preview'**
+  String get filePreviewFallbackTitle;
+
+  /// No description provided for @filePreviewFallbackBody.
+  ///
+  /// In en, this message translates to:
+  /// **'File preview unavailable'**
+  String get filePreviewFallbackBody;
+
+  /// No description provided for @filePreviewFallbackBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back'**
+  String get filePreviewFallbackBack;
+
+  /// No description provided for @errorRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get errorRetry;
+
+  /// No description provided for @errorShareDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Share diagnostics'**
+  String get errorShareDiagnostics;
+
+  /// No description provided for @fatalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to Start'**
+  String get fatalTitle;
+
+  /// No description provided for @fatalBodyMissingConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'The app is missing required configuration and cannot start. This usually means it was built without the necessary environment settings.'**
+  String get fatalBodyMissingConfig;
+
+  /// No description provided for @fatalBodyGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong during startup. Please try restarting the app.'**
+  String get fatalBodyGeneric;
+
+  /// No description provided for @fatalHintDeveloper.
+  ///
+  /// In en, this message translates to:
+  /// **'If you are a developer, ensure all required --dart-define values are provided at build time.'**
+  String get fatalHintDeveloper;
+
+  /// No description provided for @fatalHintGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'If the problem persists, reinstall the app or contact support.'**
+  String get fatalHintGeneric;
+
+  /// No description provided for @fatalCopyDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy diagnostics'**
+  String get fatalCopyDiagnostics;
+
+  /// No description provided for @fatalDiagnosticsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics copied to clipboard'**
+  String get fatalDiagnosticsCopied;
+
+  /// No description provided for @diagExportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Diagnostics'**
+  String get diagExportTitle;
+
+  /// No description provided for @diagExportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share diagnostic logs with the development team.'**
+  String get diagExportSubtitle;
+
+  /// No description provided for @diagCopyToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to Clipboard'**
+  String get diagCopyToClipboard;
+
+  /// No description provided for @diagShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get diagShare;
+
+  /// No description provided for @diagSaveToFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to File'**
+  String get diagSaveToFile;
+
+  /// No description provided for @diagCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard'**
+  String get diagCopied;
+
+  /// No description provided for @diagCopyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy failed'**
+  String get diagCopyFailed;
+
+  /// No description provided for @diagShared.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared successfully'**
+  String get diagShared;
+
+  /// No description provided for @diagShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Share failed'**
+  String get diagShareFailed;
+
+  /// No description provided for @diagSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to {path}'**
+  String diagSaved(String path);
+
+  /// No description provided for @diagSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed'**
+  String get diagSaveFailed;
+
+  /// No description provided for @filePreviewNoUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'No download URL available.'**
+  String get filePreviewNoUrl;
+
+  /// No description provided for @filePreviewLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load attachment.'**
+  String get filePreviewLoadFailed;
+
+  /// No description provided for @filePreviewPdfDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to download PDF.'**
+  String get filePreviewPdfDownloadFailed;
+
+  /// No description provided for @filePreviewDownloadingPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading PDF…'**
+  String get filePreviewDownloadingPdf;
+
+  /// No description provided for @filePreviewLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading…'**
+  String get filePreviewLoading;
+
+  /// No description provided for @filePreviewPdfUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF file not available.'**
+  String get filePreviewPdfUnavailable;
+
+  /// No description provided for @filePreviewPdfRenderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to render PDF.'**
+  String get filePreviewPdfRenderFailed;
+
+  /// No description provided for @filePreviewImageLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load image.'**
+  String get filePreviewImageLoadFailed;
+
+  /// No description provided for @avatarUploadInvalidResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid response from server.'**
+  String get avatarUploadInvalidResponse;
+
+  /// No description provided for @avatarUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed.'**
+  String get avatarUploadFailed;
+
+  /// No description provided for @avatarUploadFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload failed. Please try again.'**
+  String get avatarUploadFailedRetry;
 }
 
 class _AppLocalizationsDelegate

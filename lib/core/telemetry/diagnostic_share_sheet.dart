@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_service.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // --- Component-level sizing constants ---
 
@@ -100,7 +101,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
       await shareService.copyToClipboard(text);
       if (!mounted) return;
       setState(() {
-        _statusMessage = 'Copied to clipboard';
+        _statusMessage = context.l10n.diagCopied;
         _isBusy = false;
       });
     } on Exception catch (e) {
@@ -110,7 +111,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
           );
       if (!mounted) return;
       setState(() {
-        _statusMessage = 'Copy failed';
+        _statusMessage = context.l10n.diagCopyFailed;
         _isBusy = false;
       });
     }
@@ -129,7 +130,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
       if (!mounted) return;
       setState(() {
         _statusMessage = result == DiagnosticShareResult.success
-            ? 'Shared successfully'
+            ? context.l10n.diagShared
             : null;
         _isBusy = false;
       });
@@ -140,7 +141,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
           );
       if (!mounted) return;
       setState(() {
-        _statusMessage = 'Share failed';
+        _statusMessage = context.l10n.diagShareFailed;
         _isBusy = false;
       });
     }
@@ -158,7 +159,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
       final path = await shareService.saveToFile(text);
       if (!mounted) return;
       setState(() {
-        _statusMessage = 'Saved to $path';
+        _statusMessage = context.l10n.diagSaved(path);
         _isBusy = false;
       });
     } on Exception catch (e) {
@@ -168,7 +169,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
           );
       if (!mounted) return;
       setState(() {
-        _statusMessage = 'Save failed';
+        _statusMessage = context.l10n.diagSaveFailed;
         _isBusy = false;
       });
     }
@@ -204,14 +205,14 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
 
             // --- Title ---
             Text(
-              'Export Diagnostics',
+              context.l10n.diagExportTitle,
               key: const ValueKey('share-sheet-title'),
               style: AppTypography.title.copyWith(color: colors.text),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Share diagnostic logs with the development team.',
+              context.l10n.diagExportSubtitle,
               key: const ValueKey('share-sheet-subtitle'),
               style: AppTypography.body.copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
@@ -222,7 +223,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
             _ActionTile(
               key: const ValueKey('share-sheet-copy'),
               icon: Icons.copy,
-              label: 'Copy to Clipboard',
+              label: context.l10n.diagCopyToClipboard,
               colors: colors,
               enabled: !_isBusy,
               onTap: _handleCopy,
@@ -231,7 +232,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
             _ActionTile(
               key: const ValueKey('share-sheet-share'),
               icon: Icons.share,
-              label: 'Share',
+              label: context.l10n.diagShare,
               colors: colors,
               enabled: !_isBusy,
               onTap: _handleShare,
@@ -240,7 +241,7 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
             _ActionTile(
               key: const ValueKey('share-sheet-save'),
               icon: Icons.save_alt,
-              label: 'Save to File',
+              label: context.l10n.diagSaveToFile,
               colors: colors,
               enabled: !_isBusy,
               onTap: _handleSave,

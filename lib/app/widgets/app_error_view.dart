@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Shared error state widget used across feature pages.
 ///
@@ -32,7 +33,8 @@ class AppErrorView extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             if (onRetry != null) ...[
               const SizedBox(height: 12),
-              FilledButton(onPressed: onRetry, child: const Text('Retry')),
+              FilledButton(
+                  onPressed: onRetry, child: Text(context.l10n.errorRetry)),
             ],
           ],
         ),

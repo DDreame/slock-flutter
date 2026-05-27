@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class FriendlyErrorState extends StatelessWidget {
   const FriendlyErrorState({
@@ -64,7 +65,7 @@ class FriendlyErrorState extends StatelessWidget {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => onRetry(),
-                child: const Text('Retry'),
+                child: Text(context.l10n.errorRetry),
               ),
               if (onShareDiagnostics != null) ...[
                 const SizedBox(height: 8),
@@ -75,7 +76,7 @@ class FriendlyErrorState extends StatelessWidget {
                     Icons.bug_report_outlined,
                     size: 18,
                   ),
-                  label: const Text('Share diagnostics'),
+                  label: Text(context.l10n.errorShareDiagnostics),
                 ),
               ],
             ],

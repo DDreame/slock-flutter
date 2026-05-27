@@ -20,6 +20,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -37,6 +38,8 @@ void main() {
               diagnosticsCollectorProvider.overrideWithValue(collector),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: CsvPreviewWidget(
                   attachment: const MessageAttachment(
@@ -75,6 +78,8 @@ void main() {
               diagnosticsCollectorProvider.overrideWithValue(collector),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: SvgPreviewWidget(
                   attachment: const MessageAttachment(
@@ -111,6 +116,8 @@ void main() {
               diagnosticsCollectorProvider.overrideWithValue(collector),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: TextPreviewWidget(
                   attachment: const MessageAttachment(
@@ -149,6 +156,8 @@ void main() {
               diagnosticsCollectorProvider.overrideWithValue(collector),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: CsvPreviewWidget(
                   attachment: const MessageAttachment(
@@ -192,6 +201,8 @@ void main() {
               diagnosticsCollectorProvider.overrideWithValue(collector),
             ],
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(
                 body: CsvPreviewWidget(
                   attachment: const MessageAttachment(
@@ -241,6 +252,8 @@ void main() {
             ],
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const Scaffold(body: DiagnosticShareSheet()),
             ),
           ),
@@ -276,6 +289,8 @@ void main() {
             ],
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const Scaffold(body: DiagnosticShareSheet()),
             ),
           ),
@@ -311,6 +326,8 @@ void main() {
             ],
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const Scaffold(body: DiagnosticShareSheet()),
             ),
           ),

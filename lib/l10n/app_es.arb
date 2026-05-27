@@ -1254,5 +1254,56 @@
   "filePreviewDismissSemantics": "Deslizar hacia abajo para cerrar",
   "messageLinkChipSemantics": "Abrir enlace: {url}",
   "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
-  "attachmentImageFallbackSemantics": "Imagen adjunta"
+  "attachmentImageFallbackSemantics": "Imagen adjunta",
+
+  "navInbox": "Bandeja",
+  "homeAppBarFallbackTitle": "Slock",
+  "homeTypePillThread": "HILO",
+  "homeTypePillChannel": "CANAL",
+  "homeTypePillDm": "MD",
+  "unreadOtherSources": "Otras fuentes no leídas",
+
+  "routerPageNotFound": "Página no encontrada: {uri}",
+  "@routerPageNotFound": { "placeholders": { "uri": { "type": "String" } } },
+  "shareSendFailed": "Error al enviar. Inténtalo de nuevo.",
+  "filePreviewFallbackTitle": "Vista previa",
+  "filePreviewFallbackBody": "Vista previa no disponible",
+  "filePreviewFallbackBack": "Volver",
+
+  "errorRetry": "Reintentar",
+  "errorShareDiagnostics": "Compartir diagnósticos",
+
+  "fatalTitle": "No se puede iniciar",
+  "fatalBodyMissingConfig": "La aplicación carece de la configuración necesaria y no puede iniciarse. Esto suele significar que se compiló sin las variables de entorno requeridas.",
+  "fatalBodyGeneric": "Algo salió mal durante el inicio. Por favor, reinicia la aplicación.",
+  "fatalHintDeveloper": "Si eres desarrollador, asegúrate de que todos los valores --dart-define requeridos se proporcionan al compilar.",
+  "fatalHintGeneric": "Si el problema persiste, reinstala la aplicación o contacta con soporte.",
+  "fatalCopyDiagnostics": "Copiar diagnósticos",
+  "fatalDiagnosticsCopied": "Diagnósticos copiados al portapapeles",
+
+  "diagExportTitle": "Exportar diagnósticos",
+  "diagExportSubtitle": "Comparte los registros de diagnóstico con el equipo de desarrollo.",
+  "diagCopyToClipboard": "Copiar al portapapeles",
+  "diagShare": "Compartir",
+  "diagSaveToFile": "Guardar en archivo",
+  "diagCopied": "Copiado al portapapeles",
+  "diagCopyFailed": "Error al copiar",
+  "diagShared": "Compartido correctamente",
+  "diagShareFailed": "Error al compartir",
+  "diagSaved": "Guardado en {path}",
+  "@diagSaved": { "placeholders": { "path": { "type": "String" } } },
+  "diagSaveFailed": "Error al guardar",
+
+  "filePreviewNoUrl": "No hay URL de descarga disponible.",
+  "filePreviewLoadFailed": "Error al cargar el archivo adjunto.",
+  "filePreviewPdfDownloadFailed": "Error al descargar el PDF.",
+  "filePreviewDownloadingPdf": "Descargando PDF…",
+  "filePreviewLoading": "Cargando…",
+  "filePreviewPdfUnavailable": "Archivo PDF no disponible.",
+  "filePreviewPdfRenderFailed": "Error al renderizar el PDF.",
+  "filePreviewImageLoadFailed": "No se puede cargar la imagen.",
+
+  "avatarUploadInvalidResponse": "Respuesta inválida del servidor.",
+  "avatarUploadFailed": "Error de subida.",
+  "avatarUploadFailedRetry": "Error de subida. Inténtalo de nuevo."
 }
