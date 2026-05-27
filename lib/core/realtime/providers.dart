@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/auth_token_provider.dart';
@@ -84,6 +85,16 @@ final realtimeWatchdogTimerFactoryProvider =
     Provider<RealtimePeriodicTimerFactory>((ref) {
   return (interval, onTick) => Timer.periodic(interval, (_) => onTick());
 });
+
+/// INV-839-BACKOFF: Random instance for jitter in exponential backoff.
+/// Override in tests with `Random(seed)` for deterministic behavior.
+final realtimeBackoffRandomProvider = Provider<Random>((ref) => Random());
+
+/// INV-839-BACKOFF: Base delay for exponential backoff (1 second).
+const realtimeBackoffBaseDelay = Duration(seconds: 1);
+
+/// INV-839-BACKOFF: Maximum delay cap for exponential backoff (60 seconds).
+const realtimeBackoffMaxDelay = Duration(seconds: 60);
 
 final realtimeServiceProvider =
     NotifierProvider<RealtimeService, RealtimeConnectionState>(

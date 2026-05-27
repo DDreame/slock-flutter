@@ -13,6 +13,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -89,7 +90,7 @@ void main() {
       expect(ingress.lastSeqByScope, isEmpty);
     });
 
-    test('events after reset do not trigger gap detection', () {
+    test('events after reset do not trigger gap detection', () async {
       final ingress = RealtimeReductionIngress();
       addTearDown(() => ingress.dispose());
 
@@ -115,9 +116,74 @@ void main() {
         seq: 1,
       ));
 
+      // Allow broadcast stream delivery to complete.
+      await Future<void>.delayed(Duration.zero);
+
       expect(accepted, hasLength(1));
       expect(accepted.first.gapDetected, isFalse,
           reason: 'First event after reset should not flag a gap');
+    });
+
+    test('server switch via RealtimeService resets ingress (load-bearing)',
+        () async {
+      // This test exercises the real ref.listen(realtimeSocketClientProvider)
+      // path in RealtimeService.build(). Removing _ingress.reset() from the
+      // production listener MUST cause this test to fail.
+
+      final ingress = RealtimeReductionIngress();
+      addTearDown(() => ingress.dispose());
+
+      // StateProvider to control which socket client instance is returned.
+      final socketVersionProvider = StateProvider<int>((_) => 1);
+
+      final container = ProviderContainer(overrides: [
+        realtimeReductionIngressProvider.overrideWithValue(ingress),
+        realtimeClockProvider.overrideWithValue(DateTime.now),
+        realtimeBackoffRandomProvider.overrideWithValue(Random(42)),
+        realtimeWatchdogTimerFactoryProvider.overrideWithValue(
+          (interval, onTick) => Timer(const Duration(hours: 99), () {}),
+        ),
+        realtimeSocketClientProvider.overrideWith((ref) {
+          // Watch the version — rebuild produces a new instance on change.
+          ref.watch(socketVersionProvider);
+          return _FakeSocketClient();
+        }),
+      ]);
+      addTearDown(container.dispose);
+
+      // Build the RealtimeService to activate ref.listen.
+      container.read(realtimeServiceProvider);
+
+      // Seed the ingress with event data.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: 'global',
+        receivedAt: DateTime.now(),
+        seq: 50,
+      ));
+      expect(ingress.lastSeqByScope, isNotEmpty,
+          reason: 'Pre-switch: ingress has tracked seq');
+
+      // Trigger a connect so _boundSocketClient is set (listener requires it).
+      await container.read(realtimeServiceProvider.notifier).connect();
+
+      // Simulate server switch: change socket version → new client instance.
+      container.read(socketVersionProvider.notifier).state = 2;
+
+      // The ref.listen callback fires synchronously — ingress should be reset.
+      expect(ingress.lastSeqByScope, isEmpty,
+          reason:
+              'Post server-switch: ingress must be cleared by _ingress.reset()');
+
+      // Verify events with previously-stale seq are now accepted.
+      final accepted = ingress.accept(RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: 'global',
+        receivedAt: DateTime.now(),
+        seq: 5,
+      ));
+      expect(accepted, isTrue,
+          reason: 'After reset, seq=5 (lower than old 50) must be accepted');
     });
   });
 
@@ -172,6 +238,112 @@ void main() {
       // Must be close to base (1s + 0-1000ms jitter).
       expect(firstDelay.inMilliseconds, lessThanOrEqualTo(2000));
       expect(firstDelay.inMilliseconds, greaterThanOrEqualTo(1000));
+    });
+
+    test('forceReconnect() delays before connect — wired to production path',
+        () {
+      fakeAsync((async) {
+        // Seeded Random(42) produces deterministic jitter.
+        final mockClient = _FakeSocketClient();
+        final container = ProviderContainer(overrides: [
+          realtimeReductionIngressProvider.overrideWithValue(
+            RealtimeReductionIngress(),
+          ),
+          realtimeClockProvider.overrideWithValue(
+            () => async.getClock(DateTime(2026)).now(),
+          ),
+          realtimeBackoffRandomProvider.overrideWithValue(Random(42)),
+          realtimeWatchdogTimerFactoryProvider.overrideWithValue(
+            (interval, onTick) => Timer(const Duration(hours: 99), () {}),
+          ),
+          realtimeSocketClientProvider.overrideWithValue(mockClient),
+        ]);
+
+        // Build service + connect so _boundSocketClient is set.
+        final service = container.read(realtimeServiceProvider.notifier);
+        service.connect();
+        async.flushMicrotasks();
+        expect(mockClient.connectCalls, 1);
+
+        // First forceReconnect — attempt=0, expect ~1s delay.
+        mockClient.connectCalls = 0;
+        service.forceReconnect(reason: 'test');
+        async.flushMicrotasks();
+
+        // Before 1 second elapses, connect should NOT have been called.
+        expect(mockClient.connectCalls, 0,
+            reason: 'Backoff delay must elapse before connect');
+
+        // Advance past the backoff (base 1s + up to 1000ms jitter).
+        async.elapse(const Duration(seconds: 2));
+        expect(mockClient.connectCalls, 1,
+            reason: 'Connect must fire after backoff delay elapses');
+
+        // Second forceReconnect — attempt=1, expect ~2s delay.
+        mockClient.connectCalls = 0;
+        service.forceReconnect(reason: 'test-2');
+        async.flushMicrotasks();
+
+        // 1.5 seconds: should still be waiting (delay is ~2s + jitter).
+        async.elapse(const Duration(milliseconds: 1500));
+        expect(mockClient.connectCalls, 0,
+            reason: 'Second attempt backoff (~2s) should not have fired yet');
+
+        // 2 more seconds: should have connected.
+        async.elapse(const Duration(seconds: 2));
+        expect(mockClient.connectCalls, 1,
+            reason: 'Second attempt must connect after longer delay');
+
+        container.dispose();
+      });
+    });
+
+    test('reconnectAttempts resets on successful connection', () {
+      fakeAsync((async) {
+        final mockClient = _FakeSocketClient();
+        final container = ProviderContainer(overrides: [
+          realtimeReductionIngressProvider.overrideWithValue(
+            RealtimeReductionIngress(),
+          ),
+          realtimeClockProvider.overrideWithValue(
+            () => async.getClock(DateTime(2026)).now(),
+          ),
+          realtimeBackoffRandomProvider.overrideWithValue(Random(42)),
+          realtimeWatchdogTimerFactoryProvider.overrideWithValue(
+            (interval, onTick) => Timer(const Duration(hours: 99), () {}),
+          ),
+          realtimeSocketClientProvider.overrideWithValue(mockClient),
+        ]);
+
+        final service = container.read(realtimeServiceProvider.notifier);
+        service.connect();
+        async.flushMicrotasks();
+
+        // Force 3 reconnects to increase attempt counter.
+        for (var i = 0; i < 3; i++) {
+          service.forceReconnect(reason: 'test-$i');
+          async.elapse(const Duration(minutes: 2)); // Let all complete.
+        }
+
+        expect(
+          container.read(realtimeServiceProvider).reconnectAttempts,
+          3,
+        );
+
+        // Simulate successful connection signal.
+        mockClient.emitSignal(const RealtimeSocketConnected());
+        async.flushMicrotasks();
+
+        // Attempts must be reset to 0.
+        expect(
+          container.read(realtimeServiceProvider).reconnectAttempts,
+          0,
+          reason:
+              'reconnectAttempts must reset on successful connection (_onConnected)',
+        );
+
+        container.dispose();
+      });
     });
   });
 
@@ -341,4 +513,41 @@ class _FilterTestInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+/// Minimal fake socket client for testing RealtimeService wiring.
+class _FakeSocketClient implements RealtimeSocketClient {
+  final StreamController<RealtimeSocketSignal> _signalsController =
+      StreamController<RealtimeSocketSignal>.broadcast();
+  int connectCalls = 0;
+  int disconnectCalls = 0;
+
+  @override
+  Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
+
+  @override
+  bool get isConnected => connectCalls > disconnectCalls;
+
+  @override
+  Future<void> connect() async {
+    connectCalls++;
+  }
+
+  @override
+  Future<void> disconnect() async {
+    disconnectCalls++;
+  }
+
+  @override
+  void emit(String eventName, Object? payload) {}
+
+  @override
+  Future<void> dispose() async {
+    await _signalsController.close();
+  }
+
+  /// Inject a signal (e.g. RealtimeSocketConnected) into the stream.
+  void emitSignal(RealtimeSocketSignal signal) {
+    _signalsController.add(signal);
+  }
 }

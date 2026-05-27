@@ -101,13 +101,22 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
     final socketClient = _boundSocketClient ?? _socketClient;
     try {
       _bindSignalsIfNeeded(socketClient);
+      final attempt = state.reconnectAttempts;
       state = state.copyWith(
         status: RealtimeConnectionStatus.reconnecting,
-        reconnectAttempts: state.reconnectAttempts + 1,
+        reconnectAttempts: attempt + 1,
         lastForcedReconnectAt: _clock(),
         disconnectReason: reason,
       );
       await socketClient.disconnect();
+      // INV-839-BACKOFF: Wait exponential backoff delay before reconnecting.
+      final delay = computeBackoffDelay(
+        attempt: attempt,
+        baseDelay: realtimeBackoffBaseDelay,
+        maxDelay: realtimeBackoffMaxDelay,
+        random: ref.read(realtimeBackoffRandomProvider),
+      );
+      await Future<void>.delayed(delay);
       await socketClient.connect();
     } finally {
       _isReconnecting = false;
@@ -179,6 +188,9 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
       status: RealtimeConnectionStatus.connected,
       lastConnectedAt: now,
       lastAnyEventAt: now,
+      // INV-839-BACKOFF: Reset attempt counter on successful connection
+      // so next failure starts backoff from base delay.
+      reconnectAttempts: 0,
       clearDisconnectReason: true,
     );
 
