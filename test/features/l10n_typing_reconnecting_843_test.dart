@@ -19,6 +19,8 @@ import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
 import 'package:slock_app/core/realtime/realtime_service.dart';
+import 'package:slock_app/features/auth/application/forgot_password_controller.dart';
+import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
 import 'package:slock_app/features/conversation/application/typing_indicator_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
@@ -270,6 +272,73 @@ void main() {
       expect(state.typerNames, isEmpty);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Group 4: ES auth page l10n proof — ForgotPasswordPage renders Spanish
+  // ---------------------------------------------------------------------------
+  group('ForgotPasswordPage ES l10n (#843)', () {
+    testWidgets(
+      'renders ES forgot password strings, not English',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            forgotPasswordControllerProvider
+                .overrideWith(() => _NoOpForgotPasswordController()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              locale: const Locale('es'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: AppTheme.light,
+              home: const ForgotPasswordPage(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // ES title: "Olvidé mi contraseña"
+        expect(
+          find.text('Olvidé mi contraseña'),
+          findsOneWidget,
+          reason: 'Must render ES forgot password title',
+        );
+        // ES submit button: "Restablecer contraseña"
+        expect(
+          find.text('Restablecer contraseña'),
+          findsOneWidget,
+          reason: 'Must render ES submit label',
+        );
+        // ES back to login: "Volver al inicio de sesión"
+        expect(
+          find.text('Volver al inicio de sesión'),
+          findsOneWidget,
+          reason: 'Must render ES back-to-login label',
+        );
+        // Must NOT show the old English strings.
+        expect(
+          find.text('Forgot Password'),
+          findsNothing,
+          reason: 'EN title must not appear in ES locale',
+        );
+        expect(
+          find.text('Reset Password'),
+          findsNothing,
+          reason: 'EN submit label must not appear in ES locale',
+        );
+        expect(
+          find.text('Back to login'),
+          findsNothing,
+          reason: 'EN back-to-login must not appear in ES locale',
+        );
+      },
+    );
+  });
 }
 
 // =============================================================================
@@ -295,4 +364,12 @@ class _DisconnectedRealtimeService extends RealtimeService {
       status: RealtimeConnectionStatus.disconnected,
     );
   }
+}
+
+class _NoOpForgotPasswordController extends ForgotPasswordController {
+  @override
+  Future<void> build() async {}
+
+  @override
+  Future<void> submit({required String email}) async {}
 }
