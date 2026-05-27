@@ -21,6 +21,12 @@ class InboxStore extends Notifier<InboxState> {
   final Map<String, int> _readMutationVersionsByChannelId = {};
   int _readMutationVersion = 0;
 
+  /// INV-839-FILTER: Request epoch for filter-switch deduplication.
+  /// Incremented at the start of every load(). After the async fetch
+  /// completes, the local epoch is compared to the current value — if they
+  /// differ, a newer load() superseded this one and the response is discarded.
+  int _filterEpoch = 0;
+
   /// Maximum number of entries retained in [_knownItemsByChannelId].
   /// Prevents unbounded memory growth when the user scrolls through
   /// many pages of inbox over a long session (#755).
@@ -37,6 +43,7 @@ class InboxStore extends Notifier<InboxState> {
     _knownItemsByChannelId.clear();
     _readMutationVersionsByChannelId.clear();
     _readMutationVersion = 0;
+    _filterEpoch = 0;
 
     // Listen for realtime reconnection to trigger inbox refresh.
     // When the connection transitions from reconnecting → connected,
@@ -62,6 +69,7 @@ class InboxStore extends Notifier<InboxState> {
   ///
   /// Resets pagination. If [filter] differs from current, clears items.
   Future<void> load({InboxFilter? filter}) async {
+    final epoch = ++_filterEpoch;
     final activeFilter = filter ?? state.filter;
     // If we already loaded successfully and the filter hasn't changed,
     // preserve current state during refresh (SWR pattern).
@@ -103,6 +111,9 @@ class InboxStore extends Notifier<InboxState> {
             limit: inboxPageSize,
             offset: 0,
           );
+      // INV-839-FILTER: Discard stale response if a newer load() was triggered
+      // while this one was in-flight (e.g. rapid filter switching).
+      if (epoch != _filterEpoch) return;
       _rememberInboxItems(response.items);
       state = state.copyWith(
         status: InboxStatus.success,
@@ -115,6 +126,8 @@ class InboxStore extends Notifier<InboxState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      // INV-839-FILTER: Discard stale error if a newer load() superseded.
+      if (epoch != _filterEpoch) return;
       if (hasExistingData) {
         // Keep existing data visible on refresh failure (SWR).
         state = state.copyWith(

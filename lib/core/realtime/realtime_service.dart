@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/realtime/providers.dart';
@@ -13,6 +14,23 @@ typedef RealtimePeriodicTimerFactory = Timer Function(
     Duration interval, void Function() onTick);
 
 class RealtimeService extends Notifier<RealtimeConnectionState> {
+  /// INV-839-BACKOFF: Computes exponential backoff delay with jitter.
+  ///
+  /// Formula: min(baseDelay * 2^attempt, maxDelay) + random(0, 1000ms).
+  /// Prevents reconnection storms when multiple clients lose connection
+  /// simultaneously.
+  static Duration computeBackoffDelay({
+    required int attempt,
+    required Duration baseDelay,
+    required Duration maxDelay,
+    required Random random,
+  }) {
+    final exponentialMs = (baseDelay.inMilliseconds * pow(2, attempt)).toInt();
+    final cappedMs = min(exponentialMs, maxDelay.inMilliseconds);
+    final jitterMs = random.nextInt(1000);
+    return Duration(milliseconds: cappedMs + jitterMs);
+  }
+
   RealtimeSocketClient get _socketClient =>
       ref.read(realtimeSocketClientProvider);
   RealtimeReductionIngress get _ingress =>
@@ -31,6 +49,12 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
   Timer? _watchdogTimer;
   bool _isReconnecting = false;
 
+  /// INV-839-BACKOFF: Tracks consecutive failed reconnect attempts for backoff
+  /// calculation. Resets to 0 on successful connection. Separate from the
+  /// cumulative [RealtimeConnectionState.reconnectAttempts] which is used for
+  /// monitoring/analytics and never resets.
+  int _backoffStreak = 0;
+
   @override
   RealtimeConnectionState build() {
     ref.onDispose(_disposeResources);
@@ -46,6 +70,9 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
           unawaited(previousSub.cancel());
         }
         _boundSocketClient = null;
+        // INV-839-SEQ-RESET: Clear stale seq tracking on server/token switch
+        // so events from the new connection aren't rejected as duplicates.
+        _ingress.reset();
       }
     });
 
@@ -87,6 +114,17 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
         disconnectReason: reason,
       );
       await socketClient.disconnect();
+      // INV-839-BACKOFF: Wait exponential backoff delay before reconnecting.
+      // Uses _backoffStreak (resets on success) rather than the cumulative
+      // reconnectAttempts (lifetime counter for analytics).
+      final delay = computeBackoffDelay(
+        attempt: _backoffStreak,
+        baseDelay: realtimeBackoffBaseDelay,
+        maxDelay: realtimeBackoffMaxDelay,
+        random: ref.read(realtimeBackoffRandomProvider),
+      );
+      _backoffStreak++;
+      await ref.read(realtimeBackoffSleeperProvider)(delay);
       await socketClient.connect();
     } finally {
       _isReconnecting = false;
@@ -154,6 +192,10 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
 
   void _onConnected() {
     final now = _clock();
+    // INV-839-BACKOFF: Reset backoff streak on successful connection so next
+    // failure starts from base delay. The cumulative reconnectAttempts is
+    // intentionally NOT reset — it's a lifetime counter for monitoring.
+    _backoffStreak = 0;
     state = state.copyWith(
       status: RealtimeConnectionStatus.connected,
       lastConnectedAt: now,

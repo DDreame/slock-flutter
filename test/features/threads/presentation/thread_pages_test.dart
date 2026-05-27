@@ -101,6 +101,7 @@ void main() {
       overrides: [
         threadRepositoryProvider.overrideWithValue(threadRepository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
         homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
@@ -407,6 +408,7 @@ void main() {
         conversationRepositoryProvider
             .overrideWithValue(conversationRepository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
         savedMessagesRepositoryProvider
             .overrideWithValue(_NoOpSavedMessagesRepository()),
         homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),

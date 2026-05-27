@@ -196,6 +196,7 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
             realtimeSocketClientProvider.overrideWith((ref) {
               return ref.watch(fakeSocketState);
             }),

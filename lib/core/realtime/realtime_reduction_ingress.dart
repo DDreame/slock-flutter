@@ -34,6 +34,14 @@ class RealtimeReductionIngress {
     return true;
   }
 
+  /// Clears all tracked sequence numbers.
+  ///
+  /// Called on server switch so that events from the new server are not
+  /// rejected based on stale seq values from the previous connection.
+  void reset() {
+    _lastAcceptedSeqByScope.clear();
+  }
+
   Future<void> dispose() async {
     _disposed = true;
     _lastAcceptedSeqByScope.clear();
