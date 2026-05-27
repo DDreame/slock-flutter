@@ -156,8 +156,9 @@ void main() {
       final repo = _DelayedTranslationRepo(completer);
 
       final container = ProviderContainer(overrides: [
-        activeServerScopeIdProvider
-            .overrideWithValue(const ServerScopeId('srv-1')),
+        // null serverId makes _translateMessages return immediately (no-op),
+        // exercising ONLY the outer if (_disposed) guard in translateMessage.
+        activeServerScopeIdProvider.overrideWithValue(null),
         translationRepositoryProvider.overrideWithValue(repo),
         translationSettingsStoreProvider
             .overrideWith(() => _PreloadedSettingsStore()),
@@ -166,28 +167,33 @@ void main() {
       final sub = container.listen(translationCacheStoreProvider, (_, __) {});
       final store = container.read(translationCacheStoreProvider.notifier);
 
-      // Start translateMessage — will await the delayed repo.
+      // Seed with an already-translated entry so that after
+      // _translateMessages (no-op), the status check finds `translated`
+      // and would set showTranslation without the guard.
+      store.state = const TranslationCacheState(
+        translations: {
+          'msg-1': TranslationEntry(
+            messageId: 'msg-1',
+            translatedContent: 'Previously translated',
+            status: TranslationEntryStatus.translated,
+          ),
+        },
+      );
+
+      // Start translateMessage — _translateMessages returns immediately
+      // (serverId is null), but the async await still yields a microtask.
       final future = store.translateMessage('msg-1');
 
-      // Dispose before the translation resolves.
+      // Dispose before the continuation microtask resumes translateMessage.
       sub.close();
       container.dispose();
 
-      // Resolve after disposal with a successful translation.
-      completer.complete([
-        const TranslationResult(
-          messageId: 'msg-1',
-          translatedContent: 'Translated text',
-          sourceLanguage: 'en',
-          targetLanguage: 'zh',
-          status: TranslationStatus.translated,
-        ),
-      ]);
+      // Let the future complete — translateMessage's continuation runs.
       await future;
 
-      // The translateMessage method has a `if (_disposed) return;` guard after
-      // _translateMessages — without it, the subsequent `state = ...` setting
-      // showTranslation would mutate state post-dispose.
+      // Without the if (_disposed) return guard, the code would check
+      // state.translations['msg-1']?.status == translated (true from seed)
+      // and set showTranslation['msg-1'] = true, mutating disposed state.
       expect(store.state.showTranslation.containsKey('msg-1'), isFalse,
           reason:
               'translateMessage must not mutate state after store is disposed');
