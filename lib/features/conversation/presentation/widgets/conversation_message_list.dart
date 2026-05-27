@@ -10,6 +10,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -282,9 +283,13 @@ final dateSeparatorToLocalProvider =
 
 /// Supplies the current timestamp for date separator labels.
 ///
-/// Kept as a provider so tests can use a fixed clock instead of relying on
-/// wall-clock time around UTC/local day boundaries.
-final dateSeparatorNowProvider = Provider<DateTime>((ref) => DateTime.now());
+/// Watches [homeNowProvider] (refreshes every 60s) so "Today"/"Yesterday"
+/// labels update correctly across midnight boundaries. INV-841-CLOCK.
+///
+/// Override in tests via `dateSeparatorNowProvider.overrideWithValue(...)`.
+final dateSeparatorNowProvider = Provider<DateTime>((ref) {
+  return ref.watch(homeNowProvider).value ?? DateTime.now();
+});
 
 /// Resolve the [ConversationMessageSummary] at [index], or null for pending/header.
 ConversationMessageSummary? _messageForItemAt(

@@ -39,6 +39,7 @@ class AgentsStore extends Notifier<AgentsState> {
   }
 
   Future<void> load() async {
+    if (_disposed) return;
     final hasStaleData = state.status == AgentsStatus.success;
 
     if (hasStaleData) {
@@ -64,6 +65,8 @@ class AgentsStore extends Notifier<AgentsState> {
         loadMachines(),
       ]);
 
+      if (_disposed) return;
+
       final agents = results[0] as List<AgentItem>;
       final machines = results[1] as List<MachineItem>;
       final agentIds = agents.map((agent) => agent.id).toSet();
@@ -77,6 +80,7 @@ class AgentsStore extends Notifier<AgentsState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       if (hasStaleData) {
         // SWR: preserve success status, surface error as overlay.
         state = state.copyWith(
@@ -90,6 +94,7 @@ class AgentsStore extends Notifier<AgentsState> {
         );
       }
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -116,6 +121,7 @@ class AgentsStore extends Notifier<AgentsState> {
     try {
       final repo = ref.read(agentsRepositoryProvider);
       final agent = await repo.createAgent(input);
+      if (_disposed) return agent;
       state = state.copyWith(
         status: AgentsStatus.success,
         items: [...state.items, agent],
@@ -124,9 +130,11 @@ class AgentsStore extends Notifier<AgentsState> {
       );
       return agent;
     } on AppFailure catch (failure) {
+      if (_disposed) rethrow;
       state = state.copyWith(isCreating: false, failure: failure);
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) rethrow;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -153,6 +161,7 @@ class AgentsStore extends Notifier<AgentsState> {
     try {
       final repo = ref.read(agentsRepositoryProvider);
       final updated = await repo.updateAgent(agentId, input);
+      if (_disposed) return updated;
       final items = [...state.items];
       final index = items.indexWhere((agent) => agent.id == agentId);
       if (index >= 0) {
@@ -168,12 +177,14 @@ class AgentsStore extends Notifier<AgentsState> {
       );
       return updated;
     } on AppFailure catch (failure) {
+      if (_disposed) rethrow;
       state = state.copyWith(
         savingAgentIds: {...state.savingAgentIds}..remove(agentId),
         failure: failure,
       );
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) rethrow;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -200,6 +211,7 @@ class AgentsStore extends Notifier<AgentsState> {
     try {
       final repo = ref.read(agentsRepositoryProvider);
       await repo.deleteAgent(agentId);
+      if (_disposed) return;
       final remainingItems =
           state.items.where((agent) => agent.id != agentId).toList();
       state = state.copyWith(
@@ -212,12 +224,14 @@ class AgentsStore extends Notifier<AgentsState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) rethrow;
       state = state.copyWith(
         deletingAgentIds: {...state.deletingAgentIds}..remove(agentId),
         failure: failure,
       );
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) rethrow;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -236,8 +250,11 @@ class AgentsStore extends Notifier<AgentsState> {
   }
 
   Future<void> startAgent(String agentId) async {
-    // INV-ROLLBACK-829: Snapshot only the target item for per-item rollback.
-    final previousItem = state.items.firstWhere((a) => a.id == agentId);
+    // INV-841: Safe lookup — concurrent removeAgent event may have already
+    // removed this agent from state. Bail out instead of crashing.
+    final index = state.items.indexWhere((a) => a.id == agentId);
+    if (index < 0) return;
+    final previousItem = state.items[index];
     state = state.copyWith(
       controlActionAgentIds: {...state.controlActionAgentIds, agentId},
       items: state.items
@@ -287,8 +304,11 @@ class AgentsStore extends Notifier<AgentsState> {
   }
 
   Future<void> stopAgent(String agentId) async {
-    // INV-ROLLBACK-829: Snapshot only the target item for per-item rollback.
-    final previousItem = state.items.firstWhere((a) => a.id == agentId);
+    // INV-841: Safe lookup — concurrent removeAgent event may have already
+    // removed this agent from state. Bail out instead of crashing.
+    final index = state.items.indexWhere((a) => a.id == agentId);
+    if (index < 0) return;
+    final previousItem = state.items[index];
     state = state.copyWith(
       controlActionAgentIds: {...state.controlActionAgentIds, agentId},
       items: state.items
@@ -446,9 +466,11 @@ class AgentsStore extends Notifier<AgentsState> {
   /// Loads historical activity log entries from REST for [agentId]
   /// and merges them with any live entries already captured.
   Future<void> loadActivityLog(String agentId) async {
+    if (_disposed) return;
     try {
       final repo = ref.read(agentsRepositoryProvider);
       final historical = await repo.getActivityLog(agentId);
+      if (_disposed) return;
       final existing = state.activityLogFor(agentId);
       final merged = _mergeActivityLogs(historical, existing);
       state = state.copyWith(
