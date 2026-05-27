@@ -14,6 +14,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/presentation/widgets/task_status_overlay.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -26,6 +27,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
@@ -53,6 +56,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.dark,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'in_progress',
@@ -82,6 +87,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
@@ -139,6 +146,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
@@ -181,6 +190,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'in_progress',
@@ -215,6 +226,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
@@ -246,6 +259,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
@@ -277,6 +292,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
@@ -313,6 +330,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: Stack(
                 children: [
@@ -383,6 +402,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: Stack(
                 children: [
@@ -453,6 +474,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: Stack(
                 children: [
