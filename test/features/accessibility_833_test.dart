@@ -725,13 +725,14 @@ void main() {
         await tester.pumpAndSettle();
 
         // Server switcher is in the AppBar title area.
+        // Use RegExp because child Text('Slock') merges into the label.
         expect(
-          find.bySemanticsLabel('切换工作区'),
+          find.bySemanticsLabel(RegExp('切换工作区')),
           findsOneWidget,
           reason: 'homeServerSwitcherSemantics must render ZH label',
         );
         expect(
-          find.bySemanticsLabel('Switch workspace'),
+          find.bySemanticsLabel(RegExp('Switch workspace')),
           findsNothing,
           reason: 'Hardcoded English must not appear',
         );
