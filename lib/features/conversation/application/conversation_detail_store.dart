@@ -14,6 +14,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/application/pinned_messages_store.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
@@ -125,6 +126,13 @@ mixin _ConversationDetailCoreMixin
     ConversationDetailTarget target,
   ) {
     if ((this as ConversationDetailStore)._disposed) return false;
+    // INV-845: Discard stale response if the global active server no longer
+    // matches the target — prevents cross-server data leak during rapid
+    // server switching.
+    final activeServerId = ref.read(activeServerScopeIdProvider);
+    if (activeServerId != null && activeServerId != target.serverId) {
+      return false;
+    }
     return requestEpoch == (this as ConversationDetailStore)._requestEpoch &&
         ref.read(currentConversationDetailTargetProvider) == target;
   }
