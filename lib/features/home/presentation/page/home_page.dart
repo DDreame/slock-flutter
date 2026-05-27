@@ -32,6 +32,12 @@ import 'package:slock_app/l10n/l10n.dart';
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
+  /// Number of times _HomeAppBarTitle.build has been invoked.
+  /// Exposed for testing to verify that unrelated server list mutations do NOT
+  /// trigger rebuilds of the app bar title.
+  @visibleForTesting
+  static int appBarTitleBuildCount = 0;
+
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
 }
@@ -1267,22 +1273,23 @@ class _HomeAppBarTitle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    HomePage.appBarTitleBuildCount++;
     final activeServer = ref.watch(activeServerScopeIdProvider);
-    final serverSnap = ref.watch(
-      serverListStoreProvider.select(
-        (s) => (status: s.status, servers: s.servers),
-      ),
-    );
-
-    String title = 'Slock';
-    if (activeServer != null && serverSnap.status == ServerListStatus.success) {
-      for (final server in serverSnap.servers) {
-        if (server.id == activeServer.value) {
-          title = server.name;
-          break;
+    // INV-835: Only rebuild when the active server's name changes, not on
+    // every server list mutation. O(1) select instead of O(n) list equality.
+    final title = ref.watch(
+      serverListStoreProvider.select((s) {
+        if (activeServer == null || s.status != ServerListStatus.success) {
+          return 'Slock';
         }
-      }
-    }
+        for (final server in s.servers) {
+          if (server.id == activeServer.value) {
+            return server.name;
+          }
+        }
+        return 'Slock';
+      }),
+    );
 
     return Semantics(
       button: true,
