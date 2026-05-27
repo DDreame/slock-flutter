@@ -22,8 +22,6 @@ void main() {
           'Camera unavailable. Please check permissions.');
       expect(en.conversationReactWithEmojiTitle, 'React with emoji');
       expect(en.conversationReactWithEmojiSemantics('👍'), 'React with 👍');
-      expect(en.conversationReactionUpdateFailedFallback,
-          'Failed to update reaction.');
 
       expect(zh.conversationComposerHint, isNot(en.conversationComposerHint));
       expect(zh.conversationContextDeleteMessage,

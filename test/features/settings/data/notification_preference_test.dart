@@ -62,10 +62,8 @@ void main() {
       );
     });
 
-    test('each enum value has non-empty title and description', () {
+    test('each enum value has non-empty storageValue', () {
       for (final pref in NotificationPreference.values) {
-        expect(pref.title, isNotEmpty);
-        expect(pref.description, isNotEmpty);
         expect(pref.storageValue, isNotEmpty);
       }
     });

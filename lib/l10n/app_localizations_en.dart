@@ -45,9 +45,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginPasswordRequiredError => 'Password is required.';
 
   @override
-  String get loginFailedFallback => 'Login failed. Please try again.';
-
-  @override
   String get registerTitle => 'Register';
 
   @override
@@ -79,9 +76,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Password must be at least 8 characters.';
 
   @override
-  String get registerFailedFallback => 'Registration failed. Please try again.';
-
-  @override
   String get forgotPasswordTitle => 'Forgot Password';
 
   @override
@@ -105,10 +99,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get forgotPasswordEmailInvalidError => 'Enter a valid email address.';
-
-  @override
-  String get forgotPasswordFailedFallback =>
-      'Failed to send reset email. Please try again.';
 
   @override
   String get resetPasswordTitle => 'Reset Password';
@@ -139,10 +129,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resetPasswordMismatchError => 'Passwords do not match.';
-
-  @override
-  String get resetPasswordFailedFallback =>
-      'Password reset failed. The link may be expired.';
 
   @override
   String get verifyEmailTitle => 'Verify Email';
@@ -180,14 +166,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get verifyEmailTokenRequiredError => 'Enter a verification token.';
 
   @override
-  String get verifyEmailFailedFallback =>
-      'Verification failed. The link may be expired.';
-
-  @override
-  String get verifyEmailResendFailedFallback =>
-      'Failed to resend verification email.';
-
-  @override
   String get navWorkspace => 'Home';
 
   @override
@@ -203,93 +181,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentsNewTooltip => 'New agent';
 
   @override
-  String get agentsNoMachineAssigned => 'No Machine Assigned';
-
-  @override
   String get releaseNotesTitle => 'Release Notes';
-
-  @override
-  String get navSettings => 'Settings';
-
-  @override
-  String get homeWorkspaceConsole => 'Workspace Console';
-
-  @override
-  String get homeConsoleActivityTitle => 'Activity';
-
-  @override
-  String get homeConsoleActivityDescription =>
-      'Saved context, threads, tasks, and search.';
-
-  @override
-  String get homeConsoleSavedMessages => 'Saved Messages';
-
-  @override
-  String get homeConsoleSavedMessagesDescription =>
-      'Return to bookmarked updates and references.';
-
-  @override
-  String get homeConsoleThreads => 'Threads';
-
-  @override
-  String get homeConsoleThreadsDescription =>
-      'Review active thread work across the workspace.';
-
-  @override
-  String get homeConsoleTasks => 'Tasks';
-
-  @override
-  String get homeConsoleTasksDescription =>
-      'See task queues and execution status.';
-
-  @override
-  String get homeConsoleSearch => 'Search';
-
-  @override
-  String get homeConsoleSearchDescription =>
-      'Find channels, messages, and workspace history.';
-
-  @override
-  String get homeConsoleOperationsTitle => 'Operations';
-
-  @override
-  String get homeConsoleOperationsDescription =>
-      'People, infrastructure, billing, and settings.';
 
   @override
   String get homeConsoleMembers => 'Members';
 
   @override
-  String get homeConsoleMembersDescription =>
-      'Manage workspace roles and invitations.';
-
-  @override
-  String get homeConsoleAgentControl => 'Agent Control';
-
-  @override
-  String get homeConsoleAgentControlDescription =>
-      'Inspect agent activity and assignments.';
-
-  @override
-  String get homeConsoleMachines => 'Machines';
-
-  @override
-  String get homeConsoleMachinesDescription =>
-      'Check workspace runtime capacity and hosts.';
-
-  @override
   String get homeConsoleBilling => 'Billing';
 
   @override
-  String get homeConsoleBillingDescription =>
-      'Review plan controls and billing management.';
-
-  @override
   String get homeConsoleWorkspaceSettings => 'Workspace Settings';
-
-  @override
-  String get homeConsoleWorkspaceSettingsDescription =>
-      'Configure workspace-level defaults and access.';
 
   @override
   String get homeCardAgents => 'AGENTS';
@@ -298,34 +199,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardAgentsSubtitle => 'agents in workspace';
 
   @override
-  String homeCardAgentsOnline(int count) {
-    return '$count online';
-  }
-
-  @override
-  String homeCardAgentsError(int count) {
-    return '$count error';
-  }
-
-  @override
-  String homeCardAgentsStopped(int count) {
-    return '$count stopped';
-  }
-
-  @override
   String get homeCardAgentsEmpty => 'All agents offline';
 
   @override
   String get homeCardTasks => 'TASKS';
 
   @override
-  String get homeCardTasksSubtitle => 'total tasks';
-
-  @override
   String get homeCardTasksEmpty => 'No active tasks';
-
-  @override
-  String get homeCardTasksUnavailable => 'Tasks unavailable';
 
   @override
   String homeCardTasksOverflow(int count) {
@@ -357,21 +237,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardViewAll => 'View all';
 
   @override
-  String get homeCardAgentActivityOnline => 'online';
-
-  @override
-  String get homeCardAgentActivityThinking => 'thinking';
-
-  @override
-  String get homeCardAgentActivityWorking => 'working';
-
-  @override
-  String get homeCardAgentActivityError => 'error';
-
-  @override
-  String get homeCardAgentActivityOffline => 'offline';
-
-  @override
   String get homeCardTimeAgoNow => 'now';
 
   @override
@@ -401,35 +266,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeCardUnreadBadge(int count) {
-    return '$count';
-  }
-
-  @override
-  String get homeCardUnreadMarkAllRead => 'Mark all read';
-
-  @override
-  String get homeSectionPinned => 'Pinned';
-
-  @override
-  String get homeSectionChannels => 'Channels';
-
-  @override
-  String get homeSectionDirectMessages => 'Direct Messages';
-
-  @override
-  String get homeSectionPinnedAgents => 'Pinned Agents';
-
-  @override
-  String get homeSectionAgents => 'Agents';
-
-  @override
-  String get homeChannelsEmpty => 'No channels yet.';
-
-  @override
-  String get homeDirectMessagesEmpty => 'No direct messages yet.';
-
-  @override
   String get homeCreateChannelTooltip => 'Create channel';
 
   @override
@@ -447,12 +283,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeUnhide => 'Unhide';
 
   @override
-  String get homePin => 'Pin';
-
-  @override
-  String get homeUnpin => 'Unpin';
-
-  @override
   String get homeNoServerMessage => 'Select a server to get started.';
 
   @override
@@ -468,10 +298,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelsTabTitle => 'Channels';
 
   @override
-  String get channelsTabPlaceholder =>
-      'Channel list will be available here soon.';
-
-  @override
   String get channelsTabSearchHint => 'Search channels';
 
   @override
@@ -479,13 +305,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dmsTabTitle => 'Messages';
-
-  @override
-  String get dmsTabHeadline => 'Direct Messages';
-
-  @override
-  String get dmsTabPlaceholder =>
-      'Direct messages will be available here soon.';
 
   @override
   String get dmsTabSearchHint => 'Search messages';
@@ -500,13 +319,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeChannelCreated => 'Channel created.';
 
   @override
-  String get homeChannelCreateFailed => 'Failed to create channel.';
-
-  @override
   String get homeChannelUpdated => 'Channel updated.';
-
-  @override
-  String get homeChannelUpdateFailed => 'Failed to update channel.';
 
   @override
   String get homeDeleteChannelTitle => 'Delete channel';
@@ -523,9 +336,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeChannelDeleted => 'Channel deleted.';
 
   @override
-  String get homeChannelDeleteFailed => 'Failed to delete channel.';
-
-  @override
   String get homeLeaveChannelTitle => 'Leave channel';
 
   @override
@@ -540,14 +350,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeChannelLeft => 'Left channel.';
 
   @override
-  String get homeChannelLeaveFailed => 'Failed to leave channel.';
-
-  @override
   String get baseUrlSettingsTitle => 'Server Configuration';
-
-  @override
-  String get baseUrlSettingsSubtitle =>
-      'Configure custom API and WebSocket endpoints.';
 
   @override
   String get baseUrlApiLabel => 'API Base URL';
@@ -602,9 +405,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get baseUrlEmptyDefault => 'Using build-time default';
-
-  @override
-  String get baseUrlRestartRequired => 'Restart required to apply changes.';
 
   @override
   String get baseUrlSettingsSettingsTile => 'Server';
@@ -667,9 +467,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workspaceSettingsRenamedSnackbar => 'Workspace renamed.';
 
   @override
-  String get workspaceSettingsRenameFailed => 'Failed to rename workspace.';
-
-  @override
   String get workspaceSettingsDeleteDialogTitle => 'Delete workspace?';
 
   @override
@@ -681,9 +478,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workspaceSettingsDeleteConfirmLabel => 'Delete';
 
   @override
-  String get workspaceSettingsDeleteFailed => 'Failed to delete workspace.';
-
-  @override
   String get workspaceSettingsLeaveDialogTitle => 'Leave workspace?';
 
   @override
@@ -693,9 +487,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workspaceSettingsLeaveConfirmLabel => 'Leave';
-
-  @override
-  String get workspaceSettingsLeaveFailed => 'Failed to leave workspace.';
 
   @override
   String get previewDeleted => 'Message deleted';
@@ -977,9 +768,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchRetry => 'Retry';
 
   @override
-  String get searchFailedFallback => 'Search failed.';
-
-  @override
   String get searchSectionChannels => 'Channels';
 
   @override
@@ -1081,9 +869,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get machinesRegisteredTitle => 'Machine Registered';
 
   @override
-  String get machinesRegisterFailed => 'Failed to register machine.';
-
-  @override
   String get machinesRenameTitle => 'Rename Machine';
 
   @override
@@ -1097,13 +882,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get machinesRenamedSnackbar => 'Machine renamed.';
 
   @override
-  String get machinesRenameFailed => 'Failed to rename machine.';
-
-  @override
   String get machinesRotatedApiKeyTitle => 'Rotated API Key';
-
-  @override
-  String get machinesRotateApiKeyFailed => 'Failed to rotate machine API key.';
 
   @override
   String get machinesDeleteTitle => 'Delete Machine?';
@@ -1116,9 +895,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get machinesDeletedSnackbar => 'Machine deleted.';
-
-  @override
-  String get machinesDeleteFailed => 'Failed to delete machine.';
 
   @override
   String get machinesApiKeyRevealedNote =>
@@ -1240,13 +1016,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workspacesDeletedSnackbar => 'Workspace deleted.';
 
   @override
-  String get workspacesDeleteFailed => 'Failed to delete workspace.';
-
-  @override
   String get workspacesMetaPath => 'Path';
-
-  @override
-  String get workspacesMetaAgent => 'Agent';
 
   @override
   String get workspacesStatusActive => 'Active';
@@ -1267,12 +1037,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tasksCreatedSnackbar => 'Task created.';
 
   @override
-  String get tasksCreateFailed => 'Failed to create task.';
-
-  @override
-  String get tasksUpdateFailed => 'Failed to update task.';
-
-  @override
   String get tasksRetryAction => 'RETRY';
 
   @override
@@ -1291,15 +1055,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tasksDeletedSnackbar => 'Task deleted.';
-
-  @override
-  String get tasksDeleteFailed => 'Failed to delete task.';
-
-  @override
-  String get tasksClaimFailed => 'Failed to claim task.';
-
-  @override
-  String get tasksUnclaimFailed => 'Failed to unclaim task.';
 
   @override
   String get tasksHeaderTitle => 'Tasks';
@@ -1596,19 +1351,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationMessageDeletedPlaceholder => '[Message deleted]';
 
   @override
-  String get conversationReactionFailedFallback => 'Failed to add reaction.';
-
-  @override
   String get conversationReactWithEmojiTitle => 'React with emoji';
 
   @override
   String conversationReactWithEmojiSemantics(String emoji) {
     return 'React with $emoji';
   }
-
-  @override
-  String get conversationReactionUpdateFailedFallback =>
-      'Failed to update reaction.';
 
   @override
   String get conversationDeleteDialogTitle => 'Delete message?';
@@ -1625,9 +1373,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get conversationDeleteSuccess => 'Message deleted.';
-
-  @override
-  String get conversationDeleteFailedFallback => 'Failed to delete message.';
 
   @override
   String get conversationOpenLinkTitle => 'Open Link';
@@ -3287,9 +3032,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get textPreviewShowMore => 'Show more';
-
-  @override
-  String get textPreviewShowLess => 'Show less';
 
   @override
   String get profileAvatarEditSemantics => 'Edit profile avatar';

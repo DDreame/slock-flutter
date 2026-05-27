@@ -3,7 +3,6 @@
   "appTitle": "Slock",
   "splashTitle": "Slock",
   "splashSubtitle": "正在准备你的工作区……",
-
   "loginTitle": "登录",
   "loginEmailLabel": "邮箱",
   "loginPasswordLabel": "密码",
@@ -13,8 +12,6 @@
   "loginEmailRequiredError": "请输入邮箱地址。",
   "loginEmailInvalidError": "请输入有效的邮箱地址。",
   "loginPasswordRequiredError": "请输入密码。",
-  "loginFailedFallback": "登录失败，请重试。",
-
   "registerTitle": "注册",
   "registerDisplayNameLabel": "显示名称",
   "registerEmailLabel": "邮箱",
@@ -25,8 +22,6 @@
   "registerEmailRequiredError": "请输入邮箱地址。",
   "registerEmailInvalidError": "请输入有效的邮箱地址。",
   "registerPasswordTooShortError": "密码长度至少为 8 个字符。",
-  "registerFailedFallback": "注册失败，请重试。",
-
   "forgotPasswordTitle": "忘记密码",
   "forgotPasswordSuccessTitle": "请检查你的邮箱",
   "forgotPasswordSuccessMessage": "如果该邮箱已注册，重置链接已发送到你的收件箱。",
@@ -35,8 +30,6 @@
   "forgotPasswordBackToLogin": "返回登录",
   "forgotPasswordEmailRequiredError": "请输入邮箱地址。",
   "forgotPasswordEmailInvalidError": "请输入有效的邮箱地址。",
-  "forgotPasswordFailedFallback": "发送重置邮件失败，请重试。",
-
   "resetPasswordTitle": "重置密码",
   "resetPasswordCompletedMessage": "密码重置完成。你现在可以使用新密码登录。",
   "resetPasswordNewPasswordLabel": "新密码",
@@ -46,8 +39,6 @@
   "resetPasswordLinkInvalidError": "重置链接缺失或无效。",
   "resetPasswordTooShortError": "密码长度至少为 8 个字符。",
   "resetPasswordMismatchError": "两次输入的密码不一致。",
-  "resetPasswordFailedFallback": "密码重置失败，链接可能已过期。",
-
   "verifyEmailTitle": "验证邮箱",
   "verifyEmailInstructions": "请验证你的邮箱以继续。",
   "verifyEmailResentMessage": "验证邮件已重新发送，请查看收件箱。",
@@ -59,52 +50,20 @@
   "verifyEmailSignOut": "退出登录",
   "verifyEmailBackToLogin": "返回登录",
   "verifyEmailTokenRequiredError": "请输入验证码。",
-  "verifyEmailFailedFallback": "验证失败，链接可能已过期。",
-  "verifyEmailResendFailedFallback": "重新发送验证邮件失败。",
-
   "navWorkspace": "首页",
   "navChannels": "频道",
   "navDms": "消息",
   "navAgents": "智能体",
   "agentsNewTooltip": "新建智能体",
-  "agentsNoMachineAssigned": "未分配机器",
   "releaseNotesTitle": "版本说明",
-  "navSettings": "设置",
-
-  "homeWorkspaceConsole": "工作区控制台",
-  "homeConsoleActivityTitle": "动态",
-  "homeConsoleActivityDescription": "已保存内容、话题、任务和搜索。",
-  "homeConsoleSavedMessages": "已保存消息",
-  "homeConsoleSavedMessagesDescription": "查看收藏的更新和引用。",
-  "homeConsoleThreads": "话题",
-  "homeConsoleThreadsDescription": "查看工作区内的活跃话题。",
-  "homeConsoleTasks": "任务",
-  "homeConsoleTasksDescription": "查看任务队列和执行状态。",
-  "homeConsoleSearch": "搜索",
-  "homeConsoleSearchDescription": "搜索频道、消息和工作区历史。",
-  "homeConsoleOperationsTitle": "运维",
-  "homeConsoleOperationsDescription": "成员、基础设施、账单和设置。",
   "homeConsoleMembers": "成员",
-  "homeConsoleMembersDescription": "管理工作区角色和邀请。",
-  "homeConsoleAgentControl": "智能体管理",
-  "homeConsoleAgentControlDescription": "查看智能体活动和分配情况。",
-  "homeConsoleMachines": "机器",
-  "homeConsoleMachinesDescription": "查看工作区运行时容量和主机。",
   "homeConsoleBilling": "账单",
-  "homeConsoleBillingDescription": "查看套餐和账单管理。",
   "homeConsoleWorkspaceSettings": "工作区设置",
-  "homeConsoleWorkspaceSettingsDescription": "配置工作区级别的默认值和访问权限。",
-
   "homeCardAgents": "智能体",
   "homeCardAgentsSubtitle": "工作区中的智能体",
-  "homeCardAgentsOnline": "{count} 在线",
-  "homeCardAgentsError": "{count} 错误",
-  "homeCardAgentsStopped": "{count} 已停止",
   "homeCardAgentsEmpty": "所有智能体离线",
   "homeCardTasks": "任务",
-  "homeCardTasksSubtitle": "全部任务",
   "homeCardTasksEmpty": "暂无活跃任务",
-  "homeCardTasksUnavailable": "任务加载失败",
   "homeCardTasksOverflow": "还有 {count} 项",
   "homeCardTasksInProgress": "进行中",
   "homeCardTasksTodo": "待办",
@@ -112,11 +71,6 @@
   "homeCardTasksDurationHours": "{hours}小时{minutes}分钟",
   "homeCardTasksDurationHoursOnly": "{count}小时",
   "homeCardViewAll": "查看全部",
-  "homeCardAgentActivityOnline": "在线",
-  "homeCardAgentActivityThinking": "思考中",
-  "homeCardAgentActivityWorking": "工作中",
-  "homeCardAgentActivityError": "错误",
-  "homeCardAgentActivityOffline": "离线",
   "homeCardTimeAgoNow": "刚刚",
   "homeCardTimeAgoMinutes": "{count}分钟前",
   "homeCardTimeAgoHours": "{count}小时前",
@@ -124,57 +78,33 @@
   "homeCardUnread": "未读",
   "homeCardUnreadEmpty": "全部已读",
   "homeCardUnreadOverflow": "还有 {count} 项",
-  "homeCardUnreadBadge": "{count}",
-  "homeCardUnreadMarkAllRead": "全部标为已读",
-
-  "homeSectionPinned": "已置顶",
-  "homeSectionChannels": "频道",
-  "homeSectionDirectMessages": "私信",
-  "homeSectionPinnedAgents": "已置顶智能体",
-  "homeSectionAgents": "智能体",
-  "homeChannelsEmpty": "暂无频道。",
-  "homeDirectMessagesEmpty": "暂无私信。",
   "homeCreateChannelTooltip": "创建频道",
   "homeNewMessageTooltip": "新消息",
   "homeHiddenConversationsCount": "隐藏的对话（{count}）",
   "homeHiddenConversationsTitle": "隐藏的对话",
   "homeUnhide": "取消隐藏",
-  "homePin": "置顶",
-  "homeUnpin": "取消置顶",
-
   "homeNoServerMessage": "选择一个服务器以开始。",
   "homeSelectWorkspace": "选择工作区",
   "homeLoadFailedFallback": "无法加载对话列表。",
   "homeRetry": "重试",
-
   "channelsTabTitle": "频道",
-  "channelsTabPlaceholder": "频道列表即将上线。",
   "channelsTabSearchHint": "搜索频道",
   "channelsTabEmpty": "暂无频道。",
   "dmsTabTitle": "消息",
-  "dmsTabHeadline": "私信",
-  "dmsTabPlaceholder": "私信列表即将上线。",
   "dmsTabSearchHint": "搜索消息",
   "dmsTabEmpty": "暂无私信。",
   "settingsTooltip": "设置",
-
   "homeChannelCreated": "频道已创建。",
-  "homeChannelCreateFailed": "创建频道失败。",
   "homeChannelUpdated": "频道已更新。",
-  "homeChannelUpdateFailed": "更新频道失败。",
   "homeDeleteChannelTitle": "删除频道",
   "homeDeleteChannelMessage": "删除 {name}？此操作无法撤销。",
   "homeDeleteChannelConfirm": "删除",
   "homeChannelDeleted": "频道已删除。",
-  "homeChannelDeleteFailed": "删除频道失败。",
   "homeLeaveChannelTitle": "离开频道",
   "homeLeaveChannelMessage": "离开 {name}？",
   "homeLeaveChannelConfirm": "离开",
   "homeChannelLeft": "已离开频道。",
-  "homeChannelLeaveFailed": "离开频道失败。",
-
   "baseUrlSettingsTitle": "服务器配置",
-  "baseUrlSettingsSubtitle": "配置自定义 API 和 WebSocket 端点。",
   "baseUrlApiLabel": "API 地址",
   "baseUrlApiHint": "https://api.example.com",
   "baseUrlRealtimeLabel": "实时连接地址",
@@ -192,17 +122,13 @@
   "baseUrlResultTimeout": "超时",
   "baseUrlResultInvalid": "无效地址",
   "baseUrlEmptyDefault": "使用编译时默认值",
-  "baseUrlRestartRequired": "需重启应用以应用更改。",
   "baseUrlSettingsSettingsTile": "服务器",
   "baseUrlSettingsSettingsTileSubtitle": "自定义 API 和 WebSocket 端点。",
-
   "attachmentOpenInBrowser": "在浏览器中打开",
   "attachmentUnableToLoadImage": "无法加载图片",
   "attachmentHtmlOpensInBrowser": "HTML · 在浏览器中打开",
-
   "refreshFailedSnackbar": "刷新失败，显示缓存数据。",
   "refreshFailedRetry": "重试",
-
   "workspaceSettingsUnavailableTitle": "工作区设置不可用",
   "workspaceSettingsUnavailableMessage": "目前无法加载工作区设置。",
   "workspaceSettingsNotFound": "未找到工作区。",
@@ -215,7 +141,6 @@
   "workspaceSettingsDeleteAction": "删除工作区",
   "workspaceSettingsLeaveAction": "退出工作区",
   "workspaceSettingsRenamedSnackbar": "工作区已重命名。",
-  "workspaceSettingsRenameFailed": "重命名工作区失败。",
   "workspaceSettingsDeleteDialogTitle": "删除工作区？",
   "workspaceSettingsDeleteDialogMessage": "删除 {name}？此操作将永久移除工作区及其所有数据。",
   "@workspaceSettingsDeleteDialogMessage": {
@@ -226,7 +151,6 @@
     }
   },
   "workspaceSettingsDeleteConfirmLabel": "删除",
-  "workspaceSettingsDeleteFailed": "删除工作区失败。",
   "workspaceSettingsLeaveDialogTitle": "退出工作区？",
   "workspaceSettingsLeaveDialogMessage": "退出 {name}？之后可通过新邀请重新加入。",
   "@workspaceSettingsLeaveDialogMessage": {
@@ -237,8 +161,6 @@
     }
   },
   "workspaceSettingsLeaveConfirmLabel": "退出",
-  "workspaceSettingsLeaveFailed": "退出工作区失败。",
-
   "previewDeleted": "消息已删除",
   "previewSending": "正在发送...",
   "previewFailed": "未发送，点击重试",
@@ -249,14 +171,12 @@
   "previewVideo": "视频",
   "previewFallback": "新消息",
   "previewAttachment": "附件: {name}",
-
   "agentStatusThinking": "思考中",
   "agentStatusWorking": "工作中",
   "agentStatusError": "错误",
   "agentStatusOnline": "在线",
   "agentStatusOffline": "离线",
   "agentStatusStopped": "已停止",
-
   "settingsTitle": "设置",
   "settingsAccountSection": "账户",
   "settingsWorkspaceSection": "工作区",
@@ -295,7 +215,6 @@
   "settingsNotificationDenied": "已拒绝",
   "settingsNotificationProvisional": "临时授权",
   "settingsNotificationNotRequested": "未请求",
-
   "notificationSettingsTitle": "通知设置",
   "notificationSettingsPermissionSection": "权限",
   "notificationSettingsPushNotifications": "推送通知",
@@ -324,12 +243,10 @@
   "notificationSettingsResultProvisional": "通知访问为临时授权，设备注册已刷新。",
   "notificationSettingsResultDenied": "通知访问被拒绝。",
   "notificationSettingsResultUnknown": "此设备上的通知状态仍不可用。",
-
   "searchHintText": "搜索消息、频道或联系人...",
   "searchIdleText": "输入以搜索消息、频道或联系人。",
   "searchNoResults": "未找到结果。",
   "searchRetry": "重试",
-  "searchFailedFallback": "搜索失败。",
   "searchSectionChannels": "频道",
   "searchSectionContacts": "联系人",
   "searchSectionMessages": "消息",
@@ -341,9 +258,9 @@
   "searchFilterNewest": "最新",
   "searchFilterOldest": "最早",
   "searchFilterBySenderTitle": "按发送者筛选",
-  "searchFilterBySenderHint": "输入发送者名称\u2026",
+  "searchFilterBySenderHint": "输入发送者名称…",
   "searchFilterByChannelTitle": "按频道筛选",
-  "searchFilterByChannelHint": "输入频道名称\u2026",
+  "searchFilterByChannelHint": "输入频道名称…",
   "searchFilterCancel": "取消",
   "searchFilterApply": "应用",
   "searchFilterDateAny": "不限时间",
@@ -353,10 +270,8 @@
   "searchCouldNotOpenConversation": "无法打开会话。",
   "searchFilterFromPrefix": "来自: {name}",
   "searchFilterInPrefix": "在: {name}",
-
   "searchRecentTitle": "最近搜索",
   "searchRecentClear": "清除",
-
   "machinesPageTitle": "机器",
   "machinesAddButton": "添加机器",
   "machinesLoadFailed": "加载机器列表失败。",
@@ -364,19 +279,15 @@
   "machinesRegisterAction": "注册",
   "machinesRegisterHelper": "创建机器并显示一次其 API 密钥。",
   "machinesRegisteredTitle": "机器已注册",
-  "machinesRegisterFailed": "注册机器失败。",
   "machinesRenameTitle": "重命名机器",
   "machinesRenameSaveAction": "保存",
   "machinesRenameHelper": "更新在工作区中显示的机器名称。",
   "machinesRenamedSnackbar": "机器已重命名。",
-  "machinesRenameFailed": "重命名机器失败。",
   "machinesRotatedApiKeyTitle": "API 密钥已轮换",
-  "machinesRotateApiKeyFailed": "轮换机器 API 密钥失败。",
   "machinesDeleteTitle": "删除机器？",
   "machinesDeleteCancel": "取消",
   "machinesDeleteConfirm": "删除",
   "machinesDeletedSnackbar": "机器已删除。",
-  "machinesDeleteFailed": "删除机器失败。",
   "machinesApiKeyRevealedNote": "此密钥仅在创建或轮换时显示一次。",
   "machinesApiKeyCopied": "API 密钥已复制。",
   "machinesCopyButton": "复制",
@@ -412,27 +323,19 @@
   "workspacesDeleteCancel": "取消",
   "workspacesDeleteConfirm": "删除",
   "workspacesDeletedSnackbar": "工作区已删除。",
-  "workspacesDeleteFailed": "删除工作区失败。",
   "workspacesMetaPath": "路径",
-  "workspacesMetaAgent": "代理",
   "workspacesStatusActive": "活跃",
   "workspacesStatusInactive": "非活跃",
-
   "tasksLoadFailed": "加载任务失败。",
   "tasksEmptyAll": "暂无任务。",
   "tasksNoChannelsAvailable": "暂无可用频道。",
   "tasksCreatedSnackbar": "任务已创建。",
-  "tasksCreateFailed": "创建任务失败。",
-  "tasksUpdateFailed": "更新任务失败。",
   "tasksRetryAction": "重试",
   "tasksDeleteTitle": "删除任务？",
   "tasksDeleteMessage": "删除「{title}」？此操作无法撤销。",
   "tasksDeleteCancel": "取消",
   "tasksDeleteConfirm": "删除",
   "tasksDeletedSnackbar": "任务已删除。",
-  "tasksDeleteFailed": "删除任务失败。",
-  "tasksClaimFailed": "认领任务失败。",
-  "tasksUnclaimFailed": "取消认领任务失败。",
   "tasksHeaderTitle": "任务",
   "tasksNewButton": "新建",
   "tasksSummaryTodo": "待办",
@@ -470,7 +373,6 @@
   "tasksAccessibilityInReview": "审核中",
   "tasksAccessibilityDone": "已完成",
   "tasksAccessibilityClosed": "已取消",
-
   "screenshotAnnotateNoCapture": "未捕获截图",
   "screenshotAnnotateDiscardTooltip": "放弃",
   "screenshotAnnotateTitle": "标注截图",
@@ -484,11 +386,8 @@
   "screenshotAnnotateExportError": "导出失败：{error}",
   "screenshotAnnotateSaveFailed": "保存失败：{error}",
   "screenshotAnnotateShareSubject": "截图",
-
   "dateSeparatorToday": "今天",
-  "dateSeparatorYesterday": "昨天"
-
-,
+  "dateSeparatorYesterday": "昨天",
   "conversationComposerHint": "写消息",
   "conversationComposerAttachPhotoVideo": "照片和视频",
   "conversationComposerAttachCamera": "相机",
@@ -517,13 +416,49 @@
   "conversationSelectionExportAsImage": "导出为图片",
   "conversationSelectionDelete": "删除",
   "conversationSelectionSelected": "已选择 {count} 项",
-  "@conversationSelectionSelected": { "placeholders": { "count": { "type": "int" } } },
+  "@conversationSelectionSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionBatchSucceeded": "已{action} {count} 条。",
-  "@conversationSelectionBatchSucceeded": { "placeholders": { "count": { "type": "int" }, "action": { "type": "String" } } },
+  "@conversationSelectionBatchSucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "action": {
+        "type": "String"
+      }
+    }
+  },
   "conversationSelectionBatchFailed": "{action} {count} 条消息失败。",
-  "@conversationSelectionBatchFailed": { "placeholders": { "action": { "type": "String" }, "count": { "type": "int" } } },
+  "@conversationSelectionBatchFailed": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionBatchPartial": "已{action} {succeeded} 条，{failed} 条失败。",
-  "@conversationSelectionBatchPartial": { "placeholders": { "succeeded": { "type": "int" }, "action": { "type": "String" }, "failed": { "type": "int" } } },
+  "@conversationSelectionBatchPartial": {
+    "placeholders": {
+      "succeeded": {
+        "type": "int"
+      },
+      "action": {
+        "type": "String"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionActionSaveVerb": "保存",
   "conversationSelectionActionSaved": "保存",
   "conversationSelectionActionDeleteVerb": "删除",
@@ -534,20 +469,29 @@
   "conversationEditSuccess": "消息已编辑。",
   "conversationEditFailedFallback": "编辑消息失败。",
   "conversationMessageDeletedPlaceholder": "[消息已删除]",
-  "conversationReactionFailedFallback": "添加回应失败。",
   "conversationReactWithEmojiTitle": "用表情回应",
   "conversationReactWithEmojiSemantics": "用 {emoji} 回应",
-  "@conversationReactWithEmojiSemantics": { "placeholders": { "emoji": { "type": "String" } } },
-  "conversationReactionUpdateFailedFallback": "更新回应失败。",
+  "@conversationReactWithEmojiSemantics": {
+    "placeholders": {
+      "emoji": {
+        "type": "String"
+      }
+    }
+  },
   "conversationDeleteDialogTitle": "删除消息？",
   "conversationDeleteDialogContent": "此消息将被永久删除。",
   "conversationDeleteDialogCancel": "取消",
   "conversationDeleteDialogConfirm": "删除",
   "conversationDeleteSuccess": "消息已删除。",
-  "conversationDeleteFailedFallback": "删除消息失败。",
   "conversationOpenLinkTitle": "打开链接",
   "conversationOpenLinkContent": "打开 {url}？",
-  "@conversationOpenLinkContent": { "placeholders": { "url": { "type": "String" } } },
+  "@conversationOpenLinkContent": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "conversationOpenLinkCancel": "取消",
   "conversationOpenLinkConfirm": "打开",
   "conversationMessageActionsSemantics": "消息操作",
@@ -574,7 +518,6 @@
   "errorServer": "服务器错误，请稍后重试。",
   "errorCancelled": "请求已取消。",
   "errorUnknown": "操作失败，请重试。",
-
   "pendingNewMessages": "新消息",
   "pendingSending": "发送中……",
   "pendingQueued": "已排队 — 等待网络连接",
@@ -583,13 +526,10 @@
   "pendingRetry": "重试",
   "pendingDismiss": "取消",
   "pendingEarlierHistoryLimited": "更早的历史记录不可用。",
-
   "composerSendTooltip": "发送",
   "composerVoiceMessageTooltip": "语音消息",
   "composerFileTooLarge": "文件过大，最大支持 50 MB",
-
   "messageSenderYou": "你",
-
   "channelActionMoveUp": "上移",
   "channelActionMoveDown": "下移",
   "channelActionPin": "置顶频道",
@@ -598,13 +538,11 @@
   "channelActionEdit": "编辑频道",
   "channelActionLeave": "离开频道",
   "channelActionDelete": "删除频道",
-
   "channelsSortAlphabetical": "按字母排序",
   "channelsSortRecent": "按最近活动排序",
   "channelsMarkAllRead": "全部标记已读",
   "channelsClearSearch": "清除搜索",
   "channelsMarkedUnread": "已标记为未读",
-
   "channelsCreateTitle": "新建频道",
   "channelsCreateSectionName": "频道名称",
   "channelsCreateNameHint": "频道名称",
@@ -618,7 +556,6 @@
   "channelsCreateVisibilityPublicSub": "所有人可见",
   "channelsCreateVisibilityPrivate": "私密",
   "channelsCreateVisibilityPrivateSub": "仅限邀请",
-
   "channelsMembersTitle": "频道成员",
   "channelsMembersRetry": "重试",
   "channelsMembersEmpty": "此频道暂无成员。",
@@ -629,14 +566,12 @@
   "channelsMembersRemoveMessage": "确定要将 {name} 从此频道移除吗？",
   "channelsMembersRemoveCancel": "取消",
   "channelsMembersRemoveConfirm": "移除",
-
   "channelsAddMemberTitle": "添加成员",
   "channelsAddMemberTabHumans": "用户",
   "channelsAddMemberTabAgents": "AI 代理",
   "channelsAddMemberClose": "关闭",
   "channelsAddMemberNoHumans": "没有更多用户可添加。",
   "channelsAddMemberNoAgents": "没有更多代理可添加。",
-
   "channelsDialogCreateTitle": "创建频道",
   "channelsDialogCreateNameLabel": "频道名称",
   "channelsDialogCreateCancel": "取消",
@@ -649,7 +584,6 @@
   "channelsDialogEditSubmit": "保存",
   "channelsDialogConfirmCancel": "取消",
   "channelsDialogConfirmWorking": "处理中...",
-
   "serversInviteTitle": "加入工作区",
   "serversInviteJoining": "正在加入工作区...",
   "serversInviteFailedFallback": "加入工作区失败。",
@@ -661,7 +595,6 @@
   "serversInviteSuccessNamed": "已加入 {name}！",
   "serversInviteSuccessGeneric": "已加入工作区！",
   "serversInviteContinue": "继续",
-
   "serversDialogCreateTitle": "创建工作区",
   "serversDialogCreateNameLabel": "工作区名称",
   "serversDialogCreateCancel": "取消",
@@ -676,7 +609,6 @@
   "serversDialogJoinCancel": "取消",
   "serversDialogJoinSubmit": "加入",
   "serversDialogConfirmCancel": "取消",
-
   "serversSwitcherTitle": "切换工作区",
   "serversSwitcherCreating": "创建中...",
   "serversSwitcherCreateAction": "创建工作区",
@@ -699,7 +631,6 @@
   "serversSwitcherRowDelete": "删除工作区",
   "serversSwitcherRowLeave": "离开工作区",
   "serversSwitcherRetry": "重试",
-
   "onboardingWelcomeTitle": "欢迎使用 Slock",
   "onboardingBack": "返回",
   "onboardingSkip": "跳过",
@@ -713,7 +644,6 @@
   "onboardingProfileTitle": "完善你的个人资料",
   "onboardingProfileBody": "添加显示名称、简介或头像，让队友更容易认出你。",
   "onboardingProfileButton": "编辑个人资料",
-
   "agentsEmptyTitle": "暂无智能体。",
   "agentsSelectServerFirst": "请先选择一个服务器。",
   "agentsCreated": "智能体已创建。",
@@ -774,7 +704,6 @@
   "agentsReasoningHigh": "高",
   "agentsReasoningExtraHigh": "极高",
   "agentsFormConfiguredDefault": "使用配置默认值",
-
   "profileEditTitle": "编辑资料",
   "profileEditSave": "保存",
   "profileEditSnackbarSaved": "资料已更新。",
@@ -785,7 +714,6 @@
   "profileEditDisplayNameLabel": "显示名称",
   "profileEditDisplayNameRequired": "显示名称为必填项。",
   "profileEditBioLabel": "简介 / 状态",
-
   "profileTitleSelf": "我的资料",
   "profileTitle": "个人资料",
   "profileRetry": "重试",
@@ -812,10 +740,8 @@
   "profileMonthOct": "10月",
   "profileMonthNov": "11月",
   "profileMonthDec": "12月",
-
   "settingsEditProfileTitle": "编辑资料",
   "settingsEditProfileSubtitle": "更新显示名称、简介和头像",
-
   "inboxTitle": "收件箱",
   "inboxMarkAllReadTooltip": "全部标记已读",
   "inboxLoadFailed": "加载收件箱失败",
@@ -833,23 +759,28 @@
   "inboxTimeMinutes": "{count}分钟",
   "@inboxTimeMinutes": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inboxTimeHours": "{count}小时",
   "@inboxTimeHours": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inboxTimeDays": "{count}天",
   "@inboxTimeDays": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "inboxUnreadCountOverflow": "99+",
-
   "settingsAppearanceTitle": "外观",
   "settingsAppearanceThemeSection": "主题",
   "settingsThemeSystemTitle": "跟随系统",
@@ -858,12 +789,13 @@
   "settingsThemeLightDescription": "始终使用浅色主题。",
   "settingsThemeDarkTitle": "深色",
   "settingsThemeDarkDescription": "始终使用深色主题。",
-
   "settingsDiagnosticsPageTitle": "诊断",
   "settingsDiagnosticsEntryCount": "{count} 条记录",
   "@settingsDiagnosticsEntryCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "settingsDiagnosticsFilterAll": "全部",
@@ -875,7 +807,6 @@
   "settingsDiagnosticsWorkerUnavailable": "后台工作进程诊断不可用",
   "settingsDiagnosticsWorkerNotRunning": "后台工作进程：未运行",
   "settingsDiagnosticsWorkerTitle": "后台工作进程",
-
   "settingsTranslationPageTitle": "翻译",
   "settingsTranslationNoActiveWorkspace": "没有活动的工作区。翻译设置属于工作区级别。",
   "settingsTranslationRetry": "重试",
@@ -887,7 +818,6 @@
   "settingsTranslationModeAutoDescription": "进入对话时自动翻译消息",
   "settingsTranslationModeManualDescription": "仅在点击翻译按钮时翻译",
   "settingsTranslationModeOffDescription": "翻译已禁用",
-
   "billingTitle": "账单",
   "billingUnavailableTitle": "账单不可用",
   "billingUnavailableMessage": "当前无法加载账单详情。",
@@ -921,7 +851,6 @@
   "billingMessageHistoryUnlimited": "无限制",
   "billingMessageHistoryOneDay": "1 天",
   "billingMessageHistoryDays": "{count} 天",
-
   "threadsTitle": "话题",
   "threadsEmpty": "还没有关注的话题。",
   "threadsSwipeDone": "完成",
@@ -934,7 +863,6 @@
   "threadRepliesRetry": "重试",
   "threadRepliesFollowTooltip": "关注话题",
   "threadRepliesDoneTooltip": "标记话题完成",
-
   "dmsSortAZ": "按字母排序",
   "dmsSortRecent": "按最近排序",
   "dmsMarkAllRead": "全部标为已读",
@@ -947,14 +875,12 @@
   "dmsNoAgentsFound": "未找到智能体。",
   "dmsNoMembersFound": "未找到成员。",
   "dmsRetry": "重试",
-
   "searchScopeAll": "全部",
   "searchScopeMessages": "消息",
   "searchScopeChannels": "频道",
   "searchScopeContacts": "联系人",
   "searchBadgeDm": "私信",
   "searchBadgeChannel": "频道",
-
   "conversationFilesTitle": "文件",
   "conversationFilesRetry": "重试",
   "conversationFilesEmpty": "此频道暂无文件",
@@ -1004,7 +930,6 @@
   "conversationFormatCodeBlock": "代码块",
   "conversationFormatLink": "链接",
   "conversationMessageListSemantics": "消息列表",
-
   "membersTitle": "成员",
   "membersRemoveTitle": "移除成员？",
   "membersCancel": "取消",
@@ -1021,17 +946,12 @@
   "membersMakeMember": "设为成员",
   "membersRemoveMember": "移除成员",
   "membersProfileMessage": "发消息",
-
   "savedMessagesRetry": "重试",
-
   "biometricTryAgain": "重试",
   "biometricDisableContinue": "禁用并继续",
   "biometricSkipForNow": "暂时跳过",
-
   "shareTargetTitle": "分享到...",
-
   "translationFailed": "翻译失败。点击重试。",
-
   "membersRemoveBody": "确定要将 {name} 从此服务器中移除吗？",
   "membersEmailValidationError": "请输入有效的邮箱地址",
   "membersInviteTitle": "邀请成员",
@@ -1042,14 +962,12 @@
   "membersInviteCopyLink": "复制链接",
   "membersRoleAdminSubtitle": "可以管理成员和邀请",
   "membersRoleMemberSubtitle": "标准工作空间访问权限",
-
   "savedMessagesTitle": "已保存",
   "savedMessagesEmptyTitle": "没有已保存的消息",
   "savedMessagesEmptySubtitle": "长按消息并点击「保存」即可收藏。\n已保存的消息将显示在此处以供快速查阅。",
   "savedMessagesUnsaveTooltip": "取消保存",
-  "savedMessagesSourceDm": "\u00b7 私信",
-  "savedMessagesSourceChannel": "\u00b7 # {name}",
-
+  "savedMessagesSourceDm": "· 私信",
+  "savedMessagesSourceChannel": "· # {name}",
   "biometricPrompt": "验证身份以继续使用 Slock",
   "biometricLockTitle": "验证身份以继续",
   "biometricLockSubtitle": "验证您的身份以访问 Slock",
@@ -1058,51 +976,40 @@
   "biometricErrorNotAvailable": "生物识别不可用，请重试。",
   "biometricErrorNotEnrolled": "未注册生物识别，请重试。",
   "biometricErrorGeneric": "认证失败。再试一次（{count}/3）。",
-
   "shareSearchHint": "搜索对话...",
   "shareSectionChannels": "频道",
   "shareSectionDirectMessages": "私信",
-
   "translationShowOriginal": "显示原文",
   "translationShowTranslation": "显示翻译",
-  "translationPending": "翻译中\u2026",
-
+  "translationPending": "翻译中…",
   "notificationPrefAllTitle": "所有消息",
   "notificationPrefAllDescription": "接收所有消息的通知。",
   "notificationPrefMentionsTitle": "仅提及和私信",
   "notificationPrefMentionsDescription": "仅接收私信的通知。",
   "notificationPrefMuteTitle": "静音",
   "notificationPrefMuteDescription": "不显示任何前台通知。",
-
   "membersInviteHumanTooltip": "邀请成员",
   "membersErrorTitle": "成员不可用",
   "membersErrorMessage": "目前无法加载工作区成员。",
   "membersEmptyMessage": "暂无成员。",
   "membersInviteSent": "已向 {email} 发送邀请邮件。",
-  "membersSearchHint": "搜索成员\u2026",
+  "membersSearchHint": "搜索成员…",
   "membersSearchEmpty": "没有匹配的成员。",
   "membersSectionHumans": "成员",
   "membersSectionAgents": "智能体",
   "membersRoleChanged": "{name} 现在是{role}。",
   "membersRoleOwner": "所有者",
-  "membersRoleAdmin": "管理员",
-  "membersRoleMember": "成员",
-
   "homeSearchTooltip": "搜索",
-
   "audioPlaybackFailed": "音频播放失败",
-
   "crashRecoveryTitle": "应用已恢复",
   "crashRecoveryMessage": "应用在上次会话中意外停止。您可以导出诊断日志帮助我们调查。",
   "crashRecoveryContinue": "继续",
   "crashRecoveryExport": "导出诊断日志",
-
   "filePreviewShareFailed": "文件分享失败。",
   "filePreviewShareTooltip": "分享",
   "filePreviewOpenExternal": "在外部应用中打开",
   "filePreviewRetry": "重试",
-  "filePreviewOpenWith": "打开方式\u2026",
-
+  "filePreviewOpenWith": "打开方式…",
   "annotationDraw": "画笔",
   "annotationText": "文字",
   "annotationArrow": "箭头",
@@ -1114,11 +1021,9 @@
   "annotationColorYellow": "黄色",
   "annotationColorWhite": "白色",
   "annotationColorBlack": "黑色",
-
   "voiceRecorderCancel": "取消录音",
   "voiceRecorderSend": "发送语音消息",
   "voiceMessageScrubber": "语音消息进度条",
-
   "voiceBubblePause": "暂停",
   "voiceBubblePlay": "播放",
   "memberListItemMessageTooltip": "发消息",
@@ -1126,14 +1031,11 @@
   "homeOverviewSemantics": "首页概览",
   "linkPreviewSemantics": "链接预览：{domain}",
   "textPreviewShowMore": "展开更多",
-  "textPreviewShowLess": "收起",
   "profileAvatarEditSemantics": "编辑头像",
-
   "screenshotCanvasSemantics": "截图标注画布",
   "voiceWaveformSemantics": "录音波形",
   "unreadFilterLabel": "未读",
   "allFilterLabel": "全部",
-
   "agentEditTooltip": "编辑智能体",
   "agentDeleteTooltip": "删除智能体",
   "searchClearTooltip": "清除搜索",
@@ -1146,7 +1048,6 @@
   "togglePasswordVisibilityTooltip": "切换密码可见性",
   "dismissAnnouncementTooltip": "关闭",
   "shareTargetCancelTooltip": "取消",
-
   "dmAgentBadge": "智能体",
   "dmActionMoveUp": "上移",
   "dmActionMoveDown": "下移",
@@ -1154,7 +1055,6 @@
   "dmActionUnpin": "取消置顶",
   "dmActionMarkUnread": "标为未读",
   "dmActionClose": "关闭对话",
-
   "taskOverlayDropTitle": "拖放以更改状态",
   "taskOverlayCancelHint": "在方框外释放以取消",
   "taskOverlayMovedTo": "已移至{status}",
@@ -1168,7 +1068,6 @@
   "taskStatusDescInProgress": "进行中",
   "taskStatusDescInReview": "需要审核",
   "taskStatusDescDone": "已完成",
-
   "homeRetrySemantics": "重试",
   "homeUnreadOverflowSemantics": "查看所有未读对话",
   "homeServerSwitcherSemantics": "切换工作区",

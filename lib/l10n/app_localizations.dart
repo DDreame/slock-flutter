@@ -172,12 +172,6 @@ abstract class AppLocalizations {
   /// **'Password is required.'**
   String get loginPasswordRequiredError;
 
-  /// No description provided for @loginFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Login failed. Please try again.'**
-  String get loginFailedFallback;
-
   /// No description provided for @registerTitle.
   ///
   /// In en, this message translates to:
@@ -238,12 +232,6 @@ abstract class AppLocalizations {
   /// **'Password must be at least 8 characters.'**
   String get registerPasswordTooShortError;
 
-  /// No description provided for @registerFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Registration failed. Please try again.'**
-  String get registerFailedFallback;
-
   /// No description provided for @forgotPasswordTitle.
   ///
   /// In en, this message translates to:
@@ -291,12 +279,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid email address.'**
   String get forgotPasswordEmailInvalidError;
-
-  /// No description provided for @forgotPasswordFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to send reset email. Please try again.'**
-  String get forgotPasswordFailedFallback;
 
   /// No description provided for @resetPasswordTitle.
   ///
@@ -351,12 +333,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Passwords do not match.'**
   String get resetPasswordMismatchError;
-
-  /// No description provided for @resetPasswordFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Password reset failed. The link may be expired.'**
-  String get resetPasswordFailedFallback;
 
   /// No description provided for @verifyEmailTitle.
   ///
@@ -424,18 +400,6 @@ abstract class AppLocalizations {
   /// **'Enter a verification token.'**
   String get verifyEmailTokenRequiredError;
 
-  /// No description provided for @verifyEmailFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Verification failed. The link may be expired.'**
-  String get verifyEmailFailedFallback;
-
-  /// No description provided for @verifyEmailResendFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to resend verification email.'**
-  String get verifyEmailResendFailedFallback;
-
   /// No description provided for @navWorkspace.
   ///
   /// In en, this message translates to:
@@ -466,101 +430,11 @@ abstract class AppLocalizations {
   /// **'New agent'**
   String get agentsNewTooltip;
 
-  /// No description provided for @agentsNoMachineAssigned.
-  ///
-  /// In en, this message translates to:
-  /// **'No Machine Assigned'**
-  String get agentsNoMachineAssigned;
-
   /// No description provided for @releaseNotesTitle.
   ///
   /// In en, this message translates to:
   /// **'Release Notes'**
   String get releaseNotesTitle;
-
-  /// No description provided for @navSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Settings'**
-  String get navSettings;
-
-  /// No description provided for @homeWorkspaceConsole.
-  ///
-  /// In en, this message translates to:
-  /// **'Workspace Console'**
-  String get homeWorkspaceConsole;
-
-  /// No description provided for @homeConsoleActivityTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Activity'**
-  String get homeConsoleActivityTitle;
-
-  /// No description provided for @homeConsoleActivityDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved context, threads, tasks, and search.'**
-  String get homeConsoleActivityDescription;
-
-  /// No description provided for @homeConsoleSavedMessages.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved Messages'**
-  String get homeConsoleSavedMessages;
-
-  /// No description provided for @homeConsoleSavedMessagesDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Return to bookmarked updates and references.'**
-  String get homeConsoleSavedMessagesDescription;
-
-  /// No description provided for @homeConsoleThreads.
-  ///
-  /// In en, this message translates to:
-  /// **'Threads'**
-  String get homeConsoleThreads;
-
-  /// No description provided for @homeConsoleThreadsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Review active thread work across the workspace.'**
-  String get homeConsoleThreadsDescription;
-
-  /// No description provided for @homeConsoleTasks.
-  ///
-  /// In en, this message translates to:
-  /// **'Tasks'**
-  String get homeConsoleTasks;
-
-  /// No description provided for @homeConsoleTasksDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'See task queues and execution status.'**
-  String get homeConsoleTasksDescription;
-
-  /// No description provided for @homeConsoleSearch.
-  ///
-  /// In en, this message translates to:
-  /// **'Search'**
-  String get homeConsoleSearch;
-
-  /// No description provided for @homeConsoleSearchDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Find channels, messages, and workspace history.'**
-  String get homeConsoleSearchDescription;
-
-  /// No description provided for @homeConsoleOperationsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Operations'**
-  String get homeConsoleOperationsTitle;
-
-  /// No description provided for @homeConsoleOperationsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'People, infrastructure, billing, and settings.'**
-  String get homeConsoleOperationsDescription;
 
   /// No description provided for @homeConsoleMembers.
   ///
@@ -568,59 +442,17 @@ abstract class AppLocalizations {
   /// **'Members'**
   String get homeConsoleMembers;
 
-  /// No description provided for @homeConsoleMembersDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage workspace roles and invitations.'**
-  String get homeConsoleMembersDescription;
-
-  /// No description provided for @homeConsoleAgentControl.
-  ///
-  /// In en, this message translates to:
-  /// **'Agent Control'**
-  String get homeConsoleAgentControl;
-
-  /// No description provided for @homeConsoleAgentControlDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Inspect agent activity and assignments.'**
-  String get homeConsoleAgentControlDescription;
-
-  /// No description provided for @homeConsoleMachines.
-  ///
-  /// In en, this message translates to:
-  /// **'Machines'**
-  String get homeConsoleMachines;
-
-  /// No description provided for @homeConsoleMachinesDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Check workspace runtime capacity and hosts.'**
-  String get homeConsoleMachinesDescription;
-
   /// No description provided for @homeConsoleBilling.
   ///
   /// In en, this message translates to:
   /// **'Billing'**
   String get homeConsoleBilling;
 
-  /// No description provided for @homeConsoleBillingDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Review plan controls and billing management.'**
-  String get homeConsoleBillingDescription;
-
   /// No description provided for @homeConsoleWorkspaceSettings.
   ///
   /// In en, this message translates to:
   /// **'Workspace Settings'**
   String get homeConsoleWorkspaceSettings;
-
-  /// No description provided for @homeConsoleWorkspaceSettingsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure workspace-level defaults and access.'**
-  String get homeConsoleWorkspaceSettingsDescription;
 
   /// No description provided for @homeCardAgents.
   ///
@@ -634,24 +466,6 @@ abstract class AppLocalizations {
   /// **'agents in workspace'**
   String get homeCardAgentsSubtitle;
 
-  /// No description provided for @homeCardAgentsOnline.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} online'**
-  String homeCardAgentsOnline(int count);
-
-  /// No description provided for @homeCardAgentsError.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} error'**
-  String homeCardAgentsError(int count);
-
-  /// No description provided for @homeCardAgentsStopped.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} stopped'**
-  String homeCardAgentsStopped(int count);
-
   /// No description provided for @homeCardAgentsEmpty.
   ///
   /// In en, this message translates to:
@@ -664,23 +478,11 @@ abstract class AppLocalizations {
   /// **'TASKS'**
   String get homeCardTasks;
 
-  /// No description provided for @homeCardTasksSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'total tasks'**
-  String get homeCardTasksSubtitle;
-
   /// No description provided for @homeCardTasksEmpty.
   ///
   /// In en, this message translates to:
   /// **'No active tasks'**
   String get homeCardTasksEmpty;
-
-  /// No description provided for @homeCardTasksUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Tasks unavailable'**
-  String get homeCardTasksUnavailable;
 
   /// No description provided for @homeCardTasksOverflow.
   ///
@@ -724,36 +526,6 @@ abstract class AppLocalizations {
   /// **'View all'**
   String get homeCardViewAll;
 
-  /// No description provided for @homeCardAgentActivityOnline.
-  ///
-  /// In en, this message translates to:
-  /// **'online'**
-  String get homeCardAgentActivityOnline;
-
-  /// No description provided for @homeCardAgentActivityThinking.
-  ///
-  /// In en, this message translates to:
-  /// **'thinking'**
-  String get homeCardAgentActivityThinking;
-
-  /// No description provided for @homeCardAgentActivityWorking.
-  ///
-  /// In en, this message translates to:
-  /// **'working'**
-  String get homeCardAgentActivityWorking;
-
-  /// No description provided for @homeCardAgentActivityError.
-  ///
-  /// In en, this message translates to:
-  /// **'error'**
-  String get homeCardAgentActivityError;
-
-  /// No description provided for @homeCardAgentActivityOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'offline'**
-  String get homeCardAgentActivityOffline;
-
   /// No description provided for @homeCardTimeAgoNow.
   ///
   /// In en, this message translates to:
@@ -796,60 +568,6 @@ abstract class AppLocalizations {
   /// **'+{count} more'**
   String homeCardUnreadOverflow(int count);
 
-  /// No description provided for @homeCardUnreadBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'{count}'**
-  String homeCardUnreadBadge(int count);
-
-  /// No description provided for @homeCardUnreadMarkAllRead.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark all read'**
-  String get homeCardUnreadMarkAllRead;
-
-  /// No description provided for @homeSectionPinned.
-  ///
-  /// In en, this message translates to:
-  /// **'Pinned'**
-  String get homeSectionPinned;
-
-  /// No description provided for @homeSectionChannels.
-  ///
-  /// In en, this message translates to:
-  /// **'Channels'**
-  String get homeSectionChannels;
-
-  /// No description provided for @homeSectionDirectMessages.
-  ///
-  /// In en, this message translates to:
-  /// **'Direct Messages'**
-  String get homeSectionDirectMessages;
-
-  /// No description provided for @homeSectionPinnedAgents.
-  ///
-  /// In en, this message translates to:
-  /// **'Pinned Agents'**
-  String get homeSectionPinnedAgents;
-
-  /// No description provided for @homeSectionAgents.
-  ///
-  /// In en, this message translates to:
-  /// **'Agents'**
-  String get homeSectionAgents;
-
-  /// No description provided for @homeChannelsEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No channels yet.'**
-  String get homeChannelsEmpty;
-
-  /// No description provided for @homeDirectMessagesEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No direct messages yet.'**
-  String get homeDirectMessagesEmpty;
-
   /// No description provided for @homeCreateChannelTooltip.
   ///
   /// In en, this message translates to:
@@ -879,18 +597,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unhide'**
   String get homeUnhide;
-
-  /// No description provided for @homePin.
-  ///
-  /// In en, this message translates to:
-  /// **'Pin'**
-  String get homePin;
-
-  /// No description provided for @homeUnpin.
-  ///
-  /// In en, this message translates to:
-  /// **'Unpin'**
-  String get homeUnpin;
 
   /// No description provided for @homeNoServerMessage.
   ///
@@ -922,12 +628,6 @@ abstract class AppLocalizations {
   /// **'Channels'**
   String get channelsTabTitle;
 
-  /// No description provided for @channelsTabPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'Channel list will be available here soon.'**
-  String get channelsTabPlaceholder;
-
   /// No description provided for @channelsTabSearchHint.
   ///
   /// In en, this message translates to:
@@ -945,18 +645,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Messages'**
   String get dmsTabTitle;
-
-  /// No description provided for @dmsTabHeadline.
-  ///
-  /// In en, this message translates to:
-  /// **'Direct Messages'**
-  String get dmsTabHeadline;
-
-  /// No description provided for @dmsTabPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'Direct messages will be available here soon.'**
-  String get dmsTabPlaceholder;
 
   /// No description provided for @dmsTabSearchHint.
   ///
@@ -982,23 +670,11 @@ abstract class AppLocalizations {
   /// **'Channel created.'**
   String get homeChannelCreated;
 
-  /// No description provided for @homeChannelCreateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to create channel.'**
-  String get homeChannelCreateFailed;
-
   /// No description provided for @homeChannelUpdated.
   ///
   /// In en, this message translates to:
   /// **'Channel updated.'**
   String get homeChannelUpdated;
-
-  /// No description provided for @homeChannelUpdateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to update channel.'**
-  String get homeChannelUpdateFailed;
 
   /// No description provided for @homeDeleteChannelTitle.
   ///
@@ -1024,12 +700,6 @@ abstract class AppLocalizations {
   /// **'Channel deleted.'**
   String get homeChannelDeleted;
 
-  /// No description provided for @homeChannelDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to delete channel.'**
-  String get homeChannelDeleteFailed;
-
   /// No description provided for @homeLeaveChannelTitle.
   ///
   /// In en, this message translates to:
@@ -1054,23 +724,11 @@ abstract class AppLocalizations {
   /// **'Left channel.'**
   String get homeChannelLeft;
 
-  /// No description provided for @homeChannelLeaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to leave channel.'**
-  String get homeChannelLeaveFailed;
-
   /// No description provided for @baseUrlSettingsTitle.
   ///
   /// In en, this message translates to:
   /// **'Server Configuration'**
   String get baseUrlSettingsTitle;
-
-  /// No description provided for @baseUrlSettingsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Configure custom API and WebSocket endpoints.'**
-  String get baseUrlSettingsSubtitle;
 
   /// No description provided for @baseUrlApiLabel.
   ///
@@ -1173,12 +831,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Using build-time default'**
   String get baseUrlEmptyDefault;
-
-  /// No description provided for @baseUrlRestartRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Restart required to apply changes.'**
-  String get baseUrlRestartRequired;
 
   /// No description provided for @baseUrlSettingsSettingsTile.
   ///
@@ -1294,12 +946,6 @@ abstract class AppLocalizations {
   /// **'Workspace renamed.'**
   String get workspaceSettingsRenamedSnackbar;
 
-  /// No description provided for @workspaceSettingsRenameFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to rename workspace.'**
-  String get workspaceSettingsRenameFailed;
-
   /// No description provided for @workspaceSettingsDeleteDialogTitle.
   ///
   /// In en, this message translates to:
@@ -1318,12 +964,6 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get workspaceSettingsDeleteConfirmLabel;
 
-  /// No description provided for @workspaceSettingsDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to delete workspace.'**
-  String get workspaceSettingsDeleteFailed;
-
   /// No description provided for @workspaceSettingsLeaveDialogTitle.
   ///
   /// In en, this message translates to:
@@ -1341,12 +981,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Leave'**
   String get workspaceSettingsLeaveConfirmLabel;
-
-  /// No description provided for @workspaceSettingsLeaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to leave workspace.'**
-  String get workspaceSettingsLeaveFailed;
 
   /// No description provided for @previewDeleted.
   ///
@@ -1864,12 +1498,6 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get searchRetry;
 
-  /// No description provided for @searchFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Search failed.'**
-  String get searchFailedFallback;
-
   /// No description provided for @searchSectionChannels.
   ///
   /// In en, this message translates to:
@@ -2062,12 +1690,6 @@ abstract class AppLocalizations {
   /// **'Machine Registered'**
   String get machinesRegisteredTitle;
 
-  /// No description provided for @machinesRegisterFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to register machine.'**
-  String get machinesRegisterFailed;
-
   /// No description provided for @machinesRenameTitle.
   ///
   /// In en, this message translates to:
@@ -2092,23 +1714,11 @@ abstract class AppLocalizations {
   /// **'Machine renamed.'**
   String get machinesRenamedSnackbar;
 
-  /// No description provided for @machinesRenameFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to rename machine.'**
-  String get machinesRenameFailed;
-
   /// No description provided for @machinesRotatedApiKeyTitle.
   ///
   /// In en, this message translates to:
   /// **'Rotated API Key'**
   String get machinesRotatedApiKeyTitle;
-
-  /// No description provided for @machinesRotateApiKeyFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to rotate machine API key.'**
-  String get machinesRotateApiKeyFailed;
 
   /// No description provided for @machinesDeleteTitle.
   ///
@@ -2133,12 +1743,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Machine deleted.'**
   String get machinesDeletedSnackbar;
-
-  /// No description provided for @machinesDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to delete machine.'**
-  String get machinesDeleteFailed;
 
   /// No description provided for @machinesApiKeyRevealedNote.
   ///
@@ -2350,23 +1954,11 @@ abstract class AppLocalizations {
   /// **'Workspace deleted.'**
   String get workspacesDeletedSnackbar;
 
-  /// No description provided for @workspacesDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to delete workspace.'**
-  String get workspacesDeleteFailed;
-
   /// No description provided for @workspacesMetaPath.
   ///
   /// In en, this message translates to:
   /// **'Path'**
   String get workspacesMetaPath;
-
-  /// No description provided for @workspacesMetaAgent.
-  ///
-  /// In en, this message translates to:
-  /// **'Agent'**
-  String get workspacesMetaAgent;
 
   /// No description provided for @workspacesStatusActive.
   ///
@@ -2404,18 +1996,6 @@ abstract class AppLocalizations {
   /// **'Task created.'**
   String get tasksCreatedSnackbar;
 
-  /// No description provided for @tasksCreateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to create task.'**
-  String get tasksCreateFailed;
-
-  /// No description provided for @tasksUpdateFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to update task.'**
-  String get tasksUpdateFailed;
-
   /// No description provided for @tasksRetryAction.
   ///
   /// In en, this message translates to:
@@ -2451,24 +2031,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Task deleted.'**
   String get tasksDeletedSnackbar;
-
-  /// No description provided for @tasksDeleteFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to delete task.'**
-  String get tasksDeleteFailed;
-
-  /// No description provided for @tasksClaimFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to claim task.'**
-  String get tasksClaimFailed;
-
-  /// No description provided for @tasksUnclaimFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to unclaim task.'**
-  String get tasksUnclaimFailed;
 
   /// No description provided for @tasksHeaderTitle.
   ///
@@ -3029,12 +2591,6 @@ abstract class AppLocalizations {
   /// **'[Message deleted]'**
   String get conversationMessageDeletedPlaceholder;
 
-  /// No description provided for @conversationReactionFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to add reaction.'**
-  String get conversationReactionFailedFallback;
-
   /// No description provided for @conversationReactWithEmojiTitle.
   ///
   /// In en, this message translates to:
@@ -3046,12 +2602,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'React with {emoji}'**
   String conversationReactWithEmojiSemantics(String emoji);
-
-  /// No description provided for @conversationReactionUpdateFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to update reaction.'**
-  String get conversationReactionUpdateFailedFallback;
 
   /// No description provided for @conversationDeleteDialogTitle.
   ///
@@ -3082,12 +2632,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Message deleted.'**
   String get conversationDeleteSuccess;
-
-  /// No description provided for @conversationDeleteFailedFallback.
-  ///
-  /// In en, this message translates to:
-  /// **'Failed to delete message.'**
-  String get conversationDeleteFailedFallback;
 
   /// No description provided for @conversationOpenLinkTitle.
   ///
@@ -6166,12 +5710,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show more'**
   String get textPreviewShowMore;
-
-  /// No description provided for @textPreviewShowLess.
-  ///
-  /// In en, this message translates to:
-  /// **'Show less'**
-  String get textPreviewShowLess;
 
   /// No description provided for @profileAvatarEditSemantics.
   ///

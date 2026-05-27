@@ -50,7 +50,6 @@ void main() {
         expect(enL10n.searchIdleText, isNotEmpty);
         expect(enL10n.searchNoResults, isNotEmpty);
         expect(enL10n.searchRetry, isNotEmpty);
-        expect(enL10n.searchFailedFallback, isNotEmpty);
         expect(enL10n.searchSectionChannels, isNotEmpty);
         expect(enL10n.searchSectionContacts, isNotEmpty);
         expect(enL10n.searchSectionMessages, isNotEmpty);
