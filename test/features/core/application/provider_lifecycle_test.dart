@@ -664,6 +664,9 @@ class _TrackingRealtimeIngress implements RealtimeReductionIngress {
   bool accept(RealtimeEventEnvelope envelope) => false;
 
   @override
+  void reset() {}
+
+  @override
   Future<void> dispose() async => _controller.close();
 }
 
