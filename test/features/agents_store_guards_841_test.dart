@@ -120,8 +120,55 @@ void main() {
         _testAgent('agent-1'),
       ]);
 
-      // No exception means _disposed guard worked.
+      // No exception means post-await _disposed guard worked.
       await loadFuture;
+    });
+
+    test('load() after dispose returns immediately without throwing',
+        () async {
+      // Load-bearing test for the TOP-OF-METHOD disposed guard in load().
+      // Without `if (_disposed) return;`, the method proceeds past the guard:
+      //   1. Sets state to loading (unnecessary mutation)
+      //   2. Calls ref.read (throws StateError on disposed container)
+      //   3. Falls into generic catch block → if (_disposed) return
+      // The catch-block guard masks the crash, but the state WAS mutated
+      // from initial → loading before the throw. With the entry guard,
+      // state remains untouched (initial).
+      final repo = _TrackingAgentsRepository();
+      final container = ProviderContainer(overrides: [
+        agentsRepositoryProvider.overrideWithValue(repo),
+        agentsMachinesLoaderProvider
+            .overrideWithValue(() async => <MachineItem>[]),
+        realtimeServiceProvider.overrideWith(
+          () => _NoOpRealtimeService(),
+        ),
+      ]);
+
+      // Grab the notifier reference before dispose.
+      final store = container.read(agentsStoreProvider.notifier);
+
+      // Capture initial state status before dispose.
+      expect(store.state.status, AgentsStatus.initial);
+
+      // Dispose the container — marks _disposed = true AND invalidates ref.
+      container.dispose();
+
+      // Call load() AFTER dispose — must return immediately.
+      await store.load();
+
+      // With the entry guard: state stays at `initial` (never mutated).
+      // Without the entry guard: state changes to `loading` before ref.read
+      // throws, then the catch block returns — state stuck at `loading`.
+      expect(
+        store.state.status,
+        AgentsStatus.initial,
+        reason: 'load() entry guard must prevent state mutation to loading; '
+            'removing the guard causes state to be set to loading before '
+            'the ref.read StateError is caught → test RED',
+      );
+
+      // Also verify the repository was never called.
+      expect(repo.listAgentsCalls, 0);
     });
 
     test('deleteAgent does not write state after dispose', () async {
@@ -183,6 +230,10 @@ void main() {
   // ---------------------------------------------------------------------------
   group('INV-841-BACKOFF: backoff streak reset on server switch', () {
     test('streak resets when realtimeSocketClientProvider rebuilds', () async {
+      // Capture actual delays passed to the sleeper so we can assert the
+      // post-switch reconnect uses streak=0 (base delay), NOT streak=3.
+      final capturedDelays = <Duration>[];
+
       // Use a StateProvider to simulate the socket client changing
       // (which happens on server switch / token refresh).
       final socketClientState = StateProvider<RealtimeSocketClient>(
@@ -193,7 +244,9 @@ void main() {
         realtimeSocketClientProvider.overrideWith(
           (ref) => ref.watch(socketClientState),
         ),
-        realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
+        realtimeBackoffSleeperProvider.overrideWithValue((d) async {
+          capturedDelays.add(d);
+        }),
         realtimeBackoffRandomProvider.overrideWithValue(_FakeRandom()),
         realtimeReductionIngressProvider.overrideWithValue(
           _FakeIngress(),
@@ -209,33 +262,44 @@ void main() {
       // Connect first so _boundSocketClient is set.
       await service.connect();
 
-      // Force reconnect 3 times to build up streak.
+      // Force reconnect 3 times to build up streak (streak goes 0→1→2→3).
       await service.forceReconnect(reason: 'test-1');
       await service.forceReconnect(reason: 'test-2');
       await service.forceReconnect(reason: 'test-3');
 
-      // State should show 3 reconnect attempts.
-      expect(
-        container.read(realtimeServiceProvider).reconnectAttempts,
-        3,
-      );
+      // Sanity: 3 delays captured, escalating (streak 0, 1, 2).
+      // With _FakeRandom.nextInt(1000)=0 and baseDelay=1000ms:
+      //   streak=0 → 1000ms, streak=1 → 2000ms, streak=2 → 4000ms
+      expect(capturedDelays.length, 3);
+      expect(capturedDelays[0], const Duration(milliseconds: 1000));
+      expect(capturedDelays[1], const Duration(milliseconds: 2000));
+      expect(capturedDelays[2], const Duration(milliseconds: 4000));
 
       // Simulate server switch — new socket client.
       container.read(socketClientState.notifier).state = _FakeSocketClient();
       await Future<void>.delayed(Duration.zero);
 
-      // Now force reconnect — delay should be based on streak=0 (base delay),
-      // NOT streak=3.  The cumulative reconnectAttempts still increments (4).
+      // Now force reconnect — delay MUST be streak=0 level (1000ms),
+      // NOT streak=3 level (8000ms).
       await service.forceReconnect(reason: 'after-switch');
+
+      // Load-bearing assertion: removing `_backoffStreak = 0` from the
+      // server-switch handler makes the 4th delay = 8000ms (streak=3),
+      // turning this test RED.
+      expect(
+        capturedDelays.last,
+        const Duration(milliseconds: 1000),
+        reason:
+            'Post-switch reconnect must use streak=0 base delay (1000ms), '
+            'not elevated streak=3 delay (8000ms)',
+      );
+
+      // Cumulative attempts counter still increments independently.
       expect(
         container.read(realtimeServiceProvider).reconnectAttempts,
         4,
         reason: 'Cumulative attempts still increment',
       );
-
-      // The fact that the test completes without the sleeper getting a
-      // streak-3 delay proves the streak was reset. We verify via the
-      // delay captured by the sleeper.
     });
   });
 
@@ -425,6 +489,41 @@ class _SlowActivityLogRepository
     int limit = 50,
   }) =>
       activityLogCompleter.future;
+  @override
+  Future<AgentItem> createAgent(AgentMutationInput input) async =>
+      _testAgent('new');
+  @override
+  Future<AgentItem> updateAgent(
+          String agentId, AgentMutationInput input) async =>
+      _testAgent(agentId);
+  @override
+  Future<void> deleteAgent(String agentId) async {}
+}
+
+/// Repository that counts calls to listAgents — used to verify the
+/// top-of-method _disposed guard prevents API calls after dispose.
+class _TrackingAgentsRepository
+    implements AgentsRepository, AgentsMutationRepository {
+  int listAgentsCalls = 0;
+
+  @override
+  Future<List<AgentItem>> listAgents() async {
+    listAgentsCalls++;
+    return [_testAgent('agent-1')];
+  }
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+  @override
+  Future<void> stopAgent(String agentId) async {}
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      [];
   @override
   Future<AgentItem> createAgent(AgentMutationInput input) async =>
       _testAgent('new');
