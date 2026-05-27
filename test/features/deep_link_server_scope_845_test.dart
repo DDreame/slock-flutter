@@ -43,8 +43,10 @@ void main() {
       final handler = DeepLinkHandler(router: router, ref: container);
 
       // Dispatch the same path twice rapidly (< 500ms apart).
-      handler.handleDeepLink(Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
-      handler.handleDeepLink(Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
+      handler.handleDeepLink(
+          Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
+      handler.handleDeepLink(
+          Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
 
       // Only one push should have fired.
       expect(pushLog.length, 1);
@@ -62,8 +64,10 @@ void main() {
 
       final handler = DeepLinkHandler(router: router, ref: container);
 
-      handler.handleDeepLink(Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
-      handler.handleDeepLink(Uri.parse('https://app.slock.ai/servers/s1/channels/c2'));
+      handler.handleDeepLink(
+          Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
+      handler.handleDeepLink(
+          Uri.parse('https://app.slock.ai/servers/s1/channels/c2'));
 
       // Both should push (different paths).
       expect(pushLog.length, 2);
@@ -80,13 +84,15 @@ void main() {
 
       final handler = DeepLinkHandler(router: router, ref: container);
 
-      handler.handleDeepLink(Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
+      handler.handleDeepLink(
+          Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
       expect(pushLog.length, 1);
 
       // Wait past the debounce window (500ms).
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
-      handler.handleDeepLink(Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
+      handler.handleDeepLink(
+          Uri.parse('https://app.slock.ai/servers/s1/channels/c1'));
       expect(pushLog.length, 2);
 
       container.dispose();
@@ -97,8 +103,7 @@ void main() {
   // Group 2: ConversationDetail server scope check
   // ===========================================================================
   group('#845 — ConversationDetail server scope', () {
-    test(
-        'load discards response when active server changes during request',
+    test('load discards response when active server changes during request',
         () async {
       final loadCompleter = Completer<ConversationDetailSnapshot>();
       final repo = _DelayedConversationRepo(loadCompleter);
@@ -156,8 +161,7 @@ void main() {
 
       // The response should be discarded — title must NOT be updated.
       expect(store.state.title, isNot('Server 1 Channel'),
-          reason:
-              'load must discard response when active server has changed');
+          reason: 'load must discard response when active server has changed');
       expect(store.state.status, isNot(ConversationDetailStatus.success));
 
       sub.close();
@@ -188,8 +192,7 @@ class _FakeGoRouter implements GoRouter {
   }
 
   @override
-  GoRouteInformationProvider get routeInformationProvider =>
-      _fakeInfoProvider;
+  GoRouteInformationProvider get routeInformationProvider => _fakeInfoProvider;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
