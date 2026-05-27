@@ -1395,5 +1395,21 @@
   "taskStatusDescTodo": "Not started",
   "taskStatusDescInProgress": "Working on it",
   "taskStatusDescInReview": "Needs review",
-  "taskStatusDescDone": "Completed"
+  "taskStatusDescDone": "Completed",
+
+  "homeRetrySemantics": "Retry",
+  "homeUnreadOverflowSemantics": "View all unread conversations",
+  "homeServerSwitcherSemantics": "Switch workspace",
+  "unreadFilterToggleSemantics": "Toggle unread filter",
+  "unreadListItemSemantics": "Open conversation: {title}",
+  "@unreadListItemSemantics": { "placeholders": { "title": { "type": "String" } } },
+  "inboxItemSemantics": "Open notification",
+  "inboxFilterTabSemantics": "Filter: {label}",
+  "@inboxFilterTabSemantics": { "placeholders": { "label": { "type": "String" } } },
+  "searchScopeTabSemantics": "Search scope: {label}",
+  "@searchScopeTabSemantics": { "placeholders": { "label": { "type": "String" } } },
+  "filePreviewDismissSemantics": "Swipe down to close",
+  "messageLinkChipSemantics": "Open link: {url}",
+  "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
+  "attachmentImageFallbackSemantics": "Image attachment"
 }

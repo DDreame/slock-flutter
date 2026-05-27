@@ -390,15 +390,19 @@ class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
           widget.onMarkRead();
           return false;
         },
-        child: GestureDetector(
-          onTap: widget.onTap,
-          onLongPress: widget.onLongPress,
-          behavior: HitTestBehavior.opaque,
-          child: InboxItemTile(
-            projection: widget.projection,
-            isMentioned: widget.isMentioned,
-            channelId: widget.channelId,
+        child: Semantics(
+          button: true,
+          label: context.l10n.inboxItemSemantics,
+          child: GestureDetector(
             onTap: widget.onTap,
+            onLongPress: widget.onLongPress,
+            behavior: HitTestBehavior.opaque,
+            child: InboxItemTile(
+              projection: widget.projection,
+              isMentioned: widget.isMentioned,
+              channelId: widget.channelId,
+              onTap: widget.onTap,
+            ),
           ),
         ),
       ),
@@ -535,27 +539,31 @@ class _FilterTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colors.primary.withValues(alpha: 0.1)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          border: Border.all(
-            color: isSelected ? colors.primary : colors.border,
+    return Semantics(
+      button: true,
+      label: context.l10n.inboxFilterTabSemantics(label),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
           ),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.label.copyWith(
-            color: isSelected ? colors.primary : colors.textSecondary,
-            fontWeight: FontWeight.w500,
+          decoration: BoxDecoration(
+            color: isSelected
+                ? colors.primary.withValues(alpha: 0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            border: Border.all(
+              color: isSelected ? colors.primary : colors.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: AppTypography.label.copyWith(
+              color: isSelected ? colors.primary : colors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),

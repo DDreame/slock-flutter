@@ -3291,4 +3291,45 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get taskStatusDescDone => '已完成';
+
+  @override
+  String get homeRetrySemantics => '重试';
+
+  @override
+  String get homeUnreadOverflowSemantics => '查看所有未读对话';
+
+  @override
+  String get homeServerSwitcherSemantics => '切换工作区';
+
+  @override
+  String get unreadFilterToggleSemantics => '切换未读筛选';
+
+  @override
+  String unreadListItemSemantics(String title) {
+    return '打开对话：$title';
+  }
+
+  @override
+  String get inboxItemSemantics => '打开通知';
+
+  @override
+  String inboxFilterTabSemantics(String label) {
+    return '筛选：$label';
+  }
+
+  @override
+  String searchScopeTabSemantics(String label) {
+    return '搜索范围：$label';
+  }
+
+  @override
+  String get filePreviewDismissSemantics => '下滑关闭';
+
+  @override
+  String messageLinkChipSemantics(String url) {
+    return '打开链接：$url';
+  }
+
+  @override
+  String get attachmentImageFallbackSemantics => '图片附件';
 }

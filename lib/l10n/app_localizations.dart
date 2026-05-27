@@ -6394,6 +6394,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Completed'**
   String get taskStatusDescDone;
+
+  /// No description provided for @homeRetrySemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get homeRetrySemantics;
+
+  /// No description provided for @homeUnreadOverflowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'View all unread conversations'**
+  String get homeUnreadOverflowSemantics;
+
+  /// No description provided for @homeServerSwitcherSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch workspace'**
+  String get homeServerSwitcherSemantics;
+
+  /// No description provided for @unreadFilterToggleSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle unread filter'**
+  String get unreadFilterToggleSemantics;
+
+  /// No description provided for @unreadListItemSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Open conversation: {title}'**
+  String unreadListItemSemantics(String title);
+
+  /// No description provided for @inboxItemSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Open notification'**
+  String get inboxItemSemantics;
+
+  /// No description provided for @inboxFilterTabSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter: {label}'**
+  String inboxFilterTabSemantics(String label);
+
+  /// No description provided for @searchScopeTabSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Search scope: {label}'**
+  String searchScopeTabSemantics(String label);
+
+  /// No description provided for @filePreviewDismissSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe down to close'**
+  String get filePreviewDismissSemantics;
+
+  /// No description provided for @messageLinkChipSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link: {url}'**
+  String messageLinkChipSemantics(String url);
+
+  /// No description provided for @attachmentImageFallbackSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Image attachment'**
+  String get attachmentImageFallbackSemantics;
 }
 
 class _AppLocalizationsDelegate

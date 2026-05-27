@@ -181,7 +181,9 @@ class _ImageAttachmentPreview extends StatelessWidget {
       container: true,
       excludeSemantics: true,
       button: true,
-      label: attachment.name.isNotEmpty ? attachment.name : 'Image attachment',
+      label: attachment.name.isNotEmpty
+          ? attachment.name
+          : context.l10n.attachmentImageFallbackSemantics,
       onTap: () => _openFullScreen(context),
       child: GestureDetector(
         key: ValueKey('image-preview-${attachment.id ?? attachment.name}'),

@@ -3443,4 +3443,46 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get taskStatusDescDone => 'Completado';
+
+  @override
+  String get homeRetrySemantics => 'Reintentar';
+
+  @override
+  String get homeUnreadOverflowSemantics =>
+      'Ver todas las conversaciones no leídas';
+
+  @override
+  String get homeServerSwitcherSemantics => 'Cambiar espacio de trabajo';
+
+  @override
+  String get unreadFilterToggleSemantics => 'Alternar filtro de no leídos';
+
+  @override
+  String unreadListItemSemantics(String title) {
+    return 'Abrir conversación: $title';
+  }
+
+  @override
+  String get inboxItemSemantics => 'Abrir notificación';
+
+  @override
+  String inboxFilterTabSemantics(String label) {
+    return 'Filtro: $label';
+  }
+
+  @override
+  String searchScopeTabSemantics(String label) {
+    return 'Ámbito de búsqueda: $label';
+  }
+
+  @override
+  String get filePreviewDismissSemantics => 'Deslizar hacia abajo para cerrar';
+
+  @override
+  String messageLinkChipSemantics(String url) {
+    return 'Abrir enlace: $url';
+  }
+
+  @override
+  String get attachmentImageFallbackSemantics => 'Imagen adjunta';
 }

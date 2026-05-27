@@ -1238,5 +1238,21 @@
   "taskStatusDescTodo": "No iniciado",
   "taskStatusDescInProgress": "En proceso",
   "taskStatusDescInReview": "Necesita revisión",
-  "taskStatusDescDone": "Completado"
+  "taskStatusDescDone": "Completado",
+
+  "homeRetrySemantics": "Reintentar",
+  "homeUnreadOverflowSemantics": "Ver todas las conversaciones no leídas",
+  "homeServerSwitcherSemantics": "Cambiar espacio de trabajo",
+  "unreadFilterToggleSemantics": "Alternar filtro de no leídos",
+  "unreadListItemSemantics": "Abrir conversación: {title}",
+  "@unreadListItemSemantics": { "placeholders": { "title": { "type": "String" } } },
+  "inboxItemSemantics": "Abrir notificación",
+  "inboxFilterTabSemantics": "Filtro: {label}",
+  "@inboxFilterTabSemantics": { "placeholders": { "label": { "type": "String" } } },
+  "searchScopeTabSemantics": "Ámbito de búsqueda: {label}",
+  "@searchScopeTabSemantics": { "placeholders": { "label": { "type": "String" } } },
+  "filePreviewDismissSemantics": "Deslizar hacia abajo para cerrar",
+  "messageLinkChipSemantics": "Abrir enlace: {url}",
+  "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
+  "attachmentImageFallbackSemantics": "Imagen adjunta"
 }
