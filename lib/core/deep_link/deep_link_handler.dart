@@ -25,6 +25,15 @@ class DeepLinkHandler {
   static const _httpsHost = 'app.slock.ai';
   static const _customScheme = 'slock';
 
+  /// Debounce window for duplicate push prevention.
+  /// If the same path is dispatched within this duration, the second dispatch
+  /// is dropped. Prevents duplicate pushes from rapid link taps or
+  /// double-processing by concurrent delivery paths.
+  static const _dispatchDebounceDuration = Duration(milliseconds: 500);
+
+  String? _lastDispatchedPath;
+  DateTime? _lastDispatchTime;
+
   /// Whether the current session is authenticated.
   bool get _isAuthenticated => _ref.read(sessionStoreProvider).isAuthenticated;
 
@@ -95,6 +104,17 @@ class DeepLinkHandler {
   }
 
   void _dispatch(String path) {
+    // INV-845: Debounce duplicate dispatches — rapid link taps or concurrent
+    // delivery paths (stream + initial link) can trigger the same push twice.
+    final now = DateTime.now();
+    if (_lastDispatchedPath == path &&
+        _lastDispatchTime != null &&
+        now.difference(_lastDispatchTime!) < _dispatchDebounceDuration) {
+      return;
+    }
+    _lastDispatchedPath = path;
+    _lastDispatchTime = now;
+
     if (isInviteDeepLink(path)) {
       _router.go(path);
     } else if (!_isCurrentRoute(path)) {
