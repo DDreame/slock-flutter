@@ -181,9 +181,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Iniciar sesion'), findsWidgets);
-      expect(find.text('Correo electronico'), findsOneWidget);
-      expect(find.text('Olvidaste tu contrasena?'), findsOneWidget);
+      expect(find.text('Iniciar sesión'), findsWidgets);
+      expect(find.text('Correo electrónico'), findsOneWidget);
+      expect(find.text('Olvidaste tu contraseña?'), findsOneWidget);
     });
 
     testWidgets('shows server config gear icon in AppBar', (tester) async {
