@@ -20,8 +20,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/core/notifications/foreground_service_lifecycle_binding.dart';
-import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
