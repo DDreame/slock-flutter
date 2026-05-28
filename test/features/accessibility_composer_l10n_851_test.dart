@@ -24,11 +24,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/application/channel_management_state.dart';
+import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/presentation/page/create_channel_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/machines/application/machines_realtime_binding.dart';
+import 'package:slock_app/features/machines/application/machines_state.dart';
+import 'package:slock_app/features/machines/application/machines_store.dart';
+import 'package:slock_app/features/machines/data/machine_item.dart';
+import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -135,7 +144,7 @@ void main() {
   // Group 2: Composer InputDecoration hoist
   // ===========================================================================
   group('#851 — Composer InputDecoration hoist', () {
-    testWidgets('Composer uses hoisted static BorderRadius for InputDecoration',
+    testWidgets('Composer uses hoisted static BorderRadius and contentPadding',
         (tester) async {
       final target = ConversationDetailTarget.channel(
         const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
@@ -174,7 +183,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find the TextField and verify the decoration uses the hoisted radius.
+      // Find the TextField and verify the decoration uses the hoisted fields.
       final textField = tester.widget<TextField>(
         find.byKey(const ValueKey('composer-input')),
       );
@@ -193,6 +202,24 @@ void main() {
           isTrue,
           reason:
               'enabledBorder and focusedBorder must share hoisted BorderRadius. '
+              'Reverting to inline allocation → RED.');
+
+      // Verify it's the exact static field from ConversationComposer.
+      expect(
+          identical(
+              border.borderRadius, ConversationComposer.inputBorderRadius),
+          isTrue,
+          reason:
+              'BorderRadius must be the ConversationComposer.inputBorderRadius '
+              'static field — not a fresh allocation.');
+
+      // Verify contentPadding uses the hoisted static EdgeInsets.
+      expect(
+          identical(decoration.contentPadding,
+              ConversationComposer.inputContentPadding),
+          isTrue,
+          reason:
+              'contentPadding must be ConversationComposer.inputContentPadding. '
               'Reverting to inline allocation → RED.');
     });
   });
@@ -297,6 +324,134 @@ void main() {
               'Reverting to hardcoded English → RED.');
     });
   });
+
+  // ===========================================================================
+  // Group 5: Widget-level Semantics — CreateChannelPage visibility option
+  // ===========================================================================
+  group('#851 — CreateChannelPage visibility Semantics', () {
+    testWidgets(
+        'Visibility option has Semantics(button) + localized label under ZH',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            activeServerScopeIdProvider
+                .overrideWithValue(const ServerScopeId('srv')),
+            channelManagementStoreProvider
+                .overrideWith(() => _FakeChannelManagementStore()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const CreateChannelPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the public visibility option by key.
+      final publicOption =
+          find.byKey(const ValueKey('create-channel-visibility-public'));
+      expect(publicOption, findsOneWidget);
+
+      // Get the Semantics of the GestureDetector wrapping it.
+      final semantics = tester.getSemantics(publicOption);
+      expect(semantics.hasFlag(SemanticsFlag.isButton), isTrue,
+          reason: 'Removing Semantics(button: true) wrapper from '
+              '_VisibilityOption → RED.');
+    });
+  });
+
+  // ===========================================================================
+  // Group 6: Widget-level — ConversationMessageCard context menu Semantics
+  // ===========================================================================
+  group('#851 — ConversationMessageCard context menu Semantics', () {
+    testWidgets('System message card has Semantics(button) for context menu',
+        (tester) async {
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
+      );
+      // System messages get the Semantics(messageContextMenuSemantics) wrapper
+      final message = ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'User joined the channel',
+        createdAt: DateTime(2026),
+        senderType: 'system',
+        messageType: 'system',
+        senderId: 'system',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationDetailStoreProvider
+                .overrideWith(() => _FakeNormalModeStore(target)),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: ConversationMessageCard(
+                target: target,
+                message: message,
+                maxBubbleWidth: 300,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // System messages are wrapped in Semantics(button: true, label: '消息选项')
+      // Use find.byWidgetPredicate to find the Semantics widget directly.
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.label == '消息选项',
+      );
+      expect(semanticsFinder, findsOneWidget,
+          reason: 'Removing Semantics wrapper from system message context menu '
+              'GestureDetector → RED.');
+
+      final node = tester.getSemantics(semanticsFinder);
+      expect(node.hasFlag(SemanticsFlag.isButton), isTrue,
+          reason: 'Semantics(button: true) must flag isButton.');
+    });
+  });
+
+  // ===========================================================================
+  // Group 7: Widget-level — Machine fallback name in real widget
+  // ===========================================================================
+  group('#851 — Machine/Workspace fallback in real widget', () {
+    testWidgets('MachinesPage renders ZH fallback for empty-named machine',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            machinesStoreProvider.overrideWith(() => _FakeMachinesStore()),
+            machinesRealtimeBindingProvider.overrideWith((ref) {}),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: MachinesPage(serverId: 'srv'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Empty-named machine must render the ZH fallback.
+      expect(find.text('未命名设备'), findsOneWidget,
+          reason: 'Reverting machine.name.isNotEmpty ternary to '
+              'just machine.name → RED (shows empty text).');
+    });
+  });
 }
 
 // =============================================================================
@@ -343,4 +498,34 @@ class _FakeDiagnosticsCollector extends DiagnosticsCollector {
           metadata: const {'key': 'value'},
         ),
       ];
+}
+
+/// Normal mode store (not selection mode) for context menu test.
+class _FakeNormalModeStore extends ConversationDetailStore {
+  _FakeNormalModeStore(this._target);
+
+  final ConversationDetailTarget _target;
+
+  @override
+  ConversationDetailState build() => ConversationDetailState(
+        target: _target,
+        status: ConversationDetailStatus.success,
+      );
+}
+
+/// Fake ChannelManagementStore for CreateChannelPage test.
+class _FakeChannelManagementStore extends ChannelManagementStore {
+  @override
+  ChannelManagementState build() => const ChannelManagementState();
+}
+
+/// Fake MachinesStore that returns one item with empty name.
+class _FakeMachinesStore extends MachinesStore {
+  @override
+  MachinesState build() => const MachinesState(
+        status: MachinesStatus.success,
+        items: [
+          MachineItem(id: 'machine-1', name: '', status: 'online'),
+        ],
+      );
 }

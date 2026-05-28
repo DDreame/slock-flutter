@@ -65,11 +65,13 @@ class ConversationComposer extends ConsumerWidget {
   final bool enterToSend;
 
   /// Hoisted border radius to avoid per-build allocation (#851).
-  static final BorderRadius _inputBorderRadius =
+  @visibleForTesting
+  static final BorderRadius inputBorderRadius =
       BorderRadius.circular(AppSpacing.radiusFull);
 
   /// Hoisted content padding to avoid per-build allocation (#851).
-  static const EdgeInsets _inputContentPadding = EdgeInsets.symmetric(
+  @visibleForTesting
+  static const EdgeInsets inputContentPadding = EdgeInsets.symmetric(
     horizontal: AppSpacing.lg,
     vertical: AppSpacing.md,
   );
@@ -231,18 +233,18 @@ class ConversationComposer extends ConsumerWidget {
                         decoration: InputDecoration(
                           hintText: l10n.conversationComposerHint,
                           border: OutlineInputBorder(
-                            borderRadius: _inputBorderRadius,
+                            borderRadius: inputBorderRadius,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: _inputBorderRadius,
+                            borderRadius: inputBorderRadius,
                             borderSide: BorderSide(color: colors.border),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: _inputBorderRadius,
+                            borderRadius: inputBorderRadius,
                             borderSide:
                                 BorderSide(color: colors.primary, width: 1.5),
                           ),
-                          contentPadding: _inputContentPadding,
+                          contentPadding: inputContentPadding,
                         ),
                       ),
                     ),
