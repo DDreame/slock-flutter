@@ -13,6 +13,12 @@
 //    (reverting to hardcoded 'AI' → RED on ES locale)
 // 5. Machine fallback: empty name renders ZH localized fallback
 //    (reverting to hardcoded English → RED)
+// 6. quotedMessageTapSemantics: quoted message block with onTap has
+//    Semantics(button) + ZH label (removing Semantics → RED)
+// 7. quoteJumpDismissSemantics: QuoteJumpDismissibleOverlay(notFound) has
+//    Semantics(button) + ZH label (removing Semantics → RED)
+// 8. Workspace fallback: WorkspacesPage renders ZH fallback for empty name
+//    (reverting to hardcoded English → RED)
 // =============================================================================
 
 // ignore_for_file: lines_longer_than_80_chars, deprecated_member_use
@@ -30,14 +36,19 @@ import 'package:slock_app/features/channels/presentation/page/create_channel_pag
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/machines/application/machines_realtime_binding.dart';
 import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/application/machines_store.dart';
+import 'package:slock_app/features/machines/application/workspaces_state.dart';
+import 'package:slock_app/features/machines/application/workspaces_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
+import 'package:slock_app/features/machines/data/workspace_item.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
+import 'package:slock_app/features/machines/presentation/page/workspaces_page.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -452,6 +463,181 @@ void main() {
               'just machine.name → RED (shows empty text).');
     });
   });
+
+  // ===========================================================================
+  // Group 8: Widget-level — quotedMessageTapSemantics
+  // ===========================================================================
+  group('#851 — quotedMessageTapSemantics', () {
+    testWidgets(
+        'Quoted message block has Semantics(button) + ZH label when tappable',
+        (tester) async {
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
+      );
+      // Message with replyTo → _QuotedMessageBlock will render.
+      // onScrollToMessage provided → onTap != null → Semantics active.
+      final message = ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'Reply text',
+        createdAt: DateTime(2026),
+        senderType: 'human',
+        messageType: 'message',
+        senderId: 'user-1',
+        replyTo: const ReplyToSummary(
+          id: 'original-msg',
+          content: 'Original quoted text',
+          senderName: 'Alice',
+          senderType: 'human',
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationDetailStoreProvider
+                .overrideWith(() => _FakeNormalModeStore(target)),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: ConversationMessageCard(
+                target: target,
+                message: message,
+                maxBubbleWidth: 300,
+                onScrollToMessage: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The _QuotedMessageBlock must wrap its GestureDetector in Semantics
+      // with button=true and label from l10n.quotedMessageTapSemantics.
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.button == true &&
+            widget.properties.label == '跳转到引用消息',
+      );
+      expect(semanticsFinder, findsOneWidget,
+          reason: 'Removing Semantics wrapper from _QuotedMessageBlock → RED.');
+
+      final node = tester.getSemantics(semanticsFinder);
+      expect(node.hasFlag(SemanticsFlag.isButton), isTrue,
+          reason: 'Semantics(button: true) must flag isButton.');
+    });
+  });
+
+  // ===========================================================================
+  // Group 9: Widget-level — quoteJumpDismissSemantics
+  // ===========================================================================
+  group('#851 — quoteJumpDismissSemantics', () {
+    testWidgets(
+        'QuoteJumpDismissibleOverlay(notFound) has Semantics(button) + ZH label',
+        (tester) async {
+      bool dismissed = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: QuoteJumpDismissibleOverlay(
+              state: QuoteJumpState.notFound,
+              onDismiss: () => dismissed = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Must have Semantics(button: true, label: '关闭') when state==notFound.
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.button == true &&
+            widget.properties.label == '关闭',
+      );
+      expect(semanticsFinder, findsOneWidget,
+          reason: 'Removing Semantics from QuoteJumpDismissibleOverlay → RED.');
+
+      final node = tester.getSemantics(semanticsFinder);
+      expect(node.hasFlag(SemanticsFlag.isButton), isTrue,
+          reason: 'Semantics(button: true) must flag isButton.');
+
+      // Verify tapping actually calls onDismiss.
+      await tester.tap(find.byType(GestureDetector));
+      expect(dismissed, isTrue,
+          reason: 'Tapping overlay must invoke onDismiss callback.');
+    });
+
+    testWidgets(
+        'QuoteJumpDismissibleOverlay(loading) has NO Semantics button/label',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: QuoteJumpDismissibleOverlay(
+              state: QuoteJumpState.loading,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // In loading state, Semantics must NOT be a button.
+      final semanticsFinder = find.byWidgetPredicate(
+        (widget) => widget is Semantics && widget.properties.button == true,
+      );
+      expect(semanticsFinder, findsNothing,
+          reason: 'Loading state must not expose a button Semantics.');
+    });
+  });
+
+  // ===========================================================================
+  // Group 10: Widget-level — Workspace fallback in WorkspacesPage
+  // ===========================================================================
+  group('#851 — Workspace fallback in WorkspacesPage', () {
+    testWidgets('WorkspacesPage renders ZH fallback for empty-named workspace',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            workspacesStoreProvider.overrideWith(() => _FakeWorkspacesStore()),
+            currentWorkspacesMachineIdProvider.overrideWithValue('machine-1'),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: WorkspacesPage(
+              serverId: 'srv',
+              machineId: 'machine-1',
+              machineName: 'Test Machine',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Empty-named workspace must render the ZH fallback.
+      expect(find.text('未命名工作区'), findsOneWidget,
+          reason: 'Reverting workspace.name.isNotEmpty ternary to '
+              'just workspace.name → RED (shows empty text).');
+    });
+  });
 }
 
 // =============================================================================
@@ -528,4 +714,26 @@ class _FakeMachinesStore extends MachinesStore {
           MachineItem(id: 'machine-1', name: '', status: 'online'),
         ],
       );
+}
+
+/// Fake WorkspacesStore that returns one item with empty name.
+class _FakeWorkspacesStore extends WorkspacesStore {
+  @override
+  WorkspacesState build() => WorkspacesState(
+        status: WorkspacesStatus.success,
+        items: [
+          WorkspaceItem(
+            id: 'ws-1',
+            name: '',
+            machineId: 'machine-1',
+            createdAt: DateTime(2026),
+          ),
+        ],
+      );
+
+  @override
+  Future<void> load() async {}
+
+  @override
+  Future<void> deleteWorkspace(String workspaceId) async {}
 }

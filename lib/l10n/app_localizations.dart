@@ -6389,7 +6389,6 @@ abstract class AppLocalizations {
   /// **'System'**
   String get senderLabelSystem;
 
-
   /// No description provided for @sharePreviewAttachmentCount.
   ///
   /// In en, this message translates to:

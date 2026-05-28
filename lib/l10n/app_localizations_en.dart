@@ -3403,7 +3403,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get senderLabelSystem => 'System';
 
-
   @override
   String sharePreviewAttachmentCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
