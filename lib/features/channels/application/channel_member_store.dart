@@ -108,8 +108,9 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       if (_disposed) return;
       state = state.copyWith(failure: failure);
       rethrow;
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (_disposed) return;
+      _reportUnexpectedError('addHumanMember', error, stackTrace);
       state = state.copyWith(
         failure: UnknownFailure(
           message: 'Failed to add channel member.',
@@ -136,8 +137,9 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       if (_disposed) return;
       state = state.copyWith(failure: failure);
       rethrow;
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (_disposed) return;
+      _reportUnexpectedError('addAgentMember', error, stackTrace);
       state = state.copyWith(
         failure: UnknownFailure(
           message: 'Failed to add channel member.',
