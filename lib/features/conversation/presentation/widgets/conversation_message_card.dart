@@ -1098,34 +1098,38 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
     // Absorb taps and navigate to the tasks page so they don't
     // bubble up to the message card's thread-navigation
     // GestureDetector.
-    return GestureDetector(
-      onTap: () => context.push('/servers/$serverId/tasks'),
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        key: ValueKey('message-linked-task-${task.id}'),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: colors.container,
-          border: Border.all(color: colors.foreground),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: colors.onContainer),
-            const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                label.toString(),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onContainer,
-                  fontWeight: FontWeight.w700,
+    return Semantics(
+      button: true,
+      label: context.l10n.linkedTaskBadgeSemantics,
+      child: GestureDetector(
+        onTap: () => context.push('/servers/$serverId/tasks'),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          key: ValueKey('message-linked-task-${task.id}'),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: colors.container,
+            border: Border.all(color: colors.foreground),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 12, color: colors.onContainer),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label.toString(),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colors.onContainer,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

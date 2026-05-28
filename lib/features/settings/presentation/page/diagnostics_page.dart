@@ -68,6 +68,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
       ),
       floatingActionButton: FloatingActionButton(
         key: const ValueKey('diagnostics-export-fab'),
+        tooltip: l10n.diagnosticsExportFabTooltip,
         onPressed: () => DiagnosticShareSheet.show(context),
         child: const Icon(Icons.ios_share),
       ),

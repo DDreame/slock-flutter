@@ -1328,5 +1328,9 @@
   "sharePreviewAttachmentCount": "{count, plural, =1{1 archivo adjunto} other{{count} archivos adjuntos}}",
 
   "inboxFallbackDmName": "Desconocido",
-  "inboxFallbackMemberName": "Miembro"
+  "inboxFallbackMemberName": "Miembro",
+  "diagnosticsExportFabTooltip": "Exportar diagnósticos",
+  "scrollToBottomFabTooltip": "Ir al final",
+  "replyPreviewDismissSemantics": "Cerrar respuesta",
+  "linkedTaskBadgeSemantics": "Ver tarea vinculada"
 }

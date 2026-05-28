@@ -3324,4 +3324,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get inboxFallbackMemberName => '成员';
+  String get diagnosticsExportFabTooltip => '导出诊断信息';
+
+  @override
+  String get scrollToBottomFabTooltip => '滚动到底部';
+
+  @override
+  String get replyPreviewDismissSemantics => '关闭回复';
+
+  @override
+  String get linkedTaskBadgeSemantics => '查看关联任务';
 }

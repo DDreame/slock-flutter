@@ -486,36 +486,44 @@ class _InboxFilterTabs extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _FilterTab(
-            key: const ValueKey('inbox-filter-unread'),
-            label: context.l10n.inboxFilterUnread,
-            isSelected: currentFilter == InboxFilter.unread,
-            colors: colors,
-            onTap: () => onFilterChanged(InboxFilter.unread),
+          Flexible(
+            child: _FilterTab(
+              key: const ValueKey('inbox-filter-unread'),
+              label: context.l10n.inboxFilterUnread,
+              isSelected: currentFilter == InboxFilter.unread,
+              colors: colors,
+              onTap: () => onFilterChanged(InboxFilter.unread),
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          _FilterTab(
-            key: const ValueKey('inbox-filter-mentions'),
-            label: context.l10n.inboxFilterMentions,
-            isSelected: currentFilter == InboxFilter.mentions,
-            colors: colors,
-            onTap: () => onFilterChanged(InboxFilter.mentions),
+          Flexible(
+            child: _FilterTab(
+              key: const ValueKey('inbox-filter-mentions'),
+              label: context.l10n.inboxFilterMentions,
+              isSelected: currentFilter == InboxFilter.mentions,
+              colors: colors,
+              onTap: () => onFilterChanged(InboxFilter.mentions),
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          _FilterTab(
-            key: const ValueKey('inbox-filter-dms'),
-            label: context.l10n.inboxFilterDms,
-            isSelected: currentFilter == InboxFilter.dms,
-            colors: colors,
-            onTap: () => onFilterChanged(InboxFilter.dms),
+          Flexible(
+            child: _FilterTab(
+              key: const ValueKey('inbox-filter-dms'),
+              label: context.l10n.inboxFilterDms,
+              isSelected: currentFilter == InboxFilter.dms,
+              colors: colors,
+              onTap: () => onFilterChanged(InboxFilter.dms),
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          _FilterTab(
-            key: const ValueKey('inbox-filter-all'),
-            label: context.l10n.inboxFilterAll,
-            isSelected: currentFilter == InboxFilter.all,
-            colors: colors,
-            onTap: () => onFilterChanged(InboxFilter.all),
+          Flexible(
+            child: _FilterTab(
+              key: const ValueKey('inbox-filter-all'),
+              label: context.l10n.inboxFilterAll,
+              isSelected: currentFilter == InboxFilter.all,
+              colors: colors,
+              onTap: () => onFilterChanged(InboxFilter.all),
+            ),
           ),
         ],
       ),
@@ -560,6 +568,8 @@ class _FilterTab extends StatelessWidget {
           ),
           child: Text(
             label,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
             style: AppTypography.label.copyWith(
               color: isSelected ? colors.primary : colors.textSecondary,
               fontWeight: FontWeight.w500,

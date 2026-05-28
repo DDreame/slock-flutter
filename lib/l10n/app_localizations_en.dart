@@ -3422,4 +3422,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inboxFallbackMemberName => 'Member';
+  String get diagnosticsExportFabTooltip => 'Export diagnostics';
+
+  @override
+  String get scrollToBottomFabTooltip => 'Scroll to bottom';
+
+  @override
+  String get replyPreviewDismissSemantics => 'Dismiss reply';
+
+  @override
+  String get linkedTaskBadgeSemantics => 'View linked task';
 }

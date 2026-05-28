@@ -3459,4 +3459,14 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inboxFallbackMemberName => 'Miembro';
+  String get diagnosticsExportFabTooltip => 'Exportar diagnósticos';
+
+  @override
+  String get scrollToBottomFabTooltip => 'Ir al final';
+
+  @override
+  String get replyPreviewDismissSemantics => 'Cerrar respuesta';
+
+  @override
+  String get linkedTaskBadgeSemantics => 'Ver tarea vinculada';
 }

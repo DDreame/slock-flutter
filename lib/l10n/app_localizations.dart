@@ -6412,6 +6412,29 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Member'**
   String get inboxFallbackMemberName;
+  /// No description provided for @diagnosticsExportFabTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Export diagnostics'**
+  String get diagnosticsExportFabTooltip;
+
+  /// No description provided for @scrollToBottomFabTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Scroll to bottom'**
+  String get scrollToBottomFabTooltip;
+
+  /// No description provided for @replyPreviewDismissSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss reply'**
+  String get replyPreviewDismissSemantics;
+
+  /// No description provided for @linkedTaskBadgeSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'View linked task'**
+  String get linkedTaskBadgeSemantics;
 }
 
 class _AppLocalizationsDelegate

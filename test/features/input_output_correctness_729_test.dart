@@ -234,43 +234,12 @@ void main() {
   });
 
   // ===========================================================================
-  // C. BaseUrlValidator — insecure scheme warning
+  // C. BaseUrlValidator — normalizeApiUrl backward compat
+  //
+  // NOTE: validateApiUrl and UrlValidationResult removed in #849 (dead code).
+  // Only normalizeApiUrl remains in production.
   // ===========================================================================
-  group('#729C — BaseUrlValidator insecure scheme warning', () {
-    test('http:// URL returns warning state', () {
-      final result =
-          BaseUrlValidator.validateApiUrl('http://api.example.com/v1');
-
-      expect(result, isNotNull);
-      expect(result!.url, 'http://api.example.com/v1');
-      expect(result.isInsecure, isTrue,
-          reason: 'http:// scheme must flag isInsecure');
-    });
-
-    test('https:// URL returns clean pass (no warning)', () {
-      final result =
-          BaseUrlValidator.validateApiUrl('https://api.example.com/v1');
-
-      expect(result, isNotNull);
-      expect(result!.url, 'https://api.example.com/v1');
-      expect(result.isInsecure, isFalse,
-          reason: 'https:// scheme must not flag isInsecure');
-    });
-
-    test('invalid URL returns null', () {
-      final result = BaseUrlValidator.validateApiUrl('ftp://bad.com');
-
-      expect(result, isNull, reason: 'Invalid scheme must return null');
-    });
-
-    test('empty input returns empty result (no warning)', () {
-      final result = BaseUrlValidator.validateApiUrl('');
-
-      expect(result, isNotNull);
-      expect(result!.url, isEmpty);
-      expect(result.isInsecure, isFalse);
-    });
-
+  group('#729C — BaseUrlValidator normalizeApiUrl', () {
     test('normalizeApiUrl still works unchanged for backward compat', () {
       expect(
         BaseUrlValidator.normalizeApiUrl('https://api.example.com/'),
