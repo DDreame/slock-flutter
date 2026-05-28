@@ -204,6 +204,12 @@ class _FakeRealtimeNotifier extends RealtimeService {
 // ---------------------------------------------------------------------------
 
 class _TrackingConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _TrackingConversationRepository({this.delayLoad = false});
 
   final bool delayLoad;

@@ -246,6 +246,12 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({this.snapshot});
 
   final ConversationDetailSnapshot? snapshot;

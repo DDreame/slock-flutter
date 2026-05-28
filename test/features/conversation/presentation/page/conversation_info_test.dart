@@ -286,6 +286,12 @@ Future<Widget> _buildConversationApp(
 // ---------------------------------------------------------------------------
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;

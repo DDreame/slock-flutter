@@ -438,6 +438,31 @@ class ConversationDetailStore
         clearFailure: true,
         clearSendFailure: true,
       );
+
+      // #860: SQLite seed — read locally-stored messages for instant display.
+      // If local messages exist, show them immediately (eliminating the loading
+      // spinner) then continue with the network fetch as a background refresh.
+      try {
+        final localMessages = await ref
+            .read(conversationRepositoryProvider)
+            .loadLocalMessages(target);
+        if (_disposed) return;
+        if (!_isCurrentRequest(requestEpoch, target)) return;
+        if (localMessages != null && localMessages.isNotEmpty) {
+          state = state.copyWith(
+            target: target,
+            status: ConversationDetailStatus.success,
+            messages: localMessages,
+            historyLimited: false,
+            hasOlder: true, // Assume there may be older — network will confirm.
+            isRefreshing: true, // Signal that a network refresh is in-flight.
+            clearFailure: true,
+            clearSendFailure: true,
+          );
+        }
+      } catch (_) {
+        // SQLite read failure is non-fatal — continue to network fetch.
+      }
     }
 
     try {
@@ -467,8 +492,11 @@ class ConversationDetailStore
       if (!_isCurrentRequest(requestEpoch, target)) {
         return;
       }
-      if (hasExistingData) {
-        // SWR error: preserve existing messages, overlay failure.
+      // #860: After local seed, state.messages may be non-empty even when
+      // hasExistingData was false at the start of load(). Preserve seeded
+      // messages on network failure (SWR contract: show stale data).
+      if (hasExistingData || state.messages.isNotEmpty) {
+        // SWR error: preserve existing/seeded messages, overlay failure.
         state = state.copyWith(
           isRefreshing: false,
           failure: failure,

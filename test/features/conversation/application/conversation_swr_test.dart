@@ -361,6 +361,175 @@ void main() {
       await refreshFuture;
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // #860: SQLite seed — instant display from local store
+  // ---------------------------------------------------------------------------
+  group('#860 — SQLite seed instant display', () {
+    test(
+      'load() with local messages shows them instantly (status=success, isRefreshing=true)',
+      () async {
+        final repo = _ControllableConversationRepository();
+        // Configure local messages to return immediately.
+        repo.localMessages = baselineMessages;
+        // Network response is delayed via completer.
+        final networkCompleter = Completer<ConversationDetailSnapshot>();
+        repo.nextLoadCompleter = networkCompleter;
+
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+        container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        // Start load — should seed from local messages immediately.
+        final loadFuture =
+            container.read(conversationDetailStoreProvider.notifier).load();
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        // State should show local messages with isRefreshing = true.
+        var state = container.read(conversationDetailStoreProvider);
+        expect(state.status, ConversationDetailStatus.success,
+            reason: '#860: Local messages must put store in success state');
+        expect(state.messages, hasLength(2),
+            reason: '#860: Local messages displayed immediately');
+        expect(state.isRefreshing, isTrue,
+            reason: '#860: isRefreshing=true signals network fetch in flight');
+        expect(state.messages.first.content, 'Hello world');
+
+        // Complete network fetch.
+        networkCompleter.complete(baselineSnapshot);
+        await loadFuture;
+
+        state = container.read(conversationDetailStoreProvider);
+        expect(state.isRefreshing, isFalse,
+            reason: 'After network completes, isRefreshing clears');
+        expect(state.messages, hasLength(2));
+      },
+    );
+
+    test(
+      'load() without local messages shows loading state until network responds',
+      () async {
+        final repo = _ControllableConversationRepository();
+        // No local messages (null).
+        repo.localMessages = null;
+        final networkCompleter = Completer<ConversationDetailSnapshot>();
+        repo.nextLoadCompleter = networkCompleter;
+
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+        container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        final loadFuture =
+            container.read(conversationDetailStoreProvider.notifier).load();
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        // Without local messages, must still be in loading state.
+        var state = container.read(conversationDetailStoreProvider);
+        expect(state.status, ConversationDetailStatus.loading,
+            reason: '#860: Without local messages, state stays loading');
+
+        networkCompleter.complete(baselineSnapshot);
+        await loadFuture;
+
+        state = container.read(conversationDetailStoreProvider);
+        expect(state.status, ConversationDetailStatus.success);
+        expect(state.messages, hasLength(2));
+      },
+    );
+
+    test(
+      'load() with local messages still updates to network data on completion',
+      () async {
+        final repo = _ControllableConversationRepository();
+        repo.localMessages = baselineMessages;
+
+        // Network returns additional message.
+        final updatedSnapshot = ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ...baselineMessages,
+            ConversationMessageSummary(
+              id: 'msg-3',
+              content: 'Fresh from network!',
+              createdAt: DateTime.utc(2026, 5, 10, 10),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 3,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        );
+        repo.completeNextLoadWith(updatedSnapshot);
+
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+
+        await container.read(conversationDetailStoreProvider.notifier).load();
+
+        final state = container.read(conversationDetailStoreProvider);
+        expect(state.messages, hasLength(3),
+            reason: '#860: Network data replaces local seed on completion');
+        expect(state.messages.last.content, 'Fresh from network!');
+        expect(state.isRefreshing, isFalse);
+      },
+    );
+
+    test(
+      'load() local messages failure is non-fatal (falls through to network)',
+      () async {
+        final repo = _ControllableConversationRepository();
+        // Simulate SQLite crash.
+        repo.localMessagesError = true;
+        repo.completeNextLoadWith(baselineSnapshot);
+
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+
+        await container.read(conversationDetailStoreProvider.notifier).load();
+
+        final state = container.read(conversationDetailStoreProvider);
+        expect(state.status, ConversationDetailStatus.success,
+            reason: '#860: SQLite failure is non-fatal, network still works');
+        expect(state.messages, hasLength(2));
+      },
+    );
+
+    test(
+      'load() with local seed preserves messages on network failure (SWR)',
+      () async {
+        final repo = _ControllableConversationRepository();
+        // Configure local messages to seed successfully.
+        repo.localMessages = baselineMessages;
+        // Network will throw.
+        repo.nextLoadFailure = const NetworkFailure(
+          message: 'Network timeout',
+        );
+
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+        container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        await container.read(conversationDetailStoreProvider.notifier).load();
+
+        final state = container.read(conversationDetailStoreProvider);
+        // SWR contract: seeded messages must survive network failure.
+        expect(state.status, ConversationDetailStatus.success,
+            reason: '#860: Local-seeded messages must persist on network '
+                'failure. Removing the messages.isNotEmpty guard → messages '
+                'cleared to [] → RED.');
+        expect(state.messages, hasLength(2),
+            reason: '#860: Messages must not be cleared on network failure');
+        expect(state.messages.first.content, 'Hello world');
+        expect(state.isRefreshing, isFalse);
+        expect(state.failure, isNotNull,
+            reason: '#860: Failure must be overlaid so UI can show soft error');
+      },
+    );
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -372,6 +541,16 @@ void main() {
 // ---------------------------------------------------------------------------
 
 class _ControllableConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async {
+    if (localMessagesError) throw Exception('SQLite read failure');
+    return localMessages;
+  }
+
+  List<ConversationMessageSummary>? localMessages;
+  bool localMessagesError = false;
   Completer<ConversationDetailSnapshot>? nextLoadCompleter;
   ConversationDetailSnapshot? _nextSnapshot;
   AppFailure? nextLoadFailure;

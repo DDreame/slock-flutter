@@ -551,6 +551,12 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({ConversationDetailSnapshot? snapshot})
       : _snapshot = snapshot;
 

@@ -355,6 +355,12 @@ class _FakeNotificationStore extends NotificationStore {
 
 /// Fake conversation repository for U3 test (real ConversationDetailPage).
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;

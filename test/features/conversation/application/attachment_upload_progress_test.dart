@@ -457,6 +457,12 @@ class _SucceedBehavior extends _UploadBehavior {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({required this.target});
 
   final ConversationDetailTarget target;

@@ -32,6 +32,12 @@ class FakeConversationRepository implements ConversationRepository {
   final List<String> editedContents = [];
 
   @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
+  @override
   Future<ConversationDetailSnapshot> loadConversation(
     ConversationDetailTarget target,
   ) async {

@@ -228,6 +228,12 @@ void main() {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({this.snapshot, this.failure});
 
   final ConversationDetailSnapshot? snapshot;

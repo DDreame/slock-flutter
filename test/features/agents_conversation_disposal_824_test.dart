@@ -206,6 +206,11 @@ void main() {
       final loadFuture =
           container.read(conversationDetailStoreProvider.notifier).load();
 
+      // #860: loadLocalMessages() introduces an async gap before
+      // loadConversation(). Pump a microtask so the load progresses past
+      // the local-seed step and actually awaits loadCompleter.
+      await Future<void>.delayed(Duration.zero);
+
       sub.close();
       container.dispose();
 
@@ -280,6 +285,12 @@ class _DelayedAgentsRepository implements AgentsRepository {
 // =============================================================================
 
 class _DelayedConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _DelayedConversationRepository({required this.loadCompleter});
   final Completer<ConversationDetailSnapshot> loadCompleter;
 

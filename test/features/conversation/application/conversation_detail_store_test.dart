@@ -3222,6 +3222,12 @@ void main() {
 
 /// Mutable fake for tests that need to change send behavior mid-test.
 class _MutableFakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _MutableFakeConversationRepository({this.snapshot});
 
   final ConversationDetailSnapshot? snapshot;
@@ -3387,6 +3393,12 @@ class _RecordingCrashReporter implements CrashReporter {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({
     this.snapshot,
     this.failure,

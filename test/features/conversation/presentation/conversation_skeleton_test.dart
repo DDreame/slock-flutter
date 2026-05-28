@@ -255,6 +255,12 @@ class _FixedSessionStore extends SessionStore {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;
@@ -383,6 +389,12 @@ class _FakeConversationRepository implements ConversationRepository {
 }
 
 class _DelayedFakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _DelayedFakeConversationRepository({required this.loadCompleter});
 
   final Completer<ConversationDetailSnapshot> loadCompleter;

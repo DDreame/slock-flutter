@@ -42,6 +42,25 @@ class _ApiConversationRepository implements ConversationRepository {
   final ConversationLocalStore _localStore;
   final CrashReporter _crashReporter;
 
+  /// #860: Read locally-stored messages from SQLite for instant display.
+  /// Returns null if no local messages exist (first-ever load).
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async {
+    try {
+      final rows = await _localStore.listMessages(
+        target.serverId.value,
+        target.conversationId,
+      );
+      if (rows.isEmpty) return null;
+      return rows.map(_storedRowToMessage).toList(growable: false);
+    } catch (_) {
+      // SQLite read failure is non-fatal — fall through to network.
+      return null;
+    }
+  }
+
   @override
   Future<ConversationDetailSnapshot> loadConversation(
     ConversationDetailTarget target,
@@ -79,29 +98,33 @@ class _ApiConversationRepository implements ConversationRepository {
       );
 
       try {
-        await _localStore.upsertMessages(messagesPayload.storedMessages);
-        await _localStore.upsertIdentities(messagesPayload.identities);
-        await _localStore.upsertConversationSummaries(
-          [
-            LocalConversationSummaryUpsert(
-              serverId: target.serverId.value,
-              conversationId: target.conversationId,
-              surface: _surfaceKey(target.surface),
-              title: metadata.summaryTitle,
-              sortIndex: 0,
-              lastMessageId: messagesPayload.messages.isEmpty
-                  ? null
-                  : messagesPayload.messages.last.id,
-              lastMessagePreview: messagesPayload.messages.isEmpty
-                  ? null
-                  : messagesPayload.messages.last.content,
-              lastActivityAt: messagesPayload.messages.isEmpty
-                  ? null
-                  : messagesPayload.messages.last.createdAt,
-            ),
-          ],
-          preserveExistingSortIndex: true,
-        );
+        // #860: Parallel writes — all three local store writes are independent
+        // and can run concurrently. Previously sequential (3× latency).
+        await Future.wait([
+          _localStore.upsertMessages(messagesPayload.storedMessages),
+          _localStore.upsertIdentities(messagesPayload.identities),
+          _localStore.upsertConversationSummaries(
+            [
+              LocalConversationSummaryUpsert(
+                serverId: target.serverId.value,
+                conversationId: target.conversationId,
+                surface: _surfaceKey(target.surface),
+                title: metadata.summaryTitle,
+                sortIndex: 0,
+                lastMessageId: messagesPayload.messages.isEmpty
+                    ? null
+                    : messagesPayload.messages.last.id,
+                lastMessagePreview: messagesPayload.messages.isEmpty
+                    ? null
+                    : messagesPayload.messages.last.content,
+                lastActivityAt: messagesPayload.messages.isEmpty
+                    ? null
+                    : messagesPayload.messages.last.createdAt,
+              ),
+            ],
+            preserveExistingSortIndex: true,
+          ),
+        ]);
       } catch (e, st) {
         // Local store write failure is non-fatal.
         _crashReporter.captureException(e, stackTrace: st);
