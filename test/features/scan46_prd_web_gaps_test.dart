@@ -148,7 +148,7 @@ void main() {
         eventType: 'announcement:updated',
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'id': 'ann-1',
           'title': 'Updated Title',
           'body': 'Updated body',
@@ -192,7 +192,7 @@ void main() {
         eventType: 'announcement:updated',
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
-        payload: {'id': 'ann-999', 'title': 'Ghost'},
+        payload: const {'id': 'ann-999', 'title': 'Ghost'},
       ));
 
       await Future<void>.delayed(Duration.zero);
@@ -234,7 +234,7 @@ void main() {
         eventType: 'announcement:deleted',
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
-        payload: {'id': 'ann-1'},
+        payload: const {'id': 'ann-1'},
       ));
 
       await Future<void>.delayed(Duration.zero);
@@ -270,7 +270,7 @@ void main() {
         eventType: 'announcement:deleted',
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
-        payload: {'id': 'ann-999'},
+        payload: const {'id': 'ann-999'},
       ));
 
       await Future<void>.delayed(Duration.zero);
