@@ -5,7 +5,8 @@
 // list view. Uses SchedulerBinding.addTimingsCallback to capture real
 // FrameTimings during scroll operations.
 //
-// Run: flutter test integration_test/benchmarks/scroll_benchmark_test.dart \
+// Run: flutter drive --driver=test_driver/integration_test.dart \
+//        --target=integration_test/benchmarks/scroll_benchmark_test.dart \
 //        -d linux --profile
 //
 // Output: build/benchmark_results/scroll_home_list.json
@@ -58,11 +59,24 @@ void main() {
 
     SchedulerBinding.instance.removeTimingsCallback(timingsCallback);
 
+    // Assertions — prove measurement logic is load-bearing.
+    expect(timings, isNotEmpty,
+        reason: 'Frame timings must be captured during scroll');
+
     // Calculate FPS metrics from frame timings.
     final metrics = _computeScrollMetrics(timings);
 
+    // Assertions on computed metrics.
+    expect(metrics.frameCount, greaterThan(0),
+        reason: 'Must have rendered at least one frame');
+    expect(metrics.averageFps, greaterThan(0),
+        reason: 'Average FPS must be positive');
+    expect(metrics.averageBuildMs, greaterThan(0),
+        reason: 'Average build time must be positive');
+
     // Memory after scroll.
     final rssMb = ProcessInfo.currentRss / (1024 * 1024);
+    expect(rssMb, greaterThan(0), reason: 'RSS must be non-zero');
 
     final file = await BenchmarkReporter.report(
       benchmarkName: 'scroll_home_list',

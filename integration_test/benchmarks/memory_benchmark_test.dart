@@ -4,7 +4,8 @@
 // Navigates through the app's primary flows and captures peak RSS at each
 // checkpoint to establish a memory baseline.
 //
-// Run: flutter test integration_test/benchmarks/memory_benchmark_test.dart \
+// Run: flutter drive --driver=test_driver/integration_test.dart \
+//        --target=integration_test/benchmarks/memory_benchmark_test.dart \
 //        -d linux --profile
 //
 // Output: build/benchmark_results/memory_navigation.json
@@ -75,6 +76,13 @@ void main() {
     final peakRss = checkpoints.values.reduce(
       (a, b) => a > b ? a : b,
     );
+
+    // Assertions — prove measurement logic is load-bearing.
+    expect(checkpoints, isNotEmpty,
+        reason: 'Must have captured at least one RSS checkpoint');
+    expect(peakRss, greaterThan(0), reason: 'Peak RSS must be non-zero');
+    expect(checkpoints.length, equals(5),
+        reason: 'All 5 navigation checkpoints must complete');
 
     // Report results.
     final metrics = <String, BenchmarkMetric>{

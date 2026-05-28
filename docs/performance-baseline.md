@@ -9,10 +9,13 @@ scroll rendering, and memory usage under synthetic load.
 # All benchmarks (CI target)
 make ci-benchmark
 
-# Individual benchmarks
-flutter test integration_test/benchmarks/startup_benchmark_test.dart -d linux --profile
-flutter test integration_test/benchmarks/scroll_benchmark_test.dart -d linux --profile
-flutter test integration_test/benchmarks/memory_benchmark_test.dart -d linux --profile
+# Individual benchmarks (requires linux desktop: flutter create --platforms=linux .)
+flutter drive --driver=test_driver/integration_test.dart \
+  --target=integration_test/benchmarks/startup_benchmark_test.dart -d linux --profile
+flutter drive --driver=test_driver/integration_test.dart \
+  --target=integration_test/benchmarks/scroll_benchmark_test.dart -d linux --profile
+flutter drive --driver=test_driver/integration_test.dart \
+  --target=integration_test/benchmarks/memory_benchmark_test.dart -d linux --profile
 ```
 
 Results are written to `build/benchmark_results/` as JSON.
@@ -23,7 +26,8 @@ Results are written to `build/benchmark_results/` as JSON.
 
 | Metric | Unit | Description |
 |--------|------|-------------|
-| `time_to_settle_ms` | ms | Time from widget tree initialization to first frame settled |
+| `time_to_first_frame_ms` | ms | Time from widget tree initialization to first frame rendered |
+| `time_to_settle_ms` | ms | Time from initialization to all animations settled |
 | `peak_rss_mb` | MB | Resident set size after startup |
 
 ### Scroll — `scroll_home_list`
@@ -51,14 +55,15 @@ Results are written to `build/benchmark_results/` as JSON.
 
 ## Benchmark Environment
 
-- **Mode:** Profile (`--profile`) — realistic timings without debug overhead
-- **Platform:** Headless Linux desktop (CI runner)
+- **Mode:** Profile (`--profile`) via `flutter drive` — realistic timings without debug overhead
+- **Platform:** Linux desktop (headless CI runner, requires `linux/` scaffold)
 - **Data:** Synthetic providers (20 channels, 10 DMs, 15 tasks, 50-100 inbox items)
-- **No GPU raster:** Frame build time only; rasterization is device-dependent
+- **Real frame scheduling:** `flutter drive -d linux` executes in a real Dart VM with actual frame callbacks
 
 ## CI Integration
 
 Benchmarks run as a non-blocking step in the `verify` job of `flutter-ci.yml`:
+- Uses `flutter drive` with `test_driver/integration_test.dart` shim + `-d linux --profile`
 - Continues on error (does not fail the build)
 - Results uploaded as `benchmark-results` artifact (30-day retention)
 - Future: regression gates once stable baselines are established from 3-5 runs
@@ -70,14 +75,19 @@ integration_test/
   benchmarks/
     benchmark_app.dart          # Minimal app shell with fake providers
     benchmark_reporter.dart     # JSON output to build/benchmark_results/
-    startup_benchmark_test.dart # Cold start measurement
+    startup_benchmark_test.dart # Cold start measurement (first frame)
     scroll_benchmark_test.dart  # List scroll FPS via FrameTiming
     memory_benchmark_test.dart  # RSS tracking across navigation flows
+test_driver/
+  integration_test.dart         # Standard driver shim for flutter drive
+linux/                          # Linux desktop scaffold (CMake)
 ```
 
 Key design decisions:
-- Uses `integration_test` package (not legacy `flutter_driver`)
+- Uses `integration_test` package with `flutter drive` invocation (not legacy `flutter_driver`)
+- Profile mode via `--profile` flag for realistic timings
 - `IntegrationTestWidgetsFlutterBinding.traceAction()` for timeline capture
 - `SchedulerBinding.addTimingsCallback` for real frame timings during scroll
 - `ProcessInfo.currentRss` for memory snapshots
 - All providers overridden with deterministic fakes — no network dependency
+- Each benchmark includes falsifiable assertions (`expect(metric, greaterThan(0))`)

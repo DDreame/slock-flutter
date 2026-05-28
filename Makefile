@@ -81,7 +81,14 @@ ci-benchmark:
 		echo "$(SKIP_MESSAGE)"; \
 	elif ! find integration_test -name '*_test.dart' 2>/dev/null | grep -q .; then \
 		echo "No benchmark tests found in integration_test/ — skipping."; \
+	elif [ ! -d linux ]; then \
+		echo "No linux/ scaffold — skipping benchmarks (run flutter create --platforms=linux . to enable)."; \
 	else \
 		flutter config --enable-linux-desktop 2>/dev/null || true; \
-		flutter test integration_test/ -d linux || echo "Benchmark run completed (non-blocking)."; \
+		for f in integration_test/benchmarks/*_test.dart; do \
+			echo "Running benchmark: $$f"; \
+			flutter drive --driver=test_driver/integration_test.dart \
+				--target="$$f" -d linux --profile || true; \
+		done; \
+		echo "Benchmark run completed."; \
 	fi

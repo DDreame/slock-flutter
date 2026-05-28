@@ -105,7 +105,10 @@ jobs:
       - name: Performance benchmarks (non-blocking)
         if: ${{ always() }}
         continue-on-error: true
-        run: make ci-benchmark
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev 2>/dev/null || true
+          make ci-benchmark
 
       - name: Upload benchmark results
         if: ${{ always() }}
