@@ -64,6 +64,16 @@ class ConversationComposer extends ConsumerWidget {
   final VoidCallback onCancelRecording;
   final bool enterToSend;
 
+  /// Hoisted border radius to avoid per-build allocation (#851).
+  static final BorderRadius _inputBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusFull);
+
+  /// Hoisted content padding to avoid per-build allocation (#851).
+  static const EdgeInsets _inputContentPadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+    vertical: AppSpacing.md,
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -221,24 +231,18 @@ class ConversationComposer extends ConsumerWidget {
                         decoration: InputDecoration(
                           hintText: l10n.conversationComposerHint,
                           border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: _inputBorderRadius,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: _inputBorderRadius,
                             borderSide: BorderSide(color: colors.border),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: _inputBorderRadius,
                             borderSide:
                                 BorderSide(color: colors.primary, width: 1.5),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: AppSpacing.md,
-                          ),
+                          contentPadding: _inputContentPadding,
                         ),
                       ),
                     ),

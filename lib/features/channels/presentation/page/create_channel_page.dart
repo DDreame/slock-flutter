@@ -244,37 +244,42 @@ class _VisibilityOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? accent.withAlpha(20) : surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? accent : border,
-            width: isSelected ? 1.5 : 1,
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? accent.withAlpha(20) : surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? accent : border,
+              width: isSelected ? 1.5 : 1,
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: AppTypography.label.copyWith(
-                color: isSelected ? accent : null,
-                fontWeight: FontWeight.w600,
+          child: Column(
+            children: [
+              Text(
+                label,
+                style: AppTypography.label.copyWith(
+                  color: isSelected ? accent : null,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              sublabel,
-              style: AppTypography.caption.copyWith(
-                color: Theme.of(context).extension<AppColors>()?.textTertiary ??
-                    Theme.of(context).colorScheme.onSurfaceVariant,
+              const SizedBox(height: 2),
+              Text(
+                sublabel,
+                style: AppTypography.caption.copyWith(
+                  color:
+                      Theme.of(context).extension<AppColors>()?.textTertiary ??
+                          Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -715,12 +715,16 @@ class ConversationMessageCardState
     // double-tap are disabled.
     if (isNonSystem) {
       if (isSelectionMode) {
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => ref
-              .read(conversationDetailStoreProvider.notifier)
-              .toggleMessageSelection(message.id),
-          child: shellWithSelection,
+        return Semantics(
+          button: true,
+          label: context.l10n.messageSelectionToggleSemantics,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => ref
+                .read(conversationDetailStoreProvider.notifier)
+                .toggleMessageSelection(message.id),
+            child: shellWithSelection,
+          ),
         );
       }
       return MessageGestureWrapper(
@@ -747,10 +751,14 @@ class ConversationMessageCardState
       );
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
-      child: shellWithSelection,
+    return Semantics(
+      button: true,
+      label: context.l10n.messageContextMenuSemantics,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
+        child: shellWithSelection,
+      ),
     );
   }
 
@@ -1204,43 +1212,47 @@ class _QuotedMessageBlock extends StatelessWidget {
         ? colors.primaryForeground.withValues(alpha: 0.85)
         : colors.textSecondary;
 
-    return GestureDetector(
-      key: const ValueKey('quoted-message-tap'),
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(color: accentColor, width: 3),
+    return Semantics(
+      button: onTap != null,
+      label: onTap != null ? context.l10n.quotedMessageTapSemantics : null,
+      child: GestureDetector(
+        key: const ValueKey('quoted-message-tap'),
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
           ),
-          color: bgColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              replyTo.localizedSenderLabel(context.l10n),
-              // #655: Use pre-computed labelBold.
-              style: ConversationMessageCard.senderNameBaseStyle.copyWith(
-                color: labelColor,
-              ),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(color: accentColor, width: 3),
             ),
-            Text(
-              replyTo.content.isEmpty
-                  ? context.l10n.conversationQuoteFallback
-                  : replyTo.content,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTypography.caption.copyWith(
-                color: bodyColor,
+            color: bgColor,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                replyTo.localizedSenderLabel(context.l10n),
+                // #655: Use pre-computed labelBold.
+                style: ConversationMessageCard.senderNameBaseStyle.copyWith(
+                  color: labelColor,
+                ),
               ),
-            ),
-          ],
+              Text(
+                replyTo.content.isEmpty
+                    ? context.l10n.conversationQuoteFallback
+                    : replyTo.content,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.caption.copyWith(
+                  color: bodyColor,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

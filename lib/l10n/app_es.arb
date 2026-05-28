@@ -1331,5 +1331,12 @@
   "diagnosticsExportFabTooltip": "Exportar diagnósticos",
   "scrollToBottomFabTooltip": "Ir al final",
   "replyPreviewDismissSemantics": "Cerrar respuesta",
-  "linkedTaskBadgeSemantics": "Ver tarea vinculada"
+  "linkedTaskBadgeSemantics": "Ver tarea vinculada",
+  "messageSelectionToggleSemantics": "Alternar selección de mensaje",
+  "messageContextMenuSemantics": "Opciones de mensaje",
+  "quotedMessageTapSemantics": "Ir al mensaje citado",
+  "diagnosticsEntryExpandSemantics": "Expandir entrada de diagnóstico",
+  "quoteJumpDismissSemantics": "Cerrar",
+  "unnamedMachineFallback": "Máquina sin nombre",
+  "unnamedWorkspaceFallback": "Espacio sin nombre"
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Named constants for [MessageBubble] dimensions.
 abstract final class BubbleTokens {
@@ -139,7 +140,7 @@ class MessageBubble extends StatelessWidget {
                               BorderRadius.circular(AppSpacing.radiusSm),
                         ),
                         child: Text(
-                          'AI',
+                          context.l10n.conversationMessageAiBadge,
                           style: AppTypography.caption.copyWith(
                             color: colors.primaryForeground,
                             fontWeight: FontWeight.w600,

@@ -238,7 +238,9 @@ class _WorkspaceCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        workspace.name,
+                        workspace.name.isNotEmpty
+                            ? workspace.name
+                            : context.l10n.unnamedWorkspaceFallback,
                         style: theme.textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),

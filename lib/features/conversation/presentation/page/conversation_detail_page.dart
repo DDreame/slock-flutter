@@ -530,15 +530,23 @@ class _ConversationDetailScreenState
                             ),
                             if (_quoteJumpState != QuoteJumpState.idle)
                               Positioned.fill(
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap:
-                                      _quoteJumpState == QuoteJumpState.notFound
-                                          ? _dismissQuoteJumpNotFound
-                                          : null,
-                                  child: QuoteJumpOverlay(
-                                    key: const ValueKey('quote-jump-overlay'),
-                                    state: _quoteJumpState,
+                                child: Semantics(
+                                  button: _quoteJumpState ==
+                                      QuoteJumpState.notFound,
+                                  label: _quoteJumpState ==
+                                          QuoteJumpState.notFound
+                                      ? context.l10n.quoteJumpDismissSemantics
+                                      : null,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: _quoteJumpState ==
+                                            QuoteJumpState.notFound
+                                        ? _dismissQuoteJumpNotFound
+                                        : null,
+                                    child: QuoteJumpOverlay(
+                                      key: const ValueKey('quote-jump-overlay'),
+                                      state: _quoteJumpState,
+                                    ),
                                   ),
                                 ),
                               ),

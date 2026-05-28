@@ -6407,6 +6407,7 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Member'**
   String get inboxFallbackMemberName;
+
   /// No description provided for @diagnosticsExportFabTooltip.
   ///
   /// In en, this message translates to:
@@ -6430,6 +6431,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View linked task'**
   String get linkedTaskBadgeSemantics;
+
+  /// No description provided for @messageSelectionToggleSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Toggle message selection'**
+  String get messageSelectionToggleSemantics;
+
+  /// No description provided for @messageContextMenuSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Message options'**
+  String get messageContextMenuSemantics;
+
+  /// No description provided for @quotedMessageTapSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to quoted message'**
+  String get quotedMessageTapSemantics;
+
+  /// No description provided for @diagnosticsEntryExpandSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand diagnostics entry'**
+  String get diagnosticsEntryExpandSemantics;
+
+  /// No description provided for @quoteJumpDismissSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get quoteJumpDismissSemantics;
+
+  /// No description provided for @unnamedMachineFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed machine'**
+  String get unnamedMachineFallback;
+
+  /// No description provided for @unnamedWorkspaceFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed workspace'**
+  String get unnamedWorkspaceFallback;
 }
 
 class _AppLocalizationsDelegate

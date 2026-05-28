@@ -1574,5 +1574,12 @@
   "diagnosticsExportFabTooltip": "Export diagnostics",
   "scrollToBottomFabTooltip": "Scroll to bottom",
   "replyPreviewDismissSemantics": "Dismiss reply",
-  "linkedTaskBadgeSemantics": "View linked task"
+  "linkedTaskBadgeSemantics": "View linked task",
+  "messageSelectionToggleSemantics": "Toggle message selection",
+  "messageContextMenuSemantics": "Message options",
+  "quotedMessageTapSemantics": "Jump to quoted message",
+  "diagnosticsEntryExpandSemantics": "Expand diagnostics entry",
+  "quoteJumpDismissSemantics": "Dismiss",
+  "unnamedMachineFallback": "Unnamed machine",
+  "unnamedWorkspaceFallback": "Unnamed workspace"
 }
