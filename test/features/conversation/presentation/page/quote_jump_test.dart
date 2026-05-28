@@ -496,6 +496,12 @@ Widget _buildConversationApp(ConversationRepository repo) {
 // ---------------------------------------------------------------------------
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;
@@ -660,6 +666,12 @@ class _PagedOlderFakeRepository extends _FakeConversationRepository {
 /// is gated by a [Completer], allowing tests to assert the loading state
 /// before the fetch resolves.
 class _DelayedLoadFakeRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _DelayedLoadFakeRepository({
     required this.snapshot,
     required this.loadOlderCompleter,

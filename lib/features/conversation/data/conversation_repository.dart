@@ -62,6 +62,12 @@ class ConversationDetailTarget {
 }
 
 abstract class ConversationRepository {
+  /// #860: Read locally-stored messages for instant display (SWR seed).
+  /// Returns null if no local messages exist for this target.
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  );
+
   Future<ConversationDetailSnapshot> loadConversation(
     ConversationDetailTarget target,
   );

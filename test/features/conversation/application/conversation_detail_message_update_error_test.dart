@@ -59,6 +59,12 @@ class _RecordingCrashReporter implements CrashReporter {
 }
 
 class _ThrowingConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _ThrowingConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;
@@ -187,6 +193,12 @@ class _ThrowingConversationRepository implements ConversationRepository {
 }
 
 class _SuccessConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _SuccessConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;

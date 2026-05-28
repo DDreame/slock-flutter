@@ -280,6 +280,12 @@ class _DelayedAgentsRepository implements AgentsRepository {
 // =============================================================================
 
 class _DelayedConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _DelayedConversationRepository({required this.loadCompleter});
   final Completer<ConversationDetailSnapshot> loadCompleter;
 

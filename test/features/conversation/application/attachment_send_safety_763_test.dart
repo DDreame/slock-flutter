@@ -611,6 +611,12 @@ ConversationMessageSummary _fakeMessage(String id, String content) {
 }
 
 class _ControllableConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   Completer<ConversationMessageSummary>? sendCompleter;
   ConversationMessageSummary? autoSendResult;
   List<String>? lastSendAttachmentIds;

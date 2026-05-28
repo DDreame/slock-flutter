@@ -376,6 +376,12 @@ RealtimeEventEnvelope _deleteEvent(
 }
 
 class _FakeRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeRepository({required this.messages});
   final List<ConversationMessageSummary> messages;
 

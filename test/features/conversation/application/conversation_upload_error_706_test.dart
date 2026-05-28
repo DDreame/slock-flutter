@@ -297,6 +297,12 @@ void main() {
 // ---------------------------------------------------------------------------
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   ConversationDetailSnapshot? snapshot;
   ConversationMessageSummary? sendResult;
   List<String>? lastSentAttachmentIds;

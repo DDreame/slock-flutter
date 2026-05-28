@@ -2153,6 +2153,12 @@ class _FixedSessionStore extends SessionStore {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _FakeConversationRepository({
     required this.snapshot,
     this.olderPages = const {},
@@ -2367,6 +2373,12 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
 }
 
 class _QueueConversationRepository implements ConversationRepository {
+  @override
+  Future<List<ConversationMessageSummary>?> loadLocalMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      null;
+
   _QueueConversationRepository(this.results);
 
   final List<Object> results;
