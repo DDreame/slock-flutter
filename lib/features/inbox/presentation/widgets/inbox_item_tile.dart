@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/features/inbox/presentation/widgets/inbox_relative_time_text.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
@@ -256,14 +256,14 @@ class InboxItemTile extends StatelessWidget {
   }
 
   // -------------------------------------------------------------------------
-  // Time display (12px tabular-nums)
+  // Time display (12px tabular-nums) — isolated leaf to avoid parent rebuilds
   // -------------------------------------------------------------------------
 
   Widget _buildTime(AppColors colors, AppLocalizations l10n) {
     if (projection.lastActivityAt == null) return const SizedBox.shrink();
-    return Text(
-      _formatTime(projection.lastActivityAt!, l10n),
+    return InboxRelativeTimeText(
       key: ValueKey('inbox-tile-time-$_keyId'),
+      time: projection.lastActivityAt!,
       style: AppTypography.label.copyWith(
         color: _isUnread ? colors.primary : colors.textTertiary,
         fontWeight: _isUnread ? FontWeight.w600 : FontWeight.w400,
@@ -300,36 +300,5 @@ class InboxItemTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  // -------------------------------------------------------------------------
-  // Time formatting
-  // -------------------------------------------------------------------------
-
-  /// Cached [DateFormat] instances keyed by locale name. Avoids allocating a
-  /// new formatter on every tile build — a significant cost when scrolling
-  /// through hundreds of inbox items.
-  static final Map<String, DateFormat> _dateFormatCache = {};
-
-  /// Number of entries in the DateFormat cache. Exposed for testing to verify
-  /// that the cache grows only once per locale (not per build).
-  @visibleForTesting
-  static int get dateFormatCacheSize => _dateFormatCache.length;
-
-  /// Clears the DateFormat cache. Exposed for testing to ensure a clean
-  /// baseline between test runs.
-  @visibleForTesting
-  static void clearDateFormatCache() => _dateFormatCache.clear();
-
-  static String _formatTime(DateTime time, AppLocalizations l10n) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 1) return l10n.inboxTimeNow;
-    if (diff.inMinutes < 60) return l10n.inboxTimeMinutes(diff.inMinutes);
-    if (diff.inHours < 24) return l10n.inboxTimeHours(diff.inHours);
-    if (diff.inDays < 7) return l10n.inboxTimeDays(diff.inDays);
-    final locale = l10n.localeName;
-    final formatter = _dateFormatCache[locale] ??= DateFormat.MMMd(locale);
-    return formatter.format(time);
   }
 }

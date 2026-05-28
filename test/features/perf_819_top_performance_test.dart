@@ -21,6 +21,7 @@ import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/presentation/widgets/inbox_item_tile.dart';
+import 'package:slock_app/features/inbox/presentation/widgets/inbox_relative_time_text.dart';
 import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/application/machines_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
@@ -39,7 +40,7 @@ void main() {
   group('Perf-1: InboxItemTile DateFormat caching', () {
     setUp(() {
       // Ensure a clean slate for cache size assertions.
-      InboxItemTile.clearDateFormatCache();
+      InboxRelativeTimeText.clearDateFormatCache();
     });
 
     testWidgets(
@@ -47,7 +48,7 @@ void main() {
       (tester) async {
         final oldDate = DateTime.now().subtract(const Duration(days: 10));
 
-        expect(InboxItemTile.dateFormatCacheSize, 0,
+        expect(InboxRelativeTimeText.dateFormatCacheSize, 0,
             reason: 'Cache should be empty before first render.');
 
         await tester.pumpWidget(_buildInboxTileApp(
@@ -62,7 +63,7 @@ void main() {
 
         // Cache should have exactly 1 entry (for 'en' locale).
         expect(
-          InboxItemTile.dateFormatCacheSize,
+          InboxRelativeTimeText.dateFormatCacheSize,
           1,
           reason: 'After first render with en locale, cache should have '
               'exactly 1 entry.',
@@ -76,7 +77,7 @@ void main() {
         final date1 = DateTime.now().subtract(const Duration(days: 15));
         final date2 = DateTime.now().subtract(const Duration(days: 30));
 
-        expect(InboxItemTile.dateFormatCacheSize, 0);
+        expect(InboxRelativeTimeText.dateFormatCacheSize, 0);
 
         // First render — creates cache entry.
         await tester.pumpWidget(_buildInboxTileApp(
@@ -84,7 +85,7 @@ void main() {
           channelId: 'ch-1',
         ));
         await tester.pumpAndSettle();
-        expect(InboxItemTile.dateFormatCacheSize, 1);
+        expect(InboxRelativeTimeText.dateFormatCacheSize, 1);
 
         // Second render with different date, same locale — cache must NOT grow.
         // This proves the ??= assignment reuses the existing instance.
@@ -95,7 +96,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          InboxItemTile.dateFormatCacheSize,
+          InboxRelativeTimeText.dateFormatCacheSize,
           1,
           reason: 'Cache size must remain 1 for same locale — proves the '
               'cached DateFormat instance is reused, not re-allocated. '
@@ -382,25 +383,27 @@ Widget _buildInboxTileApp({
   required DateTime lastActivityAt,
   required String channelId,
 }) {
-  return MaterialApp(
-    theme: AppTheme.light,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
-    supportedLocales: AppLocalizations.supportedLocales,
-    locale: const Locale('en'),
-    home: Scaffold(
-      body: InboxItemTile(
-        projection: ConversationProjection(
-          kind: ConversationProjectionKind.channel,
-          id: channelId,
-          title: 'Test Channel',
-          previewText: 'Hello world',
-          unreadCount: 1,
-          senderName: 'Alice',
-          lastActivityAt: lastActivityAt,
-          channelId: channelId,
+  return ProviderScope(
+    child: MaterialApp(
+      theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('en'),
+      home: Scaffold(
+        body: InboxItemTile(
+          projection: ConversationProjection(
+            kind: ConversationProjectionKind.channel,
+            id: channelId,
+            title: 'Test Channel',
+            previewText: 'Hello world',
+            unreadCount: 1,
+            senderName: 'Alice',
+            lastActivityAt: lastActivityAt,
+            channelId: channelId,
+          ),
+          isMentioned: false,
+          onTap: () {},
         ),
-        isMentioned: false,
-        onTap: () {},
       ),
     ),
   );
