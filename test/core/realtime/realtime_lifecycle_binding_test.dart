@@ -11,6 +11,9 @@ import '../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage, FakeAuthRepository;
 
 void main() {
+  // #859: WidgetsBinding is needed for the lifecycle observer.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('does not connect until bootstrap is ready, then connects once',
       () async {
     final ingress = RealtimeReductionIngress();

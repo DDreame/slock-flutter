@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
@@ -73,5 +74,29 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
     unawaited(syncConnection(clientChanged: true));
   });
 
+  // #859: On AppLifecycleState.resumed, immediately attempt reconnect if
+  // currently disconnected. Fixes: OS kills WebSocket during backgrounding
+  // (>30s). Without this, banner stays until watchdog fires (up to 10s).
+  final lifecycleObserver = _RealtimeLifecycleObserver(
+    onResumed: () => unawaited(syncConnection()),
+  );
+  WidgetsBinding.instance.addObserver(lifecycleObserver);
+  ref.onDispose(
+      () => WidgetsBinding.instance.removeObserver(lifecycleObserver));
+
   unawaited(syncConnection());
 });
+
+/// #859: WidgetsBindingObserver that triggers reconnect on app resume.
+class _RealtimeLifecycleObserver extends WidgetsBindingObserver {
+  _RealtimeLifecycleObserver({required this.onResumed});
+
+  final VoidCallback onResumed;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      onResumed();
+    }
+  }
+}

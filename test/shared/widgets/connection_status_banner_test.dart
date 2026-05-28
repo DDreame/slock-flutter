@@ -67,7 +67,7 @@ void main() {
       },
     );
 
-    // T2: Banner shows "Reconnecting..." when disconnected
+    // T2: Banner shows "Reconnecting..." when disconnected (after grace period)
     testWidgets(
       'shows reconnecting text when disconnected',
       (tester) async {
@@ -76,7 +76,9 @@ void main() {
             status: RealtimeConnectionStatus.disconnected,
           ),
         ));
-        await tester.pumpAndSettle();
+        // #859: Advance past 2s grace period before banner appears.
+        await tester.pump(bannerGracePeriod);
+        await tester.pump();
 
         expect(
           find.byKey(const ValueKey('connection-status-banner')),
@@ -87,7 +89,7 @@ void main() {
       },
     );
 
-    // T3: Banner shows "Reconnecting..." when reconnecting
+    // T3: Banner shows "Reconnecting..." when reconnecting (after grace period)
     testWidgets(
       'shows reconnecting text when status is reconnecting',
       (tester) async {
@@ -96,7 +98,9 @@ void main() {
             status: RealtimeConnectionStatus.reconnecting,
           ),
         ));
-        await tester.pumpAndSettle();
+        // #859: Advance past 2s grace period before banner appears.
+        await tester.pump(bannerGracePeriod);
+        await tester.pump();
 
         expect(
           find.byKey(const ValueKey('connection-status-banner')),
@@ -135,7 +139,9 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        // #859: Advance past 2s grace period.
+        await tester.pump(bannerGracePeriod);
+        await tester.pump();
 
         // Banner visible while disconnected.
         expect(
@@ -144,8 +150,6 @@ void main() {
         );
 
         // Simulate reconnection by transitioning notifier state directly.
-        // (A second pumpWidget with a new ProviderScope would reuse the
-        // existing element — overrides only apply at initState.)
         final container = ProviderScope.containerOf(
           tester.element(find.byType(ConnectionStatusBanner)),
         );
@@ -172,7 +176,9 @@ void main() {
             status: RealtimeConnectionStatus.disconnected,
           ),
         ));
-        await tester.pumpAndSettle();
+        // #859: Advance past 2s grace period.
+        await tester.pump(bannerGracePeriod);
+        await tester.pump();
 
         final banner = tester.widget<Container>(
           find.byKey(const ValueKey('connection-status-banner')),

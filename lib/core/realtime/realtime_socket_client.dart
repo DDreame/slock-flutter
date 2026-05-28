@@ -70,6 +70,7 @@ class SocketIoRealtimeSocketClient implements RealtimeSocketClient {
           () {
             final builder = io.OptionBuilder()
                 .disableAutoConnect()
+                .disableReconnection()
                 .setPath(options.path)
                 .setTransports(options.transports)
                 .setExtraHeaders(options.extraHeaders);

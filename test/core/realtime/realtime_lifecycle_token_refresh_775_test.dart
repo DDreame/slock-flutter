@@ -32,6 +32,8 @@ import '../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage, FakeAuthRepository;
 
 void main() {
+  // #859: WidgetsBinding is needed for the lifecycle observer.
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('#775 — Token refresh reconnects WebSocket (lifecycle binding)', () {
     // -----------------------------------------------------------------------
     // A: Token refresh (provider rebuild) → automatic reconnection.
