@@ -9,6 +9,7 @@ class RealtimeEventEnvelope {
     this.seq,
     this.payload,
     this.gapDetected = false,
+    this.isSyncBatchEvent = false,
   });
 
   static const String globalScopeKey = 'global';
@@ -19,6 +20,11 @@ class RealtimeEventEnvelope {
   final Object? payload;
   final DateTime receivedAt;
   final bool gapDetected;
+
+  /// INV-856: True when this event is part of a sync:resume:response batch.
+  /// Downstream consumers (domain router) use this to coalesce refresh
+  /// operations instead of debouncing per-message.
+  final bool isSyncBatchEvent;
 
   RealtimeEventEnvelope withGapDetected() {
     return RealtimeEventEnvelope(

@@ -667,6 +667,12 @@ class _TrackingRealtimeIngress implements RealtimeReductionIngress {
   void reset() {}
 
   @override
+  void acceptSyncBatch(List<RealtimeEventEnvelope> events) {}
+
+  @override
+  void advanceSeq(String scopeKey, int seq) {}
+
+  @override
   Future<void> dispose() async => _controller.close();
 }
 

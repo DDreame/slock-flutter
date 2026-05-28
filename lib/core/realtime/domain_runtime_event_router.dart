@@ -50,6 +50,11 @@ const _agentCreatedEvent = 'agent:created';
 const _agentDeletedEvent = 'agent:deleted';
 const _announcementNewEvent = 'announcement:new';
 
+/// INV-856: Synthetic event emitted after a sync:resume:response batch
+/// completes with hasMore=false. Triggers a single coalesced inbox/home
+/// refresh instead of per-message debounce resets.
+const syncBatchCompleteEvent = 'sync:batch:complete';
+
 /// Maximum number of message events queued before Home reaches success
 /// state. Prevents unbounded memory growth.
 const _pendingEventQueueLimit = 100;
@@ -153,11 +158,22 @@ final domainRuntimeEventRouterProvider = Provider<void>(
     // Mutable state for inbox refresh debounce
     // -----------------------------------------------------------------------
     Timer? inboxDebounceTimer;
+    bool syncBatchRefreshPending = false;
 
     // -----------------------------------------------------------------------
     // Inbox refresh helpers (local to this provider)
     // -----------------------------------------------------------------------
-    void scheduleInboxRefresh(String reason) {
+    void scheduleInboxRefresh(String reason, {bool isBatchEvent = false}) {
+      // INV-856: During sync batch, defer refresh. A single coalesced
+      // refresh fires when syncBatchCompleteEvent arrives.
+      if (isBatchEvent) {
+        syncBatchRefreshPending = true;
+        return;
+      }
+      // If exiting a batch and a refresh was deferred, fire it now.
+      if (syncBatchRefreshPending) {
+        syncBatchRefreshPending = false;
+      }
       final inboxState = ref.read(inboxStoreProvider);
       if (inboxState.status != InboxStatus.success) return;
 
@@ -201,7 +217,8 @@ final domainRuntimeEventRouterProvider = Provider<void>(
               }
             },
           );
-          scheduleInboxRefresh('messageNew');
+          scheduleInboxRefresh('messageNew',
+              isBatchEvent: event.isSyncBatchEvent);
 
         case _messageUpdatedEvent:
           _handleMessageUpdated(ref, event);
@@ -212,11 +229,17 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         // — DM domain —
         case _dmNewEvent:
           _handleDmNew(ref, event, pendingDmBuffer);
-          scheduleInboxRefresh('dmNew');
+          scheduleInboxRefresh('dmNew', isBatchEvent: event.isSyncBatchEvent);
 
         // — Connect domain —
         case _connectEvent:
           immediateInboxRefresh('reconnect');
+
+        // — Sync batch complete (INV-856) —
+        case syncBatchCompleteEvent:
+          syncBatchRefreshPending = false;
+          immediateInboxRefresh('syncBatchComplete');
+          _refreshHomeList(ref, reason: 'syncBatchComplete');
 
         // — Channel domain —
         case _channelUpdatedEvent:

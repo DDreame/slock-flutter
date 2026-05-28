@@ -74,6 +74,18 @@ mixin _ConversationDetailCoreMixin
     if (store._messageIdSet.contains(next.id)) {
       return existing;
     }
+    // INV-856: Insert at correct seq position for gap-fill messages.
+    // If the new message's seq is less than the max existing seq, it arrived
+    // out-of-order (e.g. from sync:resume:response) and must be insert-sorted.
+    final nextSeq = next.seq;
+    if (nextSeq != null && existing.isNotEmpty) {
+      final lastSeq = existing.last.seq;
+      if (lastSeq != null && nextSeq < lastSeq) {
+        final result = [...existing, next];
+        result.sort((a, b) => (a.seq ?? 0).compareTo(b.seq ?? 0));
+        return result;
+      }
+    }
     return [...existing, next];
   }
 
