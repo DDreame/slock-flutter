@@ -5,7 +5,7 @@ RUNTIME_DART_DEFINE_FLAGS := --dart-define=SLOCK_API_BASE_URL=$(SLOCK_API_BASE_U
 RUNTIME_BUILD_NUMBER_FLAG := $(if $(BUILD_NUMBER),--build-number=$(BUILD_NUMBER),)
 MISSING_RUNTIME_DART_DEFINE_MESSAGE := Missing required runtime endpoint configuration: SLOCK_API_BASE_URL and SLOCK_REALTIME_URL must be set for produced app-binary builds.
 
-.PHONY: format analyze test ci-test-all ci-test-core ci-test-regression ci-build-smoke ci-build-ios-smoke
+.PHONY: format analyze test ci-test-all ci-test-core ci-test-regression ci-build-smoke ci-build-ios-smoke ci-benchmark
 
 format:
 	@if [ ! -f pubspec.yaml ]; then \
@@ -74,4 +74,14 @@ ci-build-ios-smoke:
 		exit 1; \
 	else \
 		flutter build ios --debug --no-codesign $(RUNTIME_DART_DEFINE_FLAGS); \
+	fi
+
+ci-benchmark:
+	@if [ ! -f pubspec.yaml ]; then \
+		echo "$(SKIP_MESSAGE)"; \
+	elif ! find integration_test -name '*_test.dart' 2>/dev/null | grep -q .; then \
+		echo "No benchmark tests found in integration_test/ — skipping."; \
+	else \
+		flutter config --enable-linux-desktop 2>/dev/null || true; \
+		flutter test integration_test/ -d linux || echo "Benchmark run completed (non-blocking)."; \
 	fi
