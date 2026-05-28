@@ -23,8 +23,8 @@ void main() {
     await tester.idle();
 
     expect(container.read(appLocalizationsProvider).localeName, 'es');
-    expect(
-        container.read(appLocalizationsProvider).loginTitle, 'Iniciar sesion');
+    expect(container.read(appLocalizationsProvider).loginTitle,
+        'Iniciar sesión');
 
     container.dispose();
     await tester.pump();
