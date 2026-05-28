@@ -16,6 +16,9 @@ class VoiceRecorderWidget extends ConsumerWidget {
     required this.onCancel,
   });
 
+  /// Hoisted border radius to avoid per-build allocations.
+  static final borderRadius = BorderRadius.circular(24);
+
   /// Called when the user taps the send/stop button to finalize the recording.
   final VoidCallback onSend;
 
@@ -32,7 +35,7 @@ class VoiceRecorderWidget extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: borderRadius,
       ),
       child: Row(
         children: [

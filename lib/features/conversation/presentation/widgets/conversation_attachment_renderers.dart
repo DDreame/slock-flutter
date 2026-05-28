@@ -428,6 +428,9 @@ class _FullScreenImageViewerState
 class _HtmlAttachmentRow extends ConsumerWidget {
   const _HtmlAttachmentRow({required this.attachment});
 
+  static final _inkWellBorderRadius = BorderRadius.circular(4);
+  static final _containerBorderRadius = BorderRadius.circular(8);
+
   final MessageAttachment attachment;
 
   @override
@@ -439,7 +442,7 @@ class _HtmlAttachmentRow extends ConsumerWidget {
       child: InkWell(
         key: ValueKey('html-attachment-${attachment.id ?? attachment.name}'),
         onTap: () => _openHtmlPreview(context, ref),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: _inkWellBorderRadius,
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: 8,
@@ -449,7 +452,7 @@ class _HtmlAttachmentRow extends ConsumerWidget {
             border: Border.all(
               color: theme.colorScheme.outlineVariant,
             ),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: _containerBorderRadius,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -545,6 +548,8 @@ class _HtmlAttachmentRow extends ConsumerWidget {
 class _GenericFileAttachmentRow extends ConsumerWidget {
   const _GenericFileAttachmentRow({required this.attachment});
 
+  static final _borderRadius = BorderRadius.circular(4);
+
   final MessageAttachment attachment;
 
   @override
@@ -557,7 +562,7 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
       child: InkWell(
         key: ValueKey('file-attachment-${attachment.id ?? attachment.name}'),
         onTap: hasTapTarget ? () => _openFile(context, ref) : null,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: _borderRadius,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

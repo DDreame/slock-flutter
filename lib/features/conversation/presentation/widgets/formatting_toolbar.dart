@@ -250,6 +250,8 @@ class _ToolbarButton extends StatelessWidget {
     required this.onTap,
   });
 
+  static final _borderRadius = BorderRadius.circular(AppSpacing.radiusSm);
+
   final IconData icon;
   final String tooltip;
   final VoidCallback onTap;
@@ -261,7 +263,7 @@ class _ToolbarButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         key: ValueKey('$tooltip-ink'),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        borderRadius: _borderRadius,
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.sm),
