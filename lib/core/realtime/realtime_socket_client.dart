@@ -46,6 +46,7 @@ class RealtimeSocketOptions {
     this.path = '/socket.io',
     this.transports = const <String>['websocket'],
     this.resumeEventName = 'sync:resume',
+    this.resumeResponseEventName = 'sync:resume:response',
     this.heartbeatEventNames = const <String>{'heartbeat', 'pong'},
     this.extraHeaders = const <String, String>{},
     this.auth,
@@ -55,6 +56,7 @@ class RealtimeSocketOptions {
   final String path;
   final List<String> transports;
   final String resumeEventName;
+  final String resumeResponseEventName;
   final Set<String> heartbeatEventNames;
   final Map<String, String> extraHeaders;
   final Map<String, dynamic>? auth;

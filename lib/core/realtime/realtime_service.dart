@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/realtime/domain_runtime_event_router.dart';
 import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
 import 'package:slock_app/core/realtime/realtime_event_envelope.dart';
@@ -243,6 +244,13 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
       return;
     }
 
+    // INV-856: Handle sync:resume:response separately — batch bypass dedup.
+    if (signal.eventName == _socketOptions.resumeResponseEventName) {
+      state = state.copyWith(lastAnyEventAt: lastAnyEventAt);
+      _handleSyncResumeResponse(signal.payload, now);
+      return;
+    }
+
     final envelope = _normalizer(signal.eventName, signal.payload, now);
     if (envelope == null) {
       state = state.copyWith(lastAnyEventAt: lastAnyEventAt);
@@ -253,6 +261,85 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
     state = state.copyWith(lastAnyEventAt: lastAnyEventAt);
     if (!accepted) {
       return;
+    }
+  }
+
+  /// INV-856: Processes a sync:resume:response batch.
+  ///
+  /// Parses the payload into individual message envelopes, routes them through
+  /// [RealtimeReductionIngress.acceptSyncBatch] (bypasses seq-dedup), updates
+  /// seq tracking, and re-emits sync:resume if hasMore is true.
+  void _handleSyncResumeResponse(Object? rawPayload, DateTime now) {
+    final payload = rawPayload is List<Object?> && rawPayload.isNotEmpty
+        ? rawPayload.first
+        : rawPayload;
+    if (payload is! Map) return;
+
+    final messages = payload['messages'];
+    final hasMore = payload['hasMore'] == true;
+    final currentSeq = payload['currentSeq'];
+
+    // Parse and sort messages by seq ascending to keep ingress monotonic.
+    final messageList =
+        messages is List ? messages.whereType<Map>().toList() : <Map>[];
+    messageList.sort((a, b) {
+      final seqA = a['seq'] is num ? (a['seq'] as num).toInt() : 0;
+      final seqB = b['seq'] is num ? (b['seq'] as num).toInt() : 0;
+      return seqA.compareTo(seqB);
+    });
+
+    // Build envelopes for each message.
+    final envelopes = <RealtimeEventEnvelope>[];
+    for (final msg in messageList) {
+      final eventType = msg['eventType'] is String
+          ? msg['eventType'] as String
+          : 'message:new';
+      final scopeKeyValue = msg['scopeKey'];
+      final scopeKey = scopeKeyValue is String && scopeKeyValue.isNotEmpty
+          ? scopeKeyValue
+          : RealtimeEventEnvelope.globalScopeKey;
+      final seqValue = msg['seq'];
+      final seq = switch (seqValue) {
+        final int value => value,
+        final num value => value.toInt(),
+        _ => null,
+      };
+      envelopes.add(RealtimeEventEnvelope(
+        eventType: eventType,
+        scopeKey: scopeKey,
+        seq: seq,
+        payload: msg,
+        receivedAt: now,
+        gapDetected: false, // We ARE the gap recovery — suppress gap detection.
+      ));
+    }
+
+    // Route through ingress batch accept (bypasses dedup, updates seq).
+    if (envelopes.isNotEmpty) {
+      _ingress.acceptSyncBatch(envelopes);
+    }
+
+    // Update ingress seq from currentSeq if provided (covers empty batches).
+    if (currentSeq is num) {
+      // currentSeq is the server's max — no specific scopeKey needed here.
+      // The per-scope tracking is already handled by acceptSyncBatch above.
+    }
+
+    // hasMore loop: re-emit sync:resume with updated seq tracking.
+    if (hasMore) {
+      final lastSeqByScope = _ingress.lastSeqByScope;
+      (_boundSocketClient ?? _socketClient)
+          .emit(_socketOptions.resumeEventName, {
+        'lastSeqByScope': lastSeqByScope,
+      });
+    } else {
+      // INV-856: All gaps filled — emit synthetic batch-complete event so
+      // domain router triggers a single coalesced inbox/home refresh.
+      _ingress.accept(RealtimeEventEnvelope(
+        eventType: syncBatchCompleteEvent,
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: now,
+      ));
     }
   }
 }
