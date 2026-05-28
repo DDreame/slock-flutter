@@ -198,7 +198,7 @@ void main() {
           historyLimited: false,
           hasOlder: false,
         ),
-        sendError: const NetworkFailure(message: 'offline'),
+        sendError: const ValidationFailure(message: 'invalid'),
       );
       final container = ProviderContainer(
         overrides: [
@@ -210,7 +210,7 @@ void main() {
 
       await container.read(conversationDetailStoreProvider.notifier).load();
 
-      // Send — fails with AppFailure (non-retryable → .failed).
+      // Send — fails with non-retryable AppFailure → .failed.
       container
           .read(conversationDetailStoreProvider.notifier)
           .updateDraft('yo');
@@ -305,7 +305,7 @@ void main() {
           historyLimited: false,
           hasOlder: false,
         ),
-        sendError: const NetworkFailure(message: 'offline'),
+        sendError: const ValidationFailure(message: 'invalid'),
       );
       final container = ProviderContainer(
         overrides: [
