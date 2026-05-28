@@ -497,6 +497,38 @@ void main() {
         expect(state.messages, hasLength(2));
       },
     );
+
+    test(
+      'load() with local seed preserves messages on network failure (SWR)',
+      () async {
+        final repo = _ControllableConversationRepository();
+        // Configure local messages to seed successfully.
+        repo.localMessages = baselineMessages;
+        // Network will throw.
+        repo.nextLoadFailure = const NetworkFailure(
+          message: 'Network timeout',
+        );
+
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+        container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        await container.read(conversationDetailStoreProvider.notifier).load();
+
+        final state = container.read(conversationDetailStoreProvider);
+        // SWR contract: seeded messages must survive network failure.
+        expect(state.status, ConversationDetailStatus.success,
+            reason: '#860: Local-seeded messages must persist on network '
+                'failure. Removing the messages.isNotEmpty guard → messages '
+                'cleared to [] → RED.');
+        expect(state.messages, hasLength(2),
+            reason: '#860: Messages must not be cleared on network failure');
+        expect(state.messages.first.content, 'Hello world');
+        expect(state.isRefreshing, isFalse);
+        expect(state.failure, isNotNull,
+            reason: '#860: Failure must be overlaid so UI can show soft error');
+      },
+    );
   });
 }
 

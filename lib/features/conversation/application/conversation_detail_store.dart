@@ -492,8 +492,11 @@ class ConversationDetailStore
       if (!_isCurrentRequest(requestEpoch, target)) {
         return;
       }
-      if (hasExistingData) {
-        // SWR error: preserve existing messages, overlay failure.
+      // #860: After local seed, state.messages may be non-empty even when
+      // hasExistingData was false at the start of load(). Preserve seeded
+      // messages on network failure (SWR contract: show stale data).
+      if (hasExistingData || state.messages.isNotEmpty) {
+        // SWR error: preserve existing/seeded messages, overlay failure.
         state = state.copyWith(
           isRefreshing: false,
           failure: failure,
