@@ -199,7 +199,9 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        // #859: Advance past banner grace period before asserting visibility.
+        await tester.pump(bannerGracePeriod);
+        await tester.pump();
 
         // ZH: "重新连接中..."
         expect(
