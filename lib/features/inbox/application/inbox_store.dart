@@ -155,6 +155,12 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
+    // INV-850-EPOCH: Capture filter epoch before await. If a filter switch
+    // (load()) fires while this pagination request is in-flight, the epoch
+    // will differ and we discard the stale response to prevent merging items
+    // from the wrong filter into the new list.
+    final epoch = _filterEpoch;
+
     _isLoadingMore = true;
     try {
       final response = await ref.read(inboxRepositoryProvider).fetchInbox(
@@ -165,6 +171,8 @@ class InboxStore extends Notifier<InboxState> {
           );
       // Discard stale response if the server changed during the await.
       if (ref.read(activeServerScopeIdProvider) != serverId) return;
+      // INV-850-EPOCH: Discard stale response if filter switched during await.
+      if (epoch != _filterEpoch) return;
       final mergedItems = _mergeInboxItemsDeduped(
         state.items,
         response.items,
@@ -180,6 +188,8 @@ class InboxStore extends Notifier<InboxState> {
       );
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverId) return;
+      // INV-850-EPOCH: Discard stale error if filter switched during await.
+      if (epoch != _filterEpoch) return;
       state = state.copyWith(failure: failure);
     } finally {
       _isLoadingMore = false;
