@@ -83,46 +83,52 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
           // --- Filter chips ---
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pageHorizontal,
               vertical: AppSpacing.sm,
             ),
-            child: Row(
-              children: [
-                _FilterChipWidget(
-                  key: const ValueKey('diagnostics-filter-all'),
-                  label: l10n.settingsDiagnosticsFilterAll,
-                  selected: _activeFilter == null,
-                  onSelected: (_) => setState(() => _activeFilter = null),
-                  colors: colors,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _FilterChipWidget(
-                  key: const ValueKey('diagnostics-filter-info'),
-                  label: l10n.settingsDiagnosticsFilterInfo,
-                  selected: _activeFilter == DiagnosticsLevel.info,
-                  onSelected: (_) =>
-                      setState(() => _activeFilter = DiagnosticsLevel.info),
-                  colors: colors,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _FilterChipWidget(
-                  key: const ValueKey('diagnostics-filter-warning'),
-                  label: l10n.settingsDiagnosticsFilterWarning,
-                  selected: _activeFilter == DiagnosticsLevel.warning,
-                  onSelected: (_) =>
-                      setState(() => _activeFilter = DiagnosticsLevel.warning),
-                  colors: colors,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _FilterChipWidget(
-                  key: const ValueKey('diagnostics-filter-error'),
-                  label: l10n.settingsDiagnosticsFilterError,
-                  selected: _activeFilter == DiagnosticsLevel.error,
-                  onSelected: (_) =>
-                      setState(() => _activeFilter = DiagnosticsLevel.error),
-                  colors: colors,
-                ),
-              ],
+            child: SingleChildScrollView(
+              key: const ValueKey('diagnostics-filter-scroll'),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pageHorizontal,
+              ),
+              child: Row(
+                children: [
+                  _FilterChipWidget(
+                    key: const ValueKey('diagnostics-filter-all'),
+                    label: l10n.settingsDiagnosticsFilterAll,
+                    selected: _activeFilter == null,
+                    onSelected: (_) => setState(() => _activeFilter = null),
+                    colors: colors,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _FilterChipWidget(
+                    key: const ValueKey('diagnostics-filter-info'),
+                    label: l10n.settingsDiagnosticsFilterInfo,
+                    selected: _activeFilter == DiagnosticsLevel.info,
+                    onSelected: (_) =>
+                        setState(() => _activeFilter = DiagnosticsLevel.info),
+                    colors: colors,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _FilterChipWidget(
+                    key: const ValueKey('diagnostics-filter-warning'),
+                    label: l10n.settingsDiagnosticsFilterWarning,
+                    selected: _activeFilter == DiagnosticsLevel.warning,
+                    onSelected: (_) => setState(
+                        () => _activeFilter = DiagnosticsLevel.warning),
+                    colors: colors,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _FilterChipWidget(
+                    key: const ValueKey('diagnostics-filter-error'),
+                    label: l10n.settingsDiagnosticsFilterError,
+                    selected: _activeFilter == DiagnosticsLevel.error,
+                    onSelected: (_) =>
+                        setState(() => _activeFilter = DiagnosticsLevel.error),
+                    colors: colors,
+                  ),
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),

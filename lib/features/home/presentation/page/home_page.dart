@@ -969,6 +969,8 @@ class _UnreadItemRow extends ConsumerWidget {
     final line3Text = _buildPreviewLine();
 
     return Semantics(
+      container: true,
+      button: true,
       label: '${item.title}: ${_buildPreviewLine()}',
       child: GestureDetector(
         onTap: () => _navigateTo(context, ref),
