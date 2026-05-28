@@ -81,6 +81,21 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
         completingThreadIds: const [],
         failure: failure,
       );
+    } catch (error) {
+      if (_disposed) return;
+      if (ref.read(currentThreadsServerIdProvider) != serverId) return;
+      final hasExistingData = state.items.isNotEmpty;
+      state = state.copyWith(
+        status: hasExistingData
+            ? ThreadsInboxStatus.success
+            : ThreadsInboxStatus.failure,
+        items: hasExistingData ? null : const [],
+        completingThreadIds: const [],
+        failure: UnknownFailure(
+          message: 'Failed to load threads.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
     }
   }
 

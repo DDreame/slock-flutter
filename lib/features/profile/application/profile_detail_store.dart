@@ -159,6 +159,15 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure, isOpeningDirectMessage: false);
       rethrow;
+    } catch (error) {
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to open direct message.',
+          causeType: error.runtimeType.toString(),
+        ),
+        isOpeningDirectMessage: false,
+      );
+      rethrow;
     }
   }
 

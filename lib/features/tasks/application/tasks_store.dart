@@ -144,6 +144,11 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       return created;
     } on AppFailure {
       rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to create tasks.',
+        causeType: error.runtimeType.toString(),
+      );
     }
   }
 
@@ -383,6 +388,11 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       return task;
     } on AppFailure {
       rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to convert message to task.',
+        causeType: error.runtimeType.toString(),
+      );
     }
   }
 
