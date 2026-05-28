@@ -131,6 +131,52 @@ void main() {
         );
       },
     );
+
+    test(
+      'refresh() also applies savedMessageIds from snapshot (no secondary call)',
+      () async {
+        // Repository returns savedMessageIds in snapshot.
+        final repo = _BatchSavedRepository(
+          savedIds: {'msg-2'},
+          messages: messages,
+        );
+        final savedRepo = _TrackingSavedMessagesRepository();
+        final container = ProviderContainer(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationRepositoryProvider.overrideWithValue(repo),
+            savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
+          ],
+        );
+        addTearDown(container.dispose);
+        container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        // Initial load.
+        await container.read(conversationDetailStoreProvider.notifier).load();
+        expect(savedRepo.checkCallCount, 0);
+
+        // Pull-to-refresh path.
+        await container
+            .read(conversationDetailStoreProvider.notifier)
+            .refresh();
+
+        final state = container.read(conversationDetailStoreProvider);
+        expect(
+          state.savedMessageIds,
+          {'msg-2'},
+          reason: '#861: refresh() must also apply savedMessageIds from '
+              'snapshot. Removing the conditional from refresh() → secondary '
+              'rebuild → RED.',
+        );
+        // refreshSavedMessageIds should NOT have been called on either path.
+        expect(
+          savedRepo.checkCallCount,
+          0,
+          reason: '#861: refresh() must skip refreshSavedMessageIds when '
+              'snapshot provides savedMessageIds.',
+        );
+      },
+    );
   });
 
   // ===========================================================================

@@ -961,6 +961,87 @@ void main() {
     expect(decoded.attachments![0].formattedSize, '2.4 MB');
     expect(decoded.attachments![1].sizeBytes, isNull);
   });
+
+  // #861: Production-path proof that checkSavedMessages is called and its
+  // result populates snapshot.savedMessageIds. Removing the batch call from
+  // conversation_repository_provider.dart must turn this test RED.
+  test('#861: loadConversation batches savedMessageIds via checkSavedMessages',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'msg-aaa',
+              'content': 'Hello',
+              'createdAt': '2026-05-20T10:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+            },
+            {
+              'id': 'msg-bbb',
+              'content': 'World',
+              'createdAt': '2026-05-20T11:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 2,
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels/general': {'id': 'general', 'name': 'general'},
+        // Production endpoint for saved-message batch check.
+        '/channels/saved/check': {
+          'savedIds': ['msg-bbb'],
+        },
+      },
+    );
+    // Do NOT override savedMessagesRepositoryProvider here — the real
+    // provider goes through appDioClient, hitting /channels/saved/check.
+    final container = ProviderContainer(
+      overrides: [
+        appDioClientProvider.overrideWithValue(appDioClient),
+        conversationLocalStoreProvider.overrideWithValue(
+          FakeConversationLocalStore(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    // Assert the batch check was called with the message IDs.
+    final savedCheckRequest = appDioClient.requests.firstWhere(
+      (r) => r.path == '/channels/saved/check',
+      orElse: () => throw StateError(
+        '#861: checkSavedMessages POST to /channels/saved/check was never '
+        'called. Removing the batch call from the repository breaks this.',
+      ),
+    );
+    expect(savedCheckRequest.method, 'POST');
+    expect(
+      (savedCheckRequest.data as Map)['messageIds'],
+      containsAll(['msg-aaa', 'msg-bbb']),
+    );
+
+    // Assert savedMessageIds in the snapshot.
+    expect(
+      snapshot.savedMessageIds,
+      {'msg-bbb'},
+      reason: '#861: savedMessageIds must be populated from '
+          'checkSavedMessages response. Removing the batch logic → null → RED.',
+    );
+  });
+
   test('editMessage sends PATCH with correct path, body, and server header',
       () async {
     final localStore = FakeConversationLocalStore();
