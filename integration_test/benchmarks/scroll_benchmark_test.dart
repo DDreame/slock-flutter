@@ -183,12 +183,15 @@ _ScrollMetrics _computeScrollMetrics(List<FrameTiming> timings) {
   final buildTimesMs = <double>[];
   double worstBuild = 0;
   double totalBuild = 0;
+  double totalFrameTime = 0;
   int missed = 0;
 
   for (final timing in timings) {
     final buildMs = timing.buildDuration.inMicroseconds / 1000.0;
+    final totalMs = timing.totalSpan.inMicroseconds / 1000.0;
     buildTimesMs.add(buildMs);
     totalBuild += buildMs;
+    totalFrameTime += totalMs;
     if (buildMs > worstBuild) worstBuild = buildMs;
     if (buildMs > _targetFrameBuildMs) missed++;
   }
@@ -199,7 +202,9 @@ _ScrollMetrics _computeScrollMetrics(List<FrameTiming> timings) {
   final p99 = buildTimesMs[p99Index];
 
   final averageBuild = totalBuild / timings.length;
-  final averageFps = averageBuild > 0 ? 1000.0 / averageBuild : 0.0;
+  // Use total frame time (build + raster) for FPS, not build-only.
+  final averageFrameMs = totalFrameTime / timings.length;
+  final averageFps = averageFrameMs > 0 ? 1000.0 / averageFrameMs : 0.0;
 
   return _ScrollMetrics(
     averageFps: averageFps.clamp(0.0, 120.0),

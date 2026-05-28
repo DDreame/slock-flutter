@@ -1362,31 +1362,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationReplySemantics => '回复';
 
   @override
-  String get channelStopAllAgents => '停止所有 Agent';
+  String get channelStopAllAgents => '停止所有智能体';
 
   @override
-  String get channelResumeAllAgents => '恢复所有 Agent';
+  String get channelResumeAllAgents => '恢复所有智能体';
 
   @override
-  String get channelStopAllAgentsTitle => '停止所有 Agent';
+  String get channelStopAllAgentsTitle => '停止所有智能体';
 
   @override
-  String get channelStopAllAgentsMessage => '停止此频道中的所有 Agent？停止后它们将不会响应，直到恢复。';
+  String get channelStopAllAgentsMessage => '停止此频道中的所有智能体？停止后它们将不会响应，直到恢复。';
 
   @override
   String get channelStopAllAgentsConfirm => '全部停止';
 
   @override
-  String get channelStopAllAgentsSuccess => '所有 Agent 已停止。';
+  String get channelStopAllAgentsSuccess => '所有智能体已停止。';
 
   @override
-  String get channelStopAllAgentsFailed => '停止 Agent 失败。';
+  String get channelStopAllAgentsFailed => '停止智能体失败。';
 
   @override
-  String get channelResumeAllAgentsSuccess => '所有 Agent 已恢复。';
+  String get channelResumeAllAgentsSuccess => '所有智能体已恢复。';
 
   @override
-  String get channelResumeAllAgentsFailed => '恢复 Agent 失败。';
+  String get channelResumeAllAgentsFailed => '恢复智能体失败。';
 
   @override
   String get cancel => '取消';
@@ -1548,7 +1548,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsMembersEmpty => '此频道暂无成员。';
 
   @override
-  String get channelsMembersTypeAgent => 'AI 代理';
+  String get channelsMembersTypeAgent => '智能体';
 
   @override
   String get channelsMembersTypeHuman => '用户';
@@ -1577,7 +1577,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsAddMemberTabHumans => '用户';
 
   @override
-  String get channelsAddMemberTabAgents => 'AI 代理';
+  String get channelsAddMemberTabAgents => '智能体';
 
   @override
   String get channelsAddMemberClose => '关闭';
@@ -1586,7 +1586,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsAddMemberNoHumans => '没有更多用户可添加。';
 
   @override
-  String get channelsAddMemberNoAgents => '没有更多代理可添加。';
+  String get channelsAddMemberNoAgents => '没有更多智能体可添加。';
 
   @override
   String get channelsDialogCreateTitle => '创建频道';
@@ -3297,7 +3297,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentsActivityLogOffline => '离线';
 
   @override
-  String get senderLabelAgent => '机器人';
+  String get senderLabelAgent => '智能体';
 
   @override
   String get senderLabelMember => '成员';

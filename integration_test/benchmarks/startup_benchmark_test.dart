@@ -35,12 +35,14 @@ void main() {
 
     // Extract first-frame timing FROM the trace data (frozen spec requirement).
     // traceAction populates reportData[reportKey] with a timeline summary.
+    expect(binding.reportData, isNotNull,
+        reason: 'traceAction must populate reportData');
     final traceReport =
-        binding.reportData!['startup_timeline'] as Map<String, dynamic>;
+        binding.reportData!['startup_timeline'] as Map<String, dynamic>?;
     expect(traceReport, isNotNull,
         reason: 'traceAction must populate reportData with timeline summary');
 
-    final frameCount = traceReport['frame_count'] as int;
+    final frameCount = traceReport!['frame_count'] as int;
     expect(frameCount, greaterThan(0),
         reason: 'Timeline must contain at least one frame');
 

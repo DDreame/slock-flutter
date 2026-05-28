@@ -272,6 +272,9 @@ class _UnreadListRow extends StatelessWidget {
   final ConversationProjection item;
   final AppColors colors;
 
+  static final _kKindBadgeBorderRadius = BorderRadius.circular(4);
+  static final _kCountPillBorderRadius = BorderRadius.circular(10);
+
   (String glyph, Color Function(AppColors) colorFn) get _kindBadge {
     switch (item.kind) {
       case ConversationProjectionKind.thread:
@@ -304,7 +307,7 @@ class _UnreadListRow extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: _kKindBadgeBorderRadius,
                 ),
                 child: Text(
                   glyph,
@@ -350,7 +353,7 @@ class _UnreadListRow extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: colors.error,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: _kCountPillBorderRadius,
                 ),
                 child: Text(
                   item.unreadCount > 99 ? '99+' : '${item.unreadCount}',

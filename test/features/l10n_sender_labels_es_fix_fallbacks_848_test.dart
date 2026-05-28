@@ -39,7 +39,7 @@ void main() {
         senderType: 'agent',
         messageType: 'text',
       );
-      expect(msg.localizedSenderLabel(l10n), '机器人');
+      expect(msg.localizedSenderLabel(l10n), '智能体');
     });
 
     test('localizedSenderLabel returns Chinese for member under zh locale', () {
@@ -86,7 +86,7 @@ void main() {
         content: 'quote',
         senderType: 'agent',
       );
-      expect(reply.localizedSenderLabel(l10n), '机器人');
+      expect(reply.localizedSenderLabel(l10n), '智能体');
     });
 
     test('localizedSenderLabel returns English under en locale', () {
@@ -281,7 +281,7 @@ void main() {
           createdAt: DateTime(2026, 5, 1, 10, 30),
           senderType: 'agent',
           messageType: 'text',
-          // No senderName → falls back to localizedSenderLabel → "机器人" in ZH
+          // No senderName → falls back to localizedSenderLabel → "智能体" in ZH
         ),
       ];
       final boundaryKey = GlobalKey();
@@ -304,13 +304,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Widget must display Chinese sender label "机器人" (not English "Agent").
+      // Widget must display Chinese sender label "智能体" (not English "Agent").
       // Reverting message_export_card.dart back to `.senderLabel` → this fails RED.
       expect(
-        find.text('机器人'),
+        find.text('智能体'),
         findsOneWidget,
         reason:
-            'MessageExportCard must render localized ZH sender label "机器人". '
+            'MessageExportCard must render localized ZH sender label "智能体". '
             'Reverting to hardcoded .senderLabel → English "Agent" → RED.',
       );
       // English must NOT appear.

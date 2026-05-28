@@ -21,6 +21,8 @@ class SearchScopeTabs extends StatelessWidget {
   final int? channelCount;
   final int? contactCount;
 
+  static final _kOuterBorderRadius = BorderRadius.circular(8);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>();
@@ -32,7 +34,7 @@ class SearchScopeTabs extends StatelessWidget {
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: surfaceAlt,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: _kOuterBorderRadius,
       ),
       child: Row(
         children: [
@@ -89,6 +91,8 @@ class _ScopeTab extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
+  static final _kTabBorderRadius = BorderRadius.circular(6);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>();
@@ -110,7 +114,7 @@ class _ScopeTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 6),
             decoration: BoxDecoration(
               color: isActive ? surface : Colors.transparent,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: _kTabBorderRadius,
               boxShadow: isActive
                   ? [
                       BoxShadow(

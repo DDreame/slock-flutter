@@ -38,6 +38,10 @@ class InboxItemTile extends StatelessWidget {
   @visibleForTesting
   static int buildCount = 0;
 
+  /// Hoisted BorderRadius constants to avoid per-frame allocation (#858).
+  static final _kBadgeBorderRadius = BorderRadius.circular(6);
+  static final _kCountPillBorderRadius = BorderRadius.circular(10);
+
   final ConversationProjection projection;
 
   /// Whether any unread message in this conversation @mentions the current user.
@@ -225,7 +229,7 @@ class InboxItemTile extends StatelessWidget {
         color: isDm
             ? colors.primary.withValues(alpha: 0.08)
             : colors.textTertiary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: _kBadgeBorderRadius,
       ),
       child: Text(
         projection.sourceLabel!,
@@ -249,7 +253,7 @@ class InboxItemTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(
         color: colors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: _kBadgeBorderRadius,
       ),
       child: Text(
         l10n.inboxMentionBadge,
@@ -292,7 +296,7 @@ class InboxItemTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: colors.primary,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: _kCountPillBorderRadius,
         ),
         alignment: Alignment.center,
         child: Text(

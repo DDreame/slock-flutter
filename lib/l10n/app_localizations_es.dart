@@ -62,7 +62,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get registerAlreadyHaveAccountCta =>
-      'Ya tienes una cuenta? Inicia sesión';
+      '¿Ya tienes una cuenta? Inicia sesión';
 
   @override
   String get registerDisplayNameRequiredError =>
@@ -264,7 +264,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get homeCardUnread => 'NO LEIDOS';
+  String get homeCardUnread => 'NO LEÍDOS';
 
   @override
   String get homeCardUnreadEmpty => 'Todo al día';

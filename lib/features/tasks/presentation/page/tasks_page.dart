@@ -371,43 +371,46 @@ class _TasksSummaryHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.pageHorizontal,
       ),
-      child: Row(
-        children: [
-          _SummaryChip(
-            symbol: '○',
-            count: todoCount,
-            label: l10n.tasksSummaryTodo,
-            color: colors.textTertiary,
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          _SummaryChip(
-            symbol: '◐',
-            count: progressCount,
-            label: l10n.tasksSummaryInProgress,
-            color: colors.primary,
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          _SummaryChip(
-            symbol: '◑',
-            count: reviewCount,
-            label: l10n.tasksSummaryReview,
-            color: colors.warning,
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          _SummaryChip(
-            symbol: '●',
-            count: doneCount,
-            label: l10n.tasksSummaryDone,
-            color: colors.success,
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          _SummaryChip(
-            symbol: '✕',
-            count: closedCount,
-            label: l10n.tasksSummaryClosed,
-            color: colors.textTertiary,
-          ),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _SummaryChip(
+              symbol: '○',
+              count: todoCount,
+              label: l10n.tasksSummaryTodo,
+              color: colors.textTertiary,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            _SummaryChip(
+              symbol: '◐',
+              count: progressCount,
+              label: l10n.tasksSummaryInProgress,
+              color: colors.primary,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            _SummaryChip(
+              symbol: '◑',
+              count: reviewCount,
+              label: l10n.tasksSummaryReview,
+              color: colors.warning,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            _SummaryChip(
+              symbol: '●',
+              count: doneCount,
+              label: l10n.tasksSummaryDone,
+              color: colors.success,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            _SummaryChip(
+              symbol: '✕',
+              count: closedCount,
+              label: l10n.tasksSummaryClosed,
+              color: colors.textTertiary,
+            ),
+          ],
+        ),
       ),
     );
   }
