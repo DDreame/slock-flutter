@@ -322,20 +322,24 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
     // INV-856: Advance cursor from currentSeq even on empty batches to prevent
     // livelock. When messages is empty but hasMore is true, the cursor must
     // still advance so the next sync:resume sends a higher seq.
+    //
+    // #859 P2: Record cursor position BEFORE advanceSeq to detect no-progress.
+    final scopeKeyValue = payload['scopeKey'];
+    final scope = scopeKeyValue is String && scopeKeyValue.isNotEmpty
+        ? scopeKeyValue
+        : RealtimeEventEnvelope.globalScopeKey;
+    final prevSeq = _ingress.lastSeqByScope[scope] ?? 0;
     if (currentSeq is num) {
-      final scopeKeyValue = payload['scopeKey'];
-      final scope = scopeKeyValue is String && scopeKeyValue.isNotEmpty
-          ? scopeKeyValue
-          : RealtimeEventEnvelope.globalScopeKey;
       _ingress.advanceSeq(scope, currentSeq.toInt());
     }
+    final newSeq = _ingress.lastSeqByScope[scope] ?? 0;
 
     // hasMore loop: re-emit sync:resume with updated seq tracking.
     if (hasMore) {
-      // #859 P2: Defensive break — if server sends hasMore:true but messages
-      // is empty AND cursor didn't advance (no currentSeq or empty batch),
-      // break out to prevent infinite livelock loop.
-      if (messageList.isEmpty && currentSeq is! num) {
+      // #859 P2: Defensive break — if messages is empty AND cursor didn't
+      // advance (either no currentSeq, or currentSeq <= lastKnownSeq),
+      // terminate to prevent infinite livelock loop.
+      if (messageList.isEmpty && newSeq <= prevSeq) {
         _ingress.accept(RealtimeEventEnvelope(
           eventType: syncBatchCompleteEvent,
           scopeKey: RealtimeEventEnvelope.globalScopeKey,

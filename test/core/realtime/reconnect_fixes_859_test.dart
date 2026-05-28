@@ -306,13 +306,15 @@ void main() {
         final client = SocketIoRealtimeSocketClient(options: options);
         addTearDown(() async => client.dispose());
 
-        // The underlying socket.io options must have reconnection off.
-        // SocketIoRealtimeSocketClient uses OptionBuilder.disableReconnection()
-        // which sets 'reconnection' to false in the options map.
-        // We can't inspect private fields directly, but we verify the client
-        // is constructed without error and doesn't auto-reconnect by checking
-        // that disconnect stays disconnected.
-        expect(client.isConnected, false);
+        // The underlying socket.io options must have reconnection set to false.
+        // Removing .disableReconnection() from the OptionBuilder → this fails RED.
+        final socketOpts = client.socketOptions;
+        expect(
+          socketOpts?['reconnection'],
+          false,
+          reason: '#859: .disableReconnection() must set reconnection=false. '
+              'Removing it → reconnection defaults to true → RED.',
+        );
       },
     );
   });
@@ -468,6 +470,68 @@ void main() {
               .length,
           1,
           reason: 'Normal hasMore with messages should continue sync loop.',
+        );
+
+        container.dispose();
+      },
+    );
+
+    test(
+      'hasMore:true with empty messages and stale currentSeq emits batch-complete',
+      () async {
+        final ingress = RealtimeReductionIngress();
+        addTearDown(ingress.dispose);
+        final socket = _FakeRealtimeSocketClient();
+        final container = ProviderContainer(
+          overrides: [
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWithValue(socket),
+            realtimeWatchdogTimerFactoryProvider
+                .overrideWithValue((_, __) => _NoopTimer()),
+            realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(realtimeServiceProvider.notifier).connect();
+        await Future<void>.delayed(Duration.zero);
+
+        // Pre-seed ingress with seq 42 so currentSeq:42 is stale.
+        ingress.advanceSeq(RealtimeEventEnvelope.globalScopeKey, 42);
+
+        // Collect events from ingress.
+        final events = <RealtimeEventEnvelope>[];
+        ingress.acceptedEvents.listen(events.add);
+
+        // Simulate: hasMore:true, messages:[], currentSeq:42 (stale — won't
+        // advance past the already-known 42). This is the edge case where
+        // currentSeq IS provided but doesn't advance the cursor.
+        socket.simulateRawEvent('sync:resume:response', [
+          {
+            'messages': <dynamic>[],
+            'hasMore': true,
+            'currentSeq': 42,
+            'scopeKey': RealtimeEventEnvelope.globalScopeKey,
+          },
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        // The defensive break must fire: newSeq (42) <= prevSeq (42).
+        expect(
+          events.any((e) => e.eventType == syncBatchCompleteEvent),
+          isTrue,
+          reason: '#859 P2: Stale currentSeq (no cursor progress) with empty '
+              'messages must emit batch-complete. Removing newSeq<=prevSeq '
+              'check → re-emits sync:resume → infinite loop → RED.',
+        );
+
+        // Verify no sync:resume was re-emitted.
+        expect(
+          socket.emittedEvents
+              .where((e) => e.eventName == 'sync:resume')
+              .length,
+          0,
+          reason: '#859 P2: Must NOT re-emit sync:resume when cursor stalled.',
         );
 
         container.dispose();

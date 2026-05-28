@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:socket_io_client/socket_io_client.dart' as io;
 
 abstract class RealtimeSocketClient {
@@ -105,6 +106,11 @@ class SocketIoRealtimeSocketClient implements RealtimeSocketClient {
   final io.Socket _socket;
   final StreamController<RealtimeSocketSignal> _signalsController =
       StreamController<RealtimeSocketSignal>.broadcast();
+
+  /// #859: Exposes the underlying socket.io options map for test assertions.
+  /// Used to verify that `.disableReconnection()` is applied.
+  @visibleForTesting
+  Map<dynamic, dynamic>? get socketOptions => _socket.io.options;
 
   @override
   Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
