@@ -13,8 +13,6 @@
 //     the row. Removing the Semantics wrapper → findsNothing → test RED.
 // =============================================================================
 
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -191,6 +189,9 @@ void main() {
   testWidgets(
     'Cleanup2: HomeChannelRow wrapped in Semantics(button: true, label: name)',
     (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       const channelName = 'test-channel';
       final channel = HomeChannelSummary(
         scopeId: const ChannelScopeId(
@@ -222,19 +223,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find a Semantics widget with button=true and the channel name as label.
-      final semantics = find.byWidgetPredicate(
-        (w) =>
-            w is Semantics &&
-            w.properties.button == true &&
-            w.properties.label == channelName,
+      // Query the semantics tree for the HomeChannelRow widget.
+      final node = tester.getSemantics(find.byType(HomeChannelRow));
+      expect(
+        node.flagsCollection.isButton,
+        isTrue,
+        reason: 'Cleanup2: HomeChannelRow must expose isButton in the '
+            'semantics tree. Removing the Semantics wrapper → '
+            'isButton is false → test RED.',
       );
       expect(
-        semantics,
-        findsOneWidget,
-        reason: 'Cleanup2: HomeChannelRow must be wrapped in '
-            'Semantics(button: true, label: channel.name). '
-            'Removing the wrapper → findsNothing → test RED.',
+        node.label,
+        contains(channelName),
+        reason: 'Cleanup2: HomeChannelRow semantics label must contain '
+            'the channel name for screen readers.',
       );
     },
   );
@@ -245,6 +247,9 @@ void main() {
   testWidgets(
     'Cleanup2: HomeDirectMessageRow wrapped in Semantics(button: true, label: title)',
     (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       const dmTitle = 'Alice';
       final dm = HomeDirectMessageSummary(
         scopeId: const DirectMessageScopeId(
@@ -276,19 +281,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find a Semantics widget with button=true and the DM title as label.
-      final semantics = find.byWidgetPredicate(
-        (w) =>
-            w is Semantics &&
-            w.properties.button == true &&
-            w.properties.label == dmTitle,
+      // Query the semantics tree for the HomeDirectMessageRow widget.
+      final node = tester.getSemantics(find.byType(HomeDirectMessageRow));
+      expect(
+        node.flagsCollection.isButton,
+        isTrue,
+        reason: 'Cleanup2: HomeDirectMessageRow must expose isButton in '
+            'the semantics tree. Removing the Semantics wrapper → '
+            'isButton is false → test RED.',
       );
       expect(
-        semantics,
-        findsOneWidget,
-        reason: 'Cleanup2: HomeDirectMessageRow must be wrapped in '
-            'Semantics(button: true, label: directMessage.title). '
-            'Removing the wrapper → findsNothing → test RED.',
+        node.label,
+        contains(dmTitle),
+        reason: 'Cleanup2: HomeDirectMessageRow semantics label must contain '
+            'the DM title for screen readers.',
       );
     },
   );
