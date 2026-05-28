@@ -78,10 +78,6 @@ String formatRelativeTime(
   return '${_month(local.month)} ${local.day}, $localTime';
 }
 
-String formatTimeOnly(DateTime dt) {
-  return _formatTime(dt.toLocal());
-}
-
 String _formatTime(DateTime dt) {
   return '${dt.hour.toString().padLeft(2, '0')}:'
       '${dt.minute.toString().padLeft(2, '0')}';

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   Widget buildApp({
@@ -10,6 +11,8 @@ void main() {
     Widget? child,
   }) {
     return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.light,
       home: Scaffold(
         body: ListView(
@@ -122,6 +125,8 @@ void main() {
       var markReadCalled = false;
 
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppTheme.dark,
         home: Scaffold(
           body: ListView(

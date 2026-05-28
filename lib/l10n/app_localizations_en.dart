@@ -3367,4 +3367,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get connectionReconnecting => 'Reconnecting...';
+
+  @override
+  String get conversationDefaultTitleDm => 'Direct message';
+
+  @override
+  String get userFallbackDisplayName => 'User';
+
+  @override
+  String get agentsActivityLogOnline => 'Online';
+
+  @override
+  String get agentsActivityLogThinking => 'Thinking';
+
+  @override
+  String get agentsActivityLogWorking => 'Working';
+
+  @override
+  String get agentsActivityLogError => 'Error';
+
+  @override
+  String agentsActivityLogErrorDetail(String detail) {
+    return 'Error: $detail';
+  }
+
+  @override
+  String get agentsActivityLogOffline => 'Offline';
 }

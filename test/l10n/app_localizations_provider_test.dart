@@ -24,7 +24,7 @@ void main() {
 
     expect(container.read(appLocalizationsProvider).localeName, 'es');
     expect(
-        container.read(appLocalizationsProvider).loginTitle, 'Iniciar sesion');
+        container.read(appLocalizationsProvider).loginTitle, 'Iniciar sesión');
 
     container.dispose();
     await tester.pump();

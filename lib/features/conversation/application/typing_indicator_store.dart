@@ -43,19 +43,6 @@ class TypingIndicatorState {
   /// Ordered list of users currently typing (insertion order).
   final List<ActiveTyper> activeTypers;
 
-  /// Human-readable display text for the typing indicator.
-  ///
-  /// Returns `null` when no one is typing.
-  String? get displayText {
-    return switch (activeTypers.length) {
-      0 => null,
-      1 => '${activeTypers[0].displayName} is typing...',
-      2 =>
-        '${activeTypers[0].displayName} and ${activeTypers[1].displayName} are typing...',
-      _ => 'Several people are typing...',
-    };
-  }
-
   TypingIndicatorState copyWith({List<ActiveTyper>? activeTypers}) {
     return TypingIndicatorState(
       activeTypers: activeTypers ?? this.activeTypers,

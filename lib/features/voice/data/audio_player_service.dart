@@ -37,10 +37,6 @@ abstract class AudioPlayerController {
 final audioPlayerServiceFactoryProvider =
     Provider<AudioPlayerController Function()>((ref) => AudioPlayerService.new);
 
-final activeAudioPlayerProvider = StateProvider<AudioPlayerController?>((ref) {
-  return null;
-});
-
 final audioAttachmentPlayerPoolProvider =
     StateNotifierProvider.autoDispose<AudioAttachmentPlayerPool, String?>(
         (ref) {

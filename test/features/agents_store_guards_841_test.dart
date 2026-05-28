@@ -338,6 +338,11 @@ void main() {
       ]);
       addTearDown(container.dispose);
 
+      // Subscribe to dateSeparatorNowProvider before emitting so events
+      // aren't missed (stream subscription is lazy).
+      final sub = container.listen(dateSeparatorNowProvider, (_, __) {});
+      addTearDown(sub.close);
+
       // Emit 23:59 on May 27.
       controller.add(DateTime(2026, 5, 27, 23, 59, 0));
       await Future<void>.delayed(Duration.zero);

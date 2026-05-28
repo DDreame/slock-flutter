@@ -62,14 +62,4 @@ void main() {
       expect(formatRelativeTime(utcDt), '15m ago');
     });
   });
-
-  group('formatTimeOnly', () {
-    test('returns HH:mm in local time', () {
-      final dt = DateTime.utc(2026, 4, 29, 14, 5);
-      final local = dt.toLocal();
-      final hour = local.hour.toString().padLeft(2, '0');
-      final minute = local.minute.toString().padLeft(2, '0');
-      expect(formatTimeOnly(dt), '$hour:$minute');
-    });
-  });
 }

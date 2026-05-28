@@ -6,6 +6,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 @immutable
@@ -101,7 +102,8 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
         status: ProfileDetailStatus.success,
         profile: MemberProfile(
           id: session.userId ?? 'unknown',
-          displayName: session.displayName ?? 'User',
+          displayName: session.displayName ??
+              ref.read(appLocalizationsProvider).userFallbackDisplayName,
           avatarUrl: session.avatarUrl,
           isSelf: true,
         ),

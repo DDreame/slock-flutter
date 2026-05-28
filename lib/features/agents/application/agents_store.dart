@@ -7,6 +7,8 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 final agentsStoreProvider =
     NotifierProvider<AgentsStore, AgentsState>(AgentsStore.new);
@@ -385,7 +387,8 @@ class AgentsStore extends Notifier<AgentsState> {
     DateTime? timestamp,
   }) {
     final receivedAt = timestamp ?? DateTime.now();
-    final entryText = _formatActivityLogEntry(activity, detail);
+    final l10n = ref.read(appLocalizationsProvider);
+    final entryText = _formatActivityLogEntry(activity, detail, l10n);
     final existingLog = state.activityLogFor(agentId);
     final lastEntry = existingLog.isEmpty ? null : existingLog.last;
     final nextLog = lastEntry != null &&
@@ -534,17 +537,27 @@ class AgentsStore extends Notifier<AgentsState> {
   }
 }
 
-String _formatActivityLogEntry(String activity, String? detail) {
+String _formatActivityLogEntry(
+  String activity,
+  String? detail,
+  AppLocalizations l10n,
+) {
   final normalizedDetail = detail?.trim();
   final hasDetail = normalizedDetail != null && normalizedDetail.isNotEmpty;
   final activityLabel = switch (activity) {
-    'online' => 'Online',
-    'thinking' => 'Thinking',
-    'working' => 'Working',
-    'error' => 'Error',
-    'offline' => 'Offline',
+    'online' => l10n.agentsActivityLogOnline,
+    'thinking' => l10n.agentsActivityLogThinking,
+    'working' => l10n.agentsActivityLogWorking,
+    'error' => hasDetail
+        ? l10n.agentsActivityLogErrorDetail(normalizedDetail)
+        : l10n.agentsActivityLogError,
+    'offline' => l10n.agentsActivityLogOffline,
     _ => activity,
   };
+  // For 'error' with detail, the label already includes ": detail".
+  if (activity == 'error' && hasDetail) {
+    return activityLabel;
+  }
   if (!hasDetail) {
     return activityLabel;
   }
