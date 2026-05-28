@@ -3452,4 +3452,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unnamedWorkspaceFallback => 'Unnamed workspace';
+
+  @override
+  String agentsStatusGroupSemantics(String status, int count) {
+    return '$status, $count agents';
+  }
+
+  @override
+  String agentsRowSemantics(String name, String activity) {
+    return '$name, $activity';
+  }
+
+  @override
+  String get agentsRowActionsHint => 'Show actions';
+
+  @override
+  String get mentionSuggestionsSemantics => 'Mention suggestions';
+
+  @override
+  String mentionSuggestionItemSemantics(String name) {
+    return 'Mention $name';
+  }
 }

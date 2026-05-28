@@ -1338,5 +1338,10 @@
   "diagnosticsEntryExpandSemantics": "Expandir entrada de diagnóstico",
   "quoteJumpDismissSemantics": "Cerrar",
   "unnamedMachineFallback": "Máquina sin nombre",
-  "unnamedWorkspaceFallback": "Espacio sin nombre"
+  "unnamedWorkspaceFallback": "Espacio sin nombre",
+  "agentsStatusGroupSemantics": "{status}, {count} agentes",
+  "agentsRowSemantics": "{name}, {activity}",
+  "agentsRowActionsHint": "Mostrar acciones",
+  "mentionSuggestionsSemantics": "Sugerencias de mención",
+  "mentionSuggestionItemSemantics": "Mencionar a {name}"
 }

@@ -1581,5 +1581,27 @@
   "diagnosticsEntryExpandSemantics": "Expand diagnostics entry",
   "quoteJumpDismissSemantics": "Dismiss",
   "unnamedMachineFallback": "Unnamed machine",
-  "unnamedWorkspaceFallback": "Unnamed workspace"
+  "unnamedWorkspaceFallback": "Unnamed workspace",
+  "agentsStatusGroupSemantics": "{status}, {count} agents",
+  "@agentsStatusGroupSemantics": {
+    "placeholders": {
+      "status": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "agentsRowSemantics": "{name}, {activity}",
+  "@agentsRowSemantics": {
+    "placeholders": {
+      "name": { "type": "String" },
+      "activity": { "type": "String" }
+    }
+  },
+  "agentsRowActionsHint": "Show actions",
+  "mentionSuggestionsSemantics": "Mention suggestions",
+  "mentionSuggestionItemSemantics": "Mention {name}",
+  "@mentionSuggestionItemSemantics": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
 }

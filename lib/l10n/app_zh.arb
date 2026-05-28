@@ -1178,5 +1178,10 @@
   "diagnosticsEntryExpandSemantics": "展开诊断条目",
   "quoteJumpDismissSemantics": "关闭",
   "unnamedMachineFallback": "未命名设备",
-  "unnamedWorkspaceFallback": "未命名工作区"
+  "unnamedWorkspaceFallback": "未命名工作区",
+  "agentsStatusGroupSemantics": "{status}，{count}个智能体",
+  "agentsRowSemantics": "{name}，{activity}",
+  "agentsRowActionsHint": "显示操作",
+  "mentionSuggestionsSemantics": "提及建议",
+  "mentionSuggestionItemSemantics": "提及{name}"
 }

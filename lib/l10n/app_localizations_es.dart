@@ -3490,4 +3490,25 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get unnamedWorkspaceFallback => 'Espacio sin nombre';
+
+  @override
+  String agentsStatusGroupSemantics(String status, int count) {
+    return '$status, $count agentes';
+  }
+
+  @override
+  String agentsRowSemantics(String name, String activity) {
+    return '$name, $activity';
+  }
+
+  @override
+  String get agentsRowActionsHint => 'Mostrar acciones';
+
+  @override
+  String get mentionSuggestionsSemantics => 'Sugerencias de mención';
+
+  @override
+  String mentionSuggestionItemSemantics(String name) {
+    return 'Mencionar a $name';
+  }
 }
