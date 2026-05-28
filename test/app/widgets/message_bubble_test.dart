@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('MessageBubble', () {
@@ -103,6 +104,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
             body: Center(
               child: MessageBubble(
@@ -239,6 +242,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.dark,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
             body: Center(
               child: MessageBubble(

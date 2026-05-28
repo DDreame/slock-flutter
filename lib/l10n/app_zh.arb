@@ -1171,5 +1171,12 @@
   "diagnosticsExportFabTooltip": "导出诊断信息",
   "scrollToBottomFabTooltip": "滚动到底部",
   "replyPreviewDismissSemantics": "关闭回复",
-  "linkedTaskBadgeSemantics": "查看关联任务"
+  "linkedTaskBadgeSemantics": "查看关联任务",
+  "messageSelectionToggleSemantics": "切换消息选择",
+  "messageContextMenuSemantics": "消息选项",
+  "quotedMessageTapSemantics": "跳转到引用消息",
+  "diagnosticsEntryExpandSemantics": "展开诊断条目",
+  "quoteJumpDismissSemantics": "关闭",
+  "unnamedMachineFallback": "未命名设备",
+  "unnamedWorkspaceFallback": "未命名工作区"
 }

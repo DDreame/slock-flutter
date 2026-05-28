@@ -3403,7 +3403,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get senderLabelSystem => 'System';
 
-
   @override
   String sharePreviewAttachmentCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
@@ -3420,6 +3419,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get inboxFallbackMemberName => 'Member';
+
+  @override
   String get diagnosticsExportFabTooltip => 'Export diagnostics';
 
   @override
@@ -3430,4 +3431,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get linkedTaskBadgeSemantics => 'View linked task';
+
+  @override
+  String get messageSelectionToggleSemantics => 'Toggle message selection';
+
+  @override
+  String get messageContextMenuSemantics => 'Message options';
+
+  @override
+  String get quotedMessageTapSemantics => 'Jump to quoted message';
+
+  @override
+  String get diagnosticsEntryExpandSemantics => 'Expand diagnostics entry';
+
+  @override
+  String get quoteJumpDismissSemantics => 'Dismiss';
+
+  @override
+  String get unnamedMachineFallback => 'Unnamed machine';
+
+  @override
+  String get unnamedWorkspaceFallback => 'Unnamed workspace';
 }

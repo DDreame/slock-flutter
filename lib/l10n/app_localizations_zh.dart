@@ -3305,7 +3305,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get senderLabelSystem => '系统';
 
-
   @override
   String sharePreviewAttachmentCount(int count) {
     String _temp0 = intl.Intl.pluralLogic(
@@ -3322,6 +3321,8 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get inboxFallbackMemberName => '成员';
+
+  @override
   String get diagnosticsExportFabTooltip => '导出诊断信息';
 
   @override
@@ -3332,4 +3333,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get linkedTaskBadgeSemantics => '查看关联任务';
+
+  @override
+  String get messageSelectionToggleSemantics => '切换消息选择';
+
+  @override
+  String get messageContextMenuSemantics => '消息选项';
+
+  @override
+  String get quotedMessageTapSemantics => '跳转到引用消息';
+
+  @override
+  String get diagnosticsEntryExpandSemantics => '展开诊断条目';
+
+  @override
+  String get quoteJumpDismissSemantics => '关闭';
+
+  @override
+  String get unnamedMachineFallback => '未命名设备';
+
+  @override
+  String get unnamedWorkspaceFallback => '未命名工作区';
 }

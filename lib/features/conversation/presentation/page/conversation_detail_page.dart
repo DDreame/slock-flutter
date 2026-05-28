@@ -110,6 +110,39 @@ class QuoteJumpOverlay extends StatelessWidget {
   }
 }
 
+/// Dismissible overlay shell wrapping [QuoteJumpOverlay] with Semantics.
+///
+/// When [state] is [QuoteJumpState.notFound], the overlay becomes a tappable
+/// dismiss button with an accessible label. Extracted for widget-level
+/// testability (#851).
+class QuoteJumpDismissibleOverlay extends StatelessWidget {
+  const QuoteJumpDismissibleOverlay({
+    super.key,
+    required this.state,
+    this.onDismiss,
+  });
+
+  final QuoteJumpState state;
+  final VoidCallback? onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDismissible = state == QuoteJumpState.notFound;
+    return Semantics(
+      button: isDismissible,
+      label: isDismissible ? context.l10n.quoteJumpDismissSemantics : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: isDismissible ? onDismiss : null,
+        child: QuoteJumpOverlay(
+          key: const ValueKey('quote-jump-overlay'),
+          state: state,
+        ),
+      ),
+    );
+  }
+}
+
 class ConversationDetailPage extends StatelessWidget {
   const ConversationDetailPage({
     super.key,
@@ -530,16 +563,9 @@ class _ConversationDetailScreenState
                             ),
                             if (_quoteJumpState != QuoteJumpState.idle)
                               Positioned.fill(
-                                child: GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap:
-                                      _quoteJumpState == QuoteJumpState.notFound
-                                          ? _dismissQuoteJumpNotFound
-                                          : null,
-                                  child: QuoteJumpOverlay(
-                                    key: const ValueKey('quote-jump-overlay'),
-                                    state: _quoteJumpState,
-                                  ),
+                                child: QuoteJumpDismissibleOverlay(
+                                  state: _quoteJumpState,
+                                  onDismiss: _dismissQuoteJumpNotFound,
                                 ),
                               ),
                             if (_showScrollToBottom)

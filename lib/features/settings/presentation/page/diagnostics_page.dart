@@ -302,98 +302,103 @@ class _DiagnosticsEntryTileState extends State<_DiagnosticsEntryTile> {
     final entry = widget.entry;
     final colors = widget.colors;
 
-    return GestureDetector(
-      onTap: _hasMetadata ? () => setState(() => _expanded = !_expanded) : null,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          border: Border.all(color: colors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Level indicator dot
-                Container(
-                  key: ValueKey('diagnostics-level-${widget.index}'),
-                  width: 8,
-                  height: 8,
-                  margin: const EdgeInsets.only(top: 5),
-                  decoration: BoxDecoration(
-                    color: widget.levelColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                // Tag
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  ),
-                  child: Text(
-                    entry.tag,
-                    style: AppTypography.caption.copyWith(
-                      color: colors.textSecondary,
-                      fontWeight: FontWeight.w500,
+    return Semantics(
+      button: _hasMetadata,
+      label: _hasMetadata ? context.l10n.diagnosticsEntryExpandSemantics : null,
+      child: GestureDetector(
+        onTap:
+            _hasMetadata ? () => setState(() => _expanded = !_expanded) : null,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            border: Border.all(color: colors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Level indicator dot
+                  Container(
+                    key: ValueKey('diagnostics-level-${widget.index}'),
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.only(top: 5),
+                    decoration: BoxDecoration(
+                      color: widget.levelColor,
+                      shape: BoxShape.circle,
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                // Timestamp
-                Text(
-                  _formatTimestamp(entry.timestamp),
-                  style: AppTypography.caption
-                      .copyWith(color: colors.textTertiary),
-                ),
-                if (_hasMetadata) ...[
-                  const Spacer(),
-                  Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 16,
-                    color: colors.textTertiary,
+                  const SizedBox(width: AppSpacing.sm),
+                  // Tag
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceAlt,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    ),
+                    child: Text(
+                      entry.tag,
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
+                  // Timestamp
+                  Text(
+                    _formatTimestamp(entry.timestamp),
+                    style: AppTypography.caption
+                        .copyWith(color: colors.textTertiary),
+                  ),
+                  if (_hasMetadata) ...[
+                    const Spacer(),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 16,
+                      color: colors.textTertiary,
+                    ),
+                  ],
                 ],
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            // Message
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: Text(
-                entry.message,
-                style: AppTypography.body.copyWith(color: colors.text),
               ),
-            ),
-            // Metadata (expanded)
-            if (_expanded && _hasMetadata) ...[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xs),
+              // Message
               Padding(
                 padding: const EdgeInsets.only(left: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: entry.metadata!.entries
-                      .map(
-                        (kv) => Text(
-                          '${kv.key}: ${kv.value}',
-                          style: AppTypography.caption.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        ),
-                      )
-                      .toList(),
+                child: Text(
+                  entry.message,
+                  style: AppTypography.body.copyWith(color: colors.text),
                 ),
               ),
+              // Metadata (expanded)
+              if (_expanded && _hasMetadata) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: entry.metadata!.entries
+                        .map(
+                          (kv) => Text(
+                            '${kv.key}: ${kv.value}',
+                            style: AppTypography.caption.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

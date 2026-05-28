@@ -64,6 +64,18 @@ class ConversationComposer extends ConsumerWidget {
   final VoidCallback onCancelRecording;
   final bool enterToSend;
 
+  /// Hoisted border radius to avoid per-build allocation (#851).
+  @visibleForTesting
+  static final BorderRadius inputBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusFull);
+
+  /// Hoisted content padding to avoid per-build allocation (#851).
+  @visibleForTesting
+  static const EdgeInsets inputContentPadding = EdgeInsets.symmetric(
+    horizontal: AppSpacing.lg,
+    vertical: AppSpacing.md,
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -221,24 +233,18 @@ class ConversationComposer extends ConsumerWidget {
                         decoration: InputDecoration(
                           hintText: l10n.conversationComposerHint,
                           border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: inputBorderRadius,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: inputBorderRadius,
                             borderSide: BorderSide(color: colors.border),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderRadius: inputBorderRadius,
                             borderSide:
                                 BorderSide(color: colors.primary, width: 1.5),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                            vertical: AppSpacing.md,
-                          ),
+                          contentPadding: inputContentPadding,
                         ),
                       ),
                     ),

@@ -521,7 +521,12 @@ class _MachineCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(machine.name, style: theme.textTheme.titleMedium),
+                      Text(
+                        machine.name.isNotEmpty
+                            ? machine.name
+                            : context.l10n.unnamedMachineFallback,
+                        style: theme.textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
