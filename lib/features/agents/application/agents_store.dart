@@ -20,6 +20,9 @@ class AgentsStore extends Notifier<AgentsState> {
   /// callers from each firing a separate load() call (#726).
   Completer<void>? _ensureLoadedCompleter;
 
+  /// INV-853: Request epoch for load deduplication.
+  int _loadEpoch = 0;
+
   bool _disposed = false;
 
   @override
@@ -43,6 +46,10 @@ class AgentsStore extends Notifier<AgentsState> {
   Future<void> load() async {
     if (_disposed) return;
     final hasStaleData = state.status == AgentsStatus.success;
+
+    // INV-853: Capture epoch — if a newer load() starts while we await,
+    // this response is stale and must be discarded.
+    final epoch = ++_loadEpoch;
 
     if (hasStaleData) {
       // SWR: keep status=success, signal refresh via isRefreshing.
@@ -68,6 +75,7 @@ class AgentsStore extends Notifier<AgentsState> {
       ]);
 
       if (_disposed) return;
+      if (epoch != _loadEpoch) return; // INV-853: superseded by newer load.
 
       final agents = results[0] as List<AgentItem>;
       final machines = results[1] as List<MachineItem>;
@@ -83,6 +91,7 @@ class AgentsStore extends Notifier<AgentsState> {
       );
     } on AppFailure catch (failure) {
       if (_disposed) return;
+      if (epoch != _loadEpoch) return; // INV-853: superseded by newer load.
       if (hasStaleData) {
         // SWR: preserve success status, surface error as overlay.
         state = state.copyWith(
@@ -97,6 +106,7 @@ class AgentsStore extends Notifier<AgentsState> {
       }
     } catch (error, stackTrace) {
       if (_disposed) return;
+      if (epoch != _loadEpoch) return; // INV-853: superseded by newer load.
       _captureUnexpectedError(
         error,
         stackTrace,
