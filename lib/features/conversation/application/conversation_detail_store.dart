@@ -520,6 +520,35 @@ class ConversationDetailStore
           clearSendFailure: true,
         );
       }
+    } catch (error) {
+      // Scan #45: Non-AppFailure (StateError, FormatException, etc.) must not
+      // leave the store stuck in loading/refreshing state.
+      if (!_isCurrentRequest(requestEpoch, target)) {
+        return;
+      }
+      final failure = UnknownFailure(
+        message: 'Failed to load conversation.',
+        causeType: error.runtimeType.toString(),
+      );
+      if (hasExistingData || state.messages.isNotEmpty) {
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: failure,
+        );
+      } else {
+        state = state.copyWith(
+          target: target,
+          status: ConversationDetailStatus.failure,
+          title:
+              target.localizedDefaultTitle(ref.read(appLocalizationsProvider)),
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+          failure: failure,
+          isRefreshing: false,
+          clearSendFailure: true,
+        );
+      }
     }
   }
 
@@ -579,6 +608,18 @@ class ConversationDetailStore
         state = state.copyWith(
           isRefreshing: false,
           failure: failure,
+        );
+      } catch (error) {
+        // Scan #45: Non-AppFailure must not leave isRefreshing stuck true.
+        if (!_isCurrentRequest(requestEpoch, target)) {
+          return;
+        }
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: UnknownFailure(
+            message: 'Failed to refresh conversation.',
+            causeType: error.runtimeType.toString(),
+          ),
         );
       }
     });

@@ -20,6 +20,9 @@ class SearchChannelResultItem extends StatelessWidget {
 
   static final _kCardBorderRadius = BorderRadius.circular(12);
   static final _kSurfaceBadgeBorderRadius = BorderRadius.circular(4);
+  // Hoisted BorderRadius for avatar — circle for DM, rounded for channel (Scan #45).
+  static final _kAvatarBorderRadiusDm = BorderRadius.circular(18);
+  static final _kAvatarBorderRadiusChannel = BorderRadius.circular(8);
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +54,8 @@ class SearchChannelResultItem extends StatelessWidget {
                         .withAlpha(26)
                     : (colors?.primary ?? theme.colorScheme.primary)
                         .withAlpha(26),
-                borderRadius: BorderRadius.circular(isDm ? 18 : 8),
+                borderRadius:
+                    isDm ? _kAvatarBorderRadiusDm : _kAvatarBorderRadiusChannel,
               ),
               alignment: Alignment.center,
               child: Text(

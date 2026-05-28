@@ -337,6 +337,8 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       // After delay, remove sent indicator and add canonical message
       _scheduleSentRemoval(localId, target, confirmedMessage: message);
     } on AppFailure catch (failure) {
+      // Scan #45: Guard against disposed state before ref.read() in catch.
+      if (_sendMixinDisposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
@@ -435,6 +437,33 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
           sendState: MessageSendState.failed,
         );
       }
+    } catch (_) {
+      // Scan #45: Non-AppFailure (e.g. StateError from disposed ref) —
+      // transition to failed so the message isn't stuck in "sending" state.
+      if (_sendMixinDisposed) return;
+      _cancelSendTimeout(localId);
+      _sendCancelTokens.remove(localId);
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: const UnknownFailure(
+                message: 'Failed to send message.',
+                causeType: 'unexpected',
+              ),
+            );
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+      _updateHomeSidebarPreview(
+        target: target,
+        content: content,
+        localId: localId,
+        sendState: MessageSendState.failed,
+      );
     }
   }
 
@@ -515,6 +544,8 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       // After delay, remove sent indicator and add canonical message
       _scheduleSentRemoval(localId, target, confirmedMessage: message);
     } on AppFailure catch (failure) {
+      // Scan #45: Guard against disposed state before ref.read() in catch.
+      if (_sendMixinDisposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
@@ -599,6 +630,33 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
           sendState: MessageSendState.failed,
         );
       }
+    } catch (_) {
+      // Scan #45: Non-AppFailure (e.g. StateError from disposed ref) —
+      // transition to failed so the message isn't stuck in "sending" state.
+      if (_sendMixinDisposed) return;
+      _cancelSendTimeout(localId);
+      _sendCancelTokens.remove(localId);
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: const UnknownFailure(
+                message: 'Failed to send message.',
+                causeType: 'unexpected',
+              ),
+            );
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+      _updateHomeSidebarPreview(
+        target: target,
+        content: pending.content,
+        localId: localId,
+        sendState: MessageSendState.failed,
+      );
     }
   }
 

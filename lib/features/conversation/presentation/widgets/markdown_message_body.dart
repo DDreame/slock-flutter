@@ -144,6 +144,9 @@ final md.ExtensionSet _kExtensionSet = md.ExtensionSet(
 );
 
 class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
+  // Hoisted BorderRadius for code block decoration (Scan #45).
+  static final _kCodeBlockBorderRadius = BorderRadius.circular(AppSpacing.sm);
+
   // Cached stylesheet and builders — rebuilt only in
   // didChangeDependencies (theme change) or didUpdateWidget (kind/style change).
   late MarkdownStyleSheet _cachedStyleSheet;
@@ -259,7 +262,7 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
       ),
       codeblockDecoration: BoxDecoration(
         color: codeBlockBackground,
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
+        borderRadius: _kCodeBlockBorderRadius,
       ),
 
       // --- Blockquote ---

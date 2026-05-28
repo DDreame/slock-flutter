@@ -134,6 +134,10 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
   @visibleForTesting
   static final taskBadgeBorderRadius = BorderRadius.circular(999);
 
+  /// Hoisted BorderRadius for agent AI badge (Scan #45).
+  static final _agentBadgeBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusSm);
+
   @override
   ConsumerState<ConversationMessageCard> createState() =>
       ConversationMessageCardState();
@@ -533,7 +537,7 @@ class ConversationMessageCardState
                 ),
                 decoration: BoxDecoration(
                   color: colors.agentAccent,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  borderRadius: ConversationMessageCard._agentBadgeBorderRadius,
                 ),
                 child: Text(
                   context.l10n.conversationMessageAiBadge,
