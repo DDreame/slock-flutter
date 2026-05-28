@@ -361,6 +361,9 @@ class _SwipeableInboxItem extends StatefulWidget {
 }
 
 class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
+  // Hoisted BorderRadius for swipe background (Scan #45).
+  static final _kSwipeBorderRadius = BorderRadius.circular(AppSpacing.radiusMd);
+
   bool _hapticFired = false;
   double? _dragStartX;
 
@@ -420,7 +423,7 @@ class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: _kSwipeBorderRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -540,6 +543,9 @@ class _FilterTab extends StatelessWidget {
     required this.onTap,
   });
 
+  // Hoisted BorderRadius for filter tab pill (Scan #45).
+  static final _kBorderRadius = BorderRadius.circular(AppSpacing.radiusFull);
+
   final String label;
   final bool isSelected;
   final AppColors colors;
@@ -561,7 +567,7 @@ class _FilterTab extends StatelessWidget {
             color: isSelected
                 ? colors.primary.withValues(alpha: 0.1)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            borderRadius: _kBorderRadius,
             border: Border.all(
               color: isSelected ? colors.primary : colors.border,
             ),

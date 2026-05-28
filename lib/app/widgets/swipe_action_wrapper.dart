@@ -67,6 +67,9 @@ class SwipeActionWrapper extends StatefulWidget {
 }
 
 class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
+  // Hoisted BorderRadius for swipe background (Scan #45).
+  static final _kBorderRadius = BorderRadius.circular(AppSpacing.radiusMd);
+
   bool _hapticFired = false;
   double? _dragStartX;
 
@@ -93,7 +96,7 @@ class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           decoration: BoxDecoration(
             color: action.color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            borderRadius: _kBorderRadius,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
