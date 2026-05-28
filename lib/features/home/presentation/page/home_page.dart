@@ -200,6 +200,8 @@ class _SummaryCardBase extends StatelessWidget {
   final VoidCallback? onViewAll;
   final Widget child;
 
+  static final _kCardBorderRadius = BorderRadius.circular(AppSpacing.radiusMd);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -208,11 +210,11 @@ class _SummaryCardBase extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: _kCardBorderRadius,
         border: Border.all(color: colors.border),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: _kCardBorderRadius,
         child: Stack(
           children: [
             Positioned(
@@ -702,6 +704,8 @@ class _DurationChip extends StatelessWidget {
   final Duration duration;
   final AppLocalizations l10n;
 
+  static final _kBorderRadius = BorderRadius.circular(4);
+
   @override
   Widget build(BuildContext context) {
     final totalMinutes = duration.inMinutes;
@@ -735,7 +739,7 @@ class _DurationChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: chipColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: _kBorderRadius,
       ),
       child: Text(
         text,
@@ -759,6 +763,8 @@ class _TaskStatusChip extends StatelessWidget {
   final String label;
   final Color color;
 
+  static final _kBorderRadius = BorderRadius.circular(4);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -768,7 +774,7 @@ class _TaskStatusChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: _kBorderRadius,
       ),
       child: Text(
         label,
@@ -933,6 +939,9 @@ class _UnreadItemRow extends ConsumerWidget {
 
   final ConversationProjection item;
 
+  static final _kKindBadgeBorderRadius = BorderRadius.circular(4);
+  static final _kTypePillBorderRadius = BorderRadius.circular(3);
+
   /// Z2-style type glyph and theme-safe badge color per kind.
   /// Colors: THREAD=purple(primary), CHANNEL=teal, DM=blue.
   (String glyph, Color Function(AppColors) colorFn) get _kindBadge {
@@ -993,7 +1002,7 @@ class _UnreadItemRow extends ConsumerWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: badgeColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: _kKindBadgeBorderRadius,
                   ),
                   child: Text(
                     glyph,
@@ -1025,7 +1034,7 @@ class _UnreadItemRow extends ConsumerWidget {
                           ),
                           decoration: BoxDecoration(
                             color: badgeColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(3),
+                            borderRadius: _kTypePillBorderRadius,
                           ),
                           child: Text(
                             _typePillLabel(context),
@@ -1177,6 +1186,8 @@ class _UnreadBadge extends StatelessWidget {
 
   final int count;
 
+  static final _kBorderRadius = BorderRadius.circular(10);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -1188,7 +1199,7 @@ class _UnreadBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: colors.error,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: _kBorderRadius,
       ),
       child: Text(
         count > 99 ? '99+' : '$count',

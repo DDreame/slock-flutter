@@ -19,6 +19,8 @@ class RoleBadge extends StatelessWidget {
   /// Accent color used for text and tinted background.
   final Color color;
 
+  static final _kBorderRadius = BorderRadius.circular(AppSpacing.radiusFull);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -29,7 +31,7 @@ class RoleBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        borderRadius: _kBorderRadius,
       ),
       child: Text(
         label,

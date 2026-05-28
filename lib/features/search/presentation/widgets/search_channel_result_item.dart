@@ -18,6 +18,9 @@ class SearchChannelResultItem extends StatelessWidget {
   final String query;
   final VoidCallback onTap;
 
+  static final _kCardBorderRadius = BorderRadius.circular(12);
+  static final _kSurfaceBadgeBorderRadius = BorderRadius.circular(4);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -27,14 +30,14 @@ class SearchChannelResultItem extends StatelessWidget {
     return InkWell(
       key: ValueKey('search-channel-result-${result.channelId}'),
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: _kCardBorderRadius,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           border: Border.all(
             color: colors?.border ?? theme.colorScheme.outlineVariant,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: _kCardBorderRadius,
         ),
         child: Row(
           children: [
@@ -95,7 +98,7 @@ class SearchChannelResultItem extends StatelessWidget {
               decoration: BoxDecoration(
                 color: (colors?.surfaceAlt ??
                     theme.colorScheme.surfaceContainerLow),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: _kSurfaceBadgeBorderRadius,
               ),
               child: Text(
                 isDm

@@ -34,6 +34,8 @@ class _MemberProfileSheet extends StatelessWidget {
   final MemberProfile member;
   final VoidCallback? onMessageTap;
 
+  static final _kHandleBorderRadius = BorderRadius.circular(AppSpacing.radiusFull);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -63,9 +65,7 @@ class _MemberProfileSheet extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: colors.textTertiary,
-                borderRadius: BorderRadius.circular(
-                  AppSpacing.radiusFull,
-                ),
+                borderRadius: _kHandleBorderRadius,
               ),
             ),
 

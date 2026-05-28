@@ -16,6 +16,8 @@ class SearchResultItem extends StatelessWidget {
   final String query;
   final VoidCallback onTap;
 
+  static final _kCardBorderRadius = BorderRadius.circular(12);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -24,12 +26,12 @@ class SearchResultItem extends StatelessWidget {
     return InkWell(
       key: ValueKey('search-result-${message.id}'),
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: _kCardBorderRadius,
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: _kCardBorderRadius,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

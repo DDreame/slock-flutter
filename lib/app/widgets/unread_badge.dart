@@ -15,6 +15,8 @@ class UnreadBadge extends StatelessWidget {
   /// The unread message count.
   final int count;
 
+  static final _kBorderRadius = BorderRadius.circular(AppSpacing.radiusFull);
+
   @override
   Widget build(BuildContext context) {
     if (count <= 0) {
@@ -32,7 +34,7 @@ class UnreadBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: colors.primary,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        borderRadius: _kBorderRadius,
       ),
       child: Text(
         displayText,

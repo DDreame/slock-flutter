@@ -57,6 +57,8 @@ class HomeDirectMessageRow extends StatelessWidget {
   final VoidCallback? onMoveDown;
   final Widget? reorderHandle;
 
+  static final _kAgentBadgeBorderRadius = BorderRadius.circular(4);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -171,7 +173,7 @@ class HomeDirectMessageRow extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: colors.primaryLight,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: _kAgentBadgeBorderRadius,
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
