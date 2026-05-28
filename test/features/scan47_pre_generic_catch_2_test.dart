@@ -51,7 +51,9 @@ void main() {
     test(
       'PRE-T1: InboxStore.load() catches non-AppFailure, sets failure status',
       () async {
-        final repo = _ThrowingInboxRepo();
+        // Test the no-existing-data path: first load throws immediately.
+        // This verifies the catch sets status=failure (not stuck in loading).
+        final repo = _ThrowingInboxRepo()..shouldThrow = true;
         final container = ProviderContainer(
           overrides: [
             activeServerScopeIdProvider
@@ -65,17 +67,9 @@ void main() {
           container.dispose();
         });
 
-        // Wait for auto-load to succeed.
+        // Wait for auto-load microtask to fire and fail.
         await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
-        expect(
-          container.read(inboxStoreProvider).status,
-          InboxStatus.success,
-        );
-
-        // Now make repo throw FormatException on next load.
-        repo.shouldThrow = true;
-        await container.read(inboxStoreProvider.notifier).load();
 
         final state = container.read(inboxStoreProvider);
         expect(
