@@ -49,6 +49,8 @@ const _agentActivityEvent = 'agent:activity';
 const _agentCreatedEvent = 'agent:created';
 const _agentDeletedEvent = 'agent:deleted';
 const _announcementNewEvent = 'announcement:new';
+const _announcementUpdatedEvent = 'announcement:updated';
+const _announcementDeletedEvent = 'announcement:deleted';
 
 /// INV-856: Synthetic event emitted after a sync:resume:response batch
 /// completes with hasMore=false. Triggers a single coalesced inbox/home
@@ -305,6 +307,10 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         // — Announcement domain —
         case _announcementNewEvent:
           _handleAnnouncementNew(ref, event);
+        case _announcementUpdatedEvent:
+          _handleAnnouncementUpdated(ref, event);
+        case _announcementDeletedEvent:
+          _handleAnnouncementDeleted(ref, event);
       }
     });
 
@@ -982,6 +988,36 @@ void _handleAnnouncementNew(Ref ref, RealtimeEventEnvelope event) {
 
   try {
     ref.read(announcementStoreProvider.notifier).addAnnouncement(announcement);
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
+}
+
+void _handleAnnouncementUpdated(Ref ref, RealtimeEventEnvelope event) {
+  final map = _asMap(event.payload);
+  if (map == null) return;
+  final announcement = Announcement.fromMap(map);
+  if (announcement == null) return;
+
+  try {
+    ref
+        .read(announcementStoreProvider.notifier)
+        .updateAnnouncement(announcement);
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
+}
+
+void _handleAnnouncementDeleted(Ref ref, RealtimeEventEnvelope event) {
+  final map = _asMap(event.payload);
+  if (map == null) return;
+  final id = map['id'];
+  if (id is! String || id.isEmpty) return;
+
+  try {
+    ref.read(announcementStoreProvider.notifier).removeAnnouncement(id);
   } on StateError catch (_) {
   } catch (e, s) {
     ref.read(crashReporterProvider).captureException(e, stackTrace: s);

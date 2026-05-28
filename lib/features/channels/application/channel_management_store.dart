@@ -99,20 +99,38 @@ class ChannelManagementStore
     ChannelScopeId scopeId, {
     required String name,
   }) async {
+    return updateChannel(scopeId, name: name);
+  }
+
+  /// Updates a channel's name, description, and/or privacy setting.
+  /// At least one field must be non-null.
+  Future<bool> updateChannel(
+    ChannelScopeId scopeId, {
+    String? name,
+    String? description,
+    bool? isPrivate,
+  }) async {
     if (state.isBusy) return false;
     final operationKey = 'edit:${scopeId.value}';
     if (!_operationKeys.add(operationKey)) return false;
     try {
-      await _renameChannel(scopeId, name: name);
+      await _updateChannel(
+        scopeId,
+        name: name,
+        description: description,
+        isPrivate: isPrivate,
+      );
       return true;
     } finally {
       _operationKeys.remove(operationKey);
     }
   }
 
-  Future<void> _renameChannel(
+  Future<void> _updateChannel(
     ChannelScopeId scopeId, {
-    required String name,
+    String? name,
+    String? description,
+    bool? isPrivate,
   }) async {
     state = state.copyWith(
       activeAction: ChannelManagementAction.edit,
@@ -125,6 +143,8 @@ class ChannelManagementStore
             scopeId.serverId,
             channelId: scopeId.value,
             name: name,
+            description: description,
+            isPrivate: isPrivate,
           );
       await _refreshHomeList();
       _setStateIfMounted(

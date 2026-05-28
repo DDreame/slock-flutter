@@ -174,6 +174,30 @@ class AnnouncementStore extends Notifier<AnnouncementState> {
     );
   }
 
+  /// Updates an existing announcement in-place from a WebSocket event.
+  /// If the announcement is not in the list (e.g. dismissed or not yet loaded),
+  /// this is a no-op.
+  void updateAnnouncement(Announcement announcement) {
+    final index =
+        state.announcements.indexWhere((a) => a.id == announcement.id);
+    if (index == -1) return;
+
+    final updated = [...state.announcements];
+    updated[index] = announcement;
+    state = state.copyWith(announcements: updated);
+  }
+
+  /// Removes an announcement by ID from a WebSocket event.
+  /// If the announcement is not in the list, this is a no-op.
+  void removeAnnouncement(String announcementId) {
+    final exists = state.announcements.any((a) => a.id == announcementId);
+    if (!exists) return;
+
+    final updated =
+        state.announcements.where((a) => a.id != announcementId).toList();
+    state = state.copyWith(announcements: updated);
+  }
+
   void _captureUnexpectedError(Object error, StackTrace stackTrace) {
     try {
       ref.read(diagnosticsCollectorProvider).error(
