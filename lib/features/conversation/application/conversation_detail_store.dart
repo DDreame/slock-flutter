@@ -81,8 +81,21 @@ mixin _ConversationDetailCoreMixin
     if (nextSeq != null && existing.isNotEmpty) {
       final lastSeq = existing.last.seq;
       if (lastSeq != null && nextSeq < lastSeq) {
-        final result = [...existing, next];
-        result.sort((a, b) => (a.seq ?? 0).compareTo(b.seq ?? 0));
+        // Binary search for correct insertion index (list is sorted by seq).
+        ConversationDetailStore.binarySearchInsertCount++;
+        var lo = 0;
+        var hi = existing.length;
+        while (lo < hi) {
+          final mid = (lo + hi) >>> 1;
+          final midSeq = existing[mid].seq ?? 0;
+          if (midSeq < nextSeq) {
+            lo = mid + 1;
+          } else {
+            hi = mid;
+          }
+        }
+        final result = List<ConversationMessageSummary>.of(existing);
+        result.insert(lo, next);
         return result;
       }
     }
@@ -247,6 +260,12 @@ class ConversationDetailStore
     ConversationMessageSummary next,
   ) =>
       _appendDedupedMessage(existing, next);
+
+  /// Incremented each time the binary search insert path is taken in
+  /// [_appendDedupedMessage]. Tests assert this is >0 after an out-of-order
+  /// insert to prove the O(N) path was used (not O(N log N) full sort).
+  @visibleForTesting
+  static int binarySearchInsertCount = 0;
 
   /// INV-DEDUP-668: Exposes [_prependDedupedMessages] for batch-path testing.
   @visibleForTesting
