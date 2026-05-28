@@ -576,6 +576,7 @@ class ConversationDetailStore
                 target,
                 beforeSeq: beforeSeq,
               );
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
@@ -590,6 +591,7 @@ class ConversationDetailStore
       _persistSession();
       unawaited(refreshSavedMessageIds());
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
@@ -604,6 +606,7 @@ class ConversationDetailStore
         stackTrace,
         operation: 'ConversationDetailStore.loadOlder',
       );
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
@@ -637,6 +640,7 @@ class ConversationDetailStore
                 target,
                 afterSeq: afterSeq,
               );
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
@@ -649,6 +653,7 @@ class ConversationDetailStore
       );
       _persistSession();
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
@@ -663,6 +668,7 @@ class ConversationDetailStore
         stackTrace,
         operation: 'ConversationDetailStore.loadNewer',
       );
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;

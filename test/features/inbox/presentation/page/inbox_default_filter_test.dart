@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -58,6 +59,7 @@ void main() {
         inboxRepositoryProvider.overrideWithValue(repo),
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ]);
       addTearDown(container.dispose);
 
@@ -118,6 +120,7 @@ void main() {
             inboxRepositoryProvider.overrideWithValue(repo),
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('server-1')),
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -171,6 +174,7 @@ void main() {
         inboxRepositoryProvider.overrideWithValue(repo),
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ]);
       addTearDown(container.dispose);
 
