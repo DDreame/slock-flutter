@@ -1105,7 +1105,7 @@ class _UnreadItemRow extends ConsumerWidget {
               // Unread badge
               Padding(
                 padding: const EdgeInsets.only(top: 2),
-                child: _UnreadBadge(count: item.unreadCount),
+                child: HomeUnreadBadge(count: item.unreadCount),
               ),
             ],
           ),
@@ -1184,8 +1184,12 @@ class _TimeAgoLabel extends ConsumerWidget {
   }
 }
 
-class _UnreadBadge extends StatelessWidget {
-  const _UnreadBadge({required this.count});
+/// Unread count badge (error background + errorForeground text).
+///
+/// Exposed as [HomeUnreadBadge] for testing theme token usage.
+@visibleForTesting
+class HomeUnreadBadge extends StatelessWidget {
+  const HomeUnreadBadge({super.key, required this.count});
 
   final int count;
 

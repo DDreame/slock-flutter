@@ -121,7 +121,7 @@ class ConversationMessageList extends ConsumerWidget {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const _UnreadDivider(),
+                  const UnreadDivider(),
                   _DateSeparatorWidget(
                     key: const ValueKey('date-separator'),
                     date: newerDate,
@@ -137,7 +137,7 @@ class ConversationMessageList extends ConsumerWidget {
 
           // Unread divider at this separator position.
           if (isUnreadBoundary) {
-            return const _UnreadDivider();
+            return const UnreadDivider();
           }
 
           // Grouped messages (same sender, <5min, same day) get a tighter gap.
@@ -235,8 +235,11 @@ int unreadCountForTarget(WidgetRef ref, ConversationDetailTarget target) {
 
 /// "New messages" divider inserted at the boundary between read and unread
 /// messages in the conversation list.
-class _UnreadDivider extends StatelessWidget {
-  const _UnreadDivider();
+///
+/// Exposed as [UnreadDivider] for testing accessibility semantics.
+@visibleForTesting
+class UnreadDivider extends StatelessWidget {
+  const UnreadDivider({super.key});
 
   @override
   Widget build(BuildContext context) {

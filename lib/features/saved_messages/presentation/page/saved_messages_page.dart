@@ -181,7 +181,7 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
         itemBuilder: (context, index) {
           final item = items[index];
-          return _SavedMessageCard(
+          return SavedMessageCard(
             item: item,
             onTap: () => _navigateToSource(context, item),
             onUnsave: () => ref
@@ -231,8 +231,13 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
   }
 }
 
-class _SavedMessageCard extends StatelessWidget {
-  const _SavedMessageCard({
+/// A single saved-message card with sender info, preview, and unsave action.
+///
+/// Exposed as [SavedMessageCard] for testing accessibility semantics.
+@visibleForTesting
+class SavedMessageCard extends StatelessWidget {
+  const SavedMessageCard({
+    super.key,
     required this.item,
     required this.onTap,
     required this.onUnsave,
