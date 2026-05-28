@@ -390,7 +390,7 @@ class ConversationMessageCardState
               color: bubbleColor,
               borderRadius: borderRadius,
             )
-          : const BoxDecoration(),
+          : BoxDecoration(borderRadius: borderRadius),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

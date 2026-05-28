@@ -63,6 +63,34 @@ void main() {
             'getter would produce new instance each call.',
       );
     });
+
+    testWidgets('system variant build path uses hoisted systemBorderRadius',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: MessageBubble(
+              variant: MessageBubbleVariant.system,
+              child: Text('system msg'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the Container with key 'message-bubble-container'.
+      final container = tester.widget<Container>(
+        find.byKey(const ValueKey('message-bubble-container')),
+      );
+      final decoration = container.decoration as BoxDecoration;
+      expect(
+        identical(decoration.borderRadius, MessageBubble.systemBorderRadius),
+        isTrue,
+        reason: 'Reverting switch arm to inline BorderRadius.circular() → '
+            'not identical to the static field (fails identity check).',
+      );
+    });
   });
 
   // ===========================================================================
@@ -83,6 +111,60 @@ void main() {
             ConversationMessageCard.systemBorderRadius),
         isTrue,
         reason: 'Reverting to inline → new instance each call.',
+      );
+    });
+
+    testWidgets('system variant build path uses hoisted systemBorderRadius',
+        (tester) async {
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
+      );
+      // System message → _ConversationMessageVisualKind.system path.
+      final message = ConversationMessageSummary(
+        id: 'msg-sys',
+        content: 'User joined',
+        createdAt: DateTime(2026),
+        senderType: 'system',
+        messageType: 'system',
+        senderId: 'system',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationDetailStoreProvider
+                .overrideWith(() => _FakeDetailStore(target)),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: ConversationMessageCard(
+                target: target,
+                message: message,
+                maxBubbleWidth: 300,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The system message Container uses borderRadius from the hoisted field.
+      final container = tester.widget<Container>(
+        find.byKey(const ValueKey('message-msg-sys')),
+      );
+      final decoration = container.decoration as BoxDecoration;
+      expect(
+        identical(decoration.borderRadius,
+            ConversationMessageCard.systemBorderRadius),
+        isTrue,
+        reason: 'Reverting switch arm to inline BorderRadius.circular() → '
+            'not identical to the static field.',
       );
     });
 

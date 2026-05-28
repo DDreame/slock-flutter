@@ -117,7 +117,7 @@ class MessageBubble extends StatelessWidget {
               color: bubbleColor,
               borderRadius: borderRadius,
             )
-          : const BoxDecoration(),
+          : BoxDecoration(borderRadius: borderRadius),
       child: DefaultTextStyle(
         style: AppTypography.body.copyWith(
           color: textColor,
