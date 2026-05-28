@@ -3,11 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/share/presentation/widgets/share_preview_card.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   Widget buildApp(SharedContent content) {
     return MaterialApp(
       theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(body: SharePreviewCard(content: content)),
     );
   }

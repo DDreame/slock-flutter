@@ -413,6 +413,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: SingleChildScrollView(
                 child: MessageExportCard(
@@ -514,6 +516,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: SingleChildScrollView(
                 child: MessageExportCard(

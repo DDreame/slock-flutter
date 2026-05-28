@@ -13,6 +13,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
@@ -585,6 +586,7 @@ class _ReplyPreviewBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -604,7 +606,7 @@ class _ReplyPreviewBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  message.senderLabel,
+                  message.localizedSenderLabel(l10n),
                   style: AppTypography.label.copyWith(
                     color: colors.primary,
                     fontWeight: FontWeight.w600,

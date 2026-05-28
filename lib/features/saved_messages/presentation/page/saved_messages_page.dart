@@ -8,6 +8,7 @@ import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
@@ -263,7 +264,7 @@ class _SavedMessageCard extends StatelessWidget {
             Row(
               children: [
                 _SenderAvatar(
-                  name: message.senderLabel,
+                  name: message.localizedSenderLabel(context.l10n),
                   colors: colors,
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -272,7 +273,7 @@ class _SavedMessageCard extends StatelessWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          message.senderLabel,
+                          message.localizedSenderLabel(context.l10n),
                           style:
                               AppTypography.label.copyWith(color: colors.text),
                           overflow: TextOverflow.ellipsis,

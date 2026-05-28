@@ -1158,5 +1158,15 @@
   "agentsActivityLogWorking": "工作中",
   "agentsActivityLogError": "错误",
   "agentsActivityLogErrorDetail": "错误：{detail}",
-  "agentsActivityLogOffline": "离线"
+  "agentsActivityLogOffline": "离线",
+
+  "senderLabelAgent": "机器人",
+  "senderLabelMember": "成员",
+  "senderLabelSystem": "系统",
+  "senderLabelUnknown": "未知",
+
+  "sharePreviewAttachmentCount": "{count, plural, =1{1 个附件} other{{count} 个附件}}",
+
+  "inboxFallbackDmName": "未知",
+  "inboxFallbackMemberName": "成员"
 }

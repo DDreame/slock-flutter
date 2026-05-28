@@ -3393,4 +3393,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentsActivityLogOffline => 'Offline';
+
+  @override
+  String get senderLabelAgent => 'Agent';
+
+  @override
+  String get senderLabelMember => 'Member';
+
+  @override
+  String get senderLabelSystem => 'System';
+
+  @override
+  String get senderLabelUnknown => 'Unknown';
+
+  @override
+  String sharePreviewAttachmentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count attachments',
+      one: '1 attachment',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxFallbackDmName => 'Unknown';
+
+  @override
+  String get inboxFallbackMemberName => 'Member';
 }

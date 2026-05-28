@@ -33,7 +33,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginCreateAccountCta => 'Crear cuenta';
 
   @override
-  String get loginForgotPasswordCta => 'Olvidaste tu contraseña?';
+  String get loginForgotPasswordCta => '¿Olvidaste tu contraseña?';
 
   @override
   String get loginEmailRequiredError => 'El correo electrónico es obligatorio.';
@@ -3430,4 +3430,33 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get agentsActivityLogOffline => 'Sin conexión';
+
+  @override
+  String get senderLabelAgent => 'Agente';
+
+  @override
+  String get senderLabelMember => 'Miembro';
+
+  @override
+  String get senderLabelSystem => 'Sistema';
+
+  @override
+  String get senderLabelUnknown => 'Desconocido';
+
+  @override
+  String sharePreviewAttachmentCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count archivos adjuntos',
+      one: '1 archivo adjunto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get inboxFallbackDmName => 'Desconocido';
+
+  @override
+  String get inboxFallbackMemberName => 'Miembro';
 }

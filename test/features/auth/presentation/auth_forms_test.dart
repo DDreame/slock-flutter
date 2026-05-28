@@ -183,7 +183,7 @@ void main() {
 
       expect(find.text('Iniciar sesión'), findsWidgets);
       expect(find.text('Correo electrónico'), findsOneWidget);
-      expect(find.text('Olvidaste tu contraseña?'), findsOneWidget);
+      expect(find.text('¿Olvidaste tu contraseña?'), findsOneWidget);
     });
 
     testWidgets('shows server config gear icon in AppBar', (tester) async {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/widgets/relative_time_text.dart';
+import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class SearchResultItem extends StatelessWidget {
   const SearchResultItem({
@@ -48,7 +50,7 @@ class SearchResultItem extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    message.senderLabel,
+                    message.localizedSenderLabel(context.l10n),
                     style: theme.textTheme.labelMedium,
                   ),
                 ),

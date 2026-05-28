@@ -215,6 +215,7 @@ final nameResolverCacheProvider =
     final resolver = InboxNameResolver(
       channelNames: channelNames,
       memberNames: memberNames,
+      l10n: ref.read(appLocalizationsProvider),
     );
     lastVis = vis;
     cached = resolver;
