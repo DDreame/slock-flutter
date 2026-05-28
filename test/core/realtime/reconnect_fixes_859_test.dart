@@ -20,6 +20,12 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -310,6 +316,164 @@ void main() {
       },
     );
   });
+
+  // ===========================================================================
+  // Group 4: P1 — refreshSavedMessageIds disposed guard
+  // ===========================================================================
+  group('#859 — P1 refreshSavedMessageIds disposed guard', () {
+    test(
+      'does not throw when container disposed during await',
+      () async {
+        final target = ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('srv-1'),
+            value: 'ch-1',
+          ),
+        );
+        final savedRepo = _SlowSavedMessagesRepository();
+        final convRepo = _FakeConversationRepository();
+        final container = ProviderContainer(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationRepositoryProvider.overrideWithValue(convRepo),
+            savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
+          ],
+        );
+        final sub =
+            container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        // Load data so store reaches success state.
+        await container.read(conversationDetailStoreProvider.notifier).load();
+        await Future<void>.delayed(Duration.zero);
+
+        // Start refreshSavedMessageIds — it will await the completer.
+        final future = container
+            .read(conversationDetailStoreProvider.notifier)
+            .refreshSavedMessageIds();
+
+        // Dispose container before completing the saved messages fetch.
+        sub.close();
+        container.dispose();
+
+        // Complete the completer — the guard must prevent ref.read/state access.
+        savedRepo.completer.complete({'msg-1'});
+
+        // This must not throw StateError.
+        await expectLater(future, completes);
+      },
+    );
+  });
+
+  // ===========================================================================
+  // Group 5: P2 — Sync livelock defensive break
+  // ===========================================================================
+  group('#859 — P2 sync livelock defensive break', () {
+    test(
+      'hasMore:true with empty messages and no currentSeq emits batch-complete',
+      () async {
+        final ingress = RealtimeReductionIngress();
+        addTearDown(ingress.dispose);
+        final socket = _FakeRealtimeSocketClient();
+        final container = ProviderContainer(
+          overrides: [
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWithValue(socket),
+            realtimeWatchdogTimerFactoryProvider
+                .overrideWithValue((_, __) => _NoopTimer()),
+            realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Connect service so signal processing is active.
+        await container.read(realtimeServiceProvider.notifier).connect();
+        await Future<void>.delayed(Duration.zero);
+
+        // Collect events from ingress.
+        final events = <RealtimeEventEnvelope>[];
+        ingress.acceptedEvents.listen(events.add);
+
+        // Simulate a sync:resume:response with hasMore:true but empty messages
+        // and no currentSeq — this is the livelock edge case.
+        socket.simulateRawEvent('sync:resume:response', [
+          {'messages': <dynamic>[], 'hasMore': true},
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        // The defensive break should emit batch-complete instead of re-emitting
+        // sync:resume, preventing an infinite loop.
+        expect(
+          events.any((e) => e.eventType == syncBatchCompleteEvent),
+          isTrue,
+          reason: '#859 P2: Empty hasMore response without cursor must emit '
+              'batch-complete. Removing defensive break → re-emits sync:resume '
+              '→ infinite loop → RED.',
+        );
+
+        // Verify no sync:resume was re-emitted.
+        expect(
+          socket.emittedEvents
+              .where((e) => e.eventName == 'sync:resume')
+              .length,
+          0,
+          reason:
+              '#859 P2: Must NOT re-emit sync:resume on livelock condition.',
+        );
+
+        container.dispose();
+      },
+    );
+
+    test(
+      'hasMore:true with messages continues sync (no livelock break)',
+      () async {
+        final ingress = RealtimeReductionIngress();
+        addTearDown(ingress.dispose);
+        final socket = _FakeRealtimeSocketClient();
+        final container = ProviderContainer(
+          overrides: [
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWithValue(socket),
+            realtimeWatchdogTimerFactoryProvider
+                .overrideWithValue((_, __) => _NoopTimer()),
+            realtimeBackoffSleeperProvider.overrideWithValue((_) async {}),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(realtimeServiceProvider.notifier).connect();
+        await Future<void>.delayed(Duration.zero);
+
+        // Simulate response WITH messages + hasMore:true — should continue.
+        socket.simulateRawEvent('sync:resume:response', [
+          {
+            'messages': [
+              {
+                'eventType': 'message:new',
+                'scopeKey': 'server:1/channel:2',
+                'seq': 5,
+                'id': 'm1',
+              },
+            ],
+            'hasMore': true,
+            'currentSeq': 5,
+          },
+        ]);
+        await Future<void>.delayed(Duration.zero);
+
+        // Should re-emit sync:resume to continue fetching.
+        expect(
+          socket.emittedEvents
+              .where((e) => e.eventName == 'sync:resume')
+              .length,
+          1,
+          reason: 'Normal hasMore with messages should continue sync loop.',
+        );
+
+        container.dispose();
+      },
+    );
+  });
 }
 
 // =============================================================================
@@ -331,6 +495,12 @@ class _ControllableRealtimeService extends RealtimeService {
   Future<void> disconnect() async {}
 }
 
+class _EmittedEvent {
+  _EmittedEvent(this.eventName, this.payload);
+  final String eventName;
+  final Object? payload;
+}
+
 class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   final StreamController<RealtimeSocketSignal> _signalsController =
       StreamController<RealtimeSocketSignal>.broadcast();
@@ -338,6 +508,7 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   bool _isConnected = false;
   int connectCalls = 0;
   int disconnectCalls = 0;
+  final List<_EmittedEvent> emittedEvents = [];
 
   @override
   Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
@@ -349,6 +520,7 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   Future<void> connect() async {
     connectCalls += 1;
     _isConnected = true;
+    _signalsController.add(const RealtimeSocketConnected());
   }
 
   @override
@@ -358,10 +530,78 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   }
 
   @override
-  void emit(String eventName, Object? payload) {}
+  void emit(String eventName, Object? payload) {
+    emittedEvents.add(_EmittedEvent(eventName, payload));
+  }
+
+  void simulateRawEvent(String eventName, Object? payload) {
+    _signalsController.add(
+      RealtimeSocketRawEvent(eventName: eventName, payload: payload),
+    );
+  }
 
   @override
   Future<void> dispose() async {
     await _signalsController.close();
   }
+}
+
+class _NoopTimer implements Timer {
+  @override
+  void cancel() {}
+  @override
+  bool get isActive => false;
+  @override
+  int get tick => 0;
+}
+
+class _SlowSavedMessagesRepository implements SavedMessagesRepository {
+  final Completer<Set<String>> completer = Completer<Set<String>>();
+
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) =>
+      completer.future;
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async =>
+      const SavedMessagesPage(items: [], hasMore: false);
+}
+
+class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<ConversationDetailSnapshot> loadConversation(
+    ConversationDetailTarget target,
+  ) async {
+    return ConversationDetailSnapshot(
+      target: target,
+      title: 'Test',
+      messages: [
+        ConversationMessageSummary(
+          id: 'msg-1',
+          content: 'hello',
+          createdAt: DateTime(2026, 5, 1),
+          senderType: 'agent',
+          messageType: 'text',
+        ),
+      ],
+      historyLimited: false,
+      hasOlder: false,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

@@ -332,6 +332,17 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
 
     // hasMore loop: re-emit sync:resume with updated seq tracking.
     if (hasMore) {
+      // #859 P2: Defensive break — if server sends hasMore:true but messages
+      // is empty AND cursor didn't advance (no currentSeq or empty batch),
+      // break out to prevent infinite livelock loop.
+      if (messageList.isEmpty && currentSeq is! num) {
+        _ingress.accept(RealtimeEventEnvelope(
+          eventType: syncBatchCompleteEvent,
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: now,
+        ));
+        return;
+      }
       final lastSeqByScope = _ingress.lastSeqByScope;
       (_boundSocketClient ?? _socketClient)
           .emit(_socketOptions.resumeEventName, {

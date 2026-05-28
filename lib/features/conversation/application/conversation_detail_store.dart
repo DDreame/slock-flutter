@@ -711,6 +711,10 @@ class ConversationDetailStore
     try {
       final repo = ref.read(savedMessagesRepositoryProvider);
       final savedIds = await repo.checkSavedMessages(serverId, messageIds);
+      // #859 P1: Guard against disposed container after async gap.
+      // Called via unawaited() at 3 sites — if container disposes during await,
+      // ref.read() below → StateError as unhandled Future error.
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
