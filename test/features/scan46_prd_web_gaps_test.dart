@@ -4,8 +4,10 @@
 // These tests prove:
 // - PATCH-1: updateChannel sends description + isPrivate when provided
 // - PATCH-2: updateChannel sends only non-null fields (partial update)
-// - EVT-1: announcement:updated event updates announcement in store
-// - EVT-2: announcement:deleted event removes announcement from store
+// - EVT-1: announcement:updated event routed through DomainRuntimeEventRouter
+//          updates announcement in store
+// - EVT-2: announcement:deleted event routed through DomainRuntimeEventRouter
+//          removes announcement from store
 //
 // Reverting the production fix (removing description/isPrivate from PATCH body
 // or removing event handlers) causes the corresponding test to go RED.
@@ -19,6 +21,8 @@ import 'package:slock_app/features/announcements/application/announcement_store.
 import 'package:slock_app/features/announcements/application/dismissed_announcement_ids.dart';
 import 'package:slock_app/features/announcements/data/announcement.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
+
+import '../support/runtime_app_fixture.dart';
 
 void main() {
   // ===========================================================================
@@ -110,74 +114,88 @@ void main() {
   });
 
   // ===========================================================================
-  // EVT-1: announcement:updated updates announcement in store
+  // EVT-1: announcement:updated routed through DomainRuntimeEventRouter
   // ===========================================================================
-  group('Scan #46 Events — announcement:updated', () {
-    test('updates existing announcement title and body', () {
-      final container = ProviderContainer(
-        overrides: [
+  group('Scan #46 Router — announcement:updated', () {
+    test('routes announcement:updated event to store (updates in-place)',
+        () async {
+      final fixture = RuntimeAppFixture(
+        extraOverrides: [
           dismissedAnnouncementIdsProvider.overrideWith(
             () => _FakeDismissedIds(),
           ),
         ],
       );
-      addTearDown(container.dispose);
+      final container = await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      final store = container.read(announcementStoreProvider.notifier);
-
-      // Seed an announcement.
-      store.addAnnouncement(const Announcement(
-        id: 'ann-1',
-        title: 'Original Title',
-        body: 'Original body',
-      ));
+      // Seed an announcement in the store.
+      container.read(announcementStoreProvider.notifier).addAnnouncement(
+            const Announcement(
+              id: 'ann-1',
+              title: 'Original Title',
+              body: 'Original body',
+            ),
+          );
 
       expect(
         container.read(announcementStoreProvider).announcements.first.title,
         'Original Title',
       );
 
-      // Simulate announcement:updated event payload.
-      store.updateAnnouncement(const Announcement(
-        id: 'ann-1',
-        title: 'Updated Title',
-        body: 'Updated body',
+      // Emit announcement:updated through the router ingress.
+      fixture.ingress.accept(RealtimeEventEnvelope(
+        eventType: 'announcement:updated',
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: {
+          'id': 'ann-1',
+          'title': 'Updated Title',
+          'body': 'Updated body',
+        },
       ));
 
-      final updated = container.read(announcementStoreProvider).announcements;
-      expect(updated, hasLength(1));
+      // Broadcast stream delivers in next microtask.
+      await Future<void>.delayed(Duration.zero);
+
+      final announcements =
+          container.read(announcementStoreProvider).announcements;
+      expect(announcements, hasLength(1));
       expect(
-        updated.first.title,
+        announcements.first.title,
         'Updated Title',
-        reason: 'Scan #46: announcement:updated must update in-place. '
-            'Removing updateAnnouncement handler → RED.',
+        reason: 'Scan #46: announcement:updated must route through event '
+            'router and update store in-place. '
+            'Removing router case → RED.',
       );
-      expect(updated.first.body, 'Updated body');
+      expect(announcements.first.body, 'Updated body');
     });
 
-    test('no-ops when announcement not in list', () {
-      final container = ProviderContainer(
-        overrides: [
+    test('no-ops when announcement not in store', () async {
+      final fixture = RuntimeAppFixture(
+        extraOverrides: [
           dismissedAnnouncementIdsProvider.overrideWith(
             () => _FakeDismissedIds(),
           ),
         ],
       );
-      addTearDown(container.dispose);
-
-      final store = container.read(announcementStoreProvider.notifier);
+      final container = await fixture.boot();
+      addTearDown(fixture.dispose);
 
       // Seed a different announcement.
-      store.addAnnouncement(const Announcement(
-        id: 'ann-1',
-        title: 'Keep this',
+      container.read(announcementStoreProvider.notifier).addAnnouncement(
+            const Announcement(id: 'ann-1', title: 'Keep this'),
+          );
+
+      // Update a non-existent announcement through the router.
+      fixture.ingress.accept(RealtimeEventEnvelope(
+        eventType: 'announcement:updated',
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: {'id': 'ann-999', 'title': 'Ghost'},
       ));
 
-      // Update a non-existent announcement.
-      store.updateAnnouncement(const Announcement(
-        id: 'ann-999',
-        title: 'Ghost',
-      ));
+      await Future<void>.delayed(Duration.zero);
 
       final state = container.read(announcementStoreProvider);
       expect(state.announcements, hasLength(1));
@@ -186,68 +204,76 @@ void main() {
   });
 
   // ===========================================================================
-  // EVT-2: announcement:deleted removes announcement from store
+  // EVT-2: announcement:deleted routed through DomainRuntimeEventRouter
   // ===========================================================================
-  group('Scan #46 Events — announcement:deleted', () {
-    test('removes existing announcement by ID', () {
-      final container = ProviderContainer(
-        overrides: [
+  group('Scan #46 Router — announcement:deleted', () {
+    test('routes announcement:deleted event to store (removes by ID)',
+        () async {
+      final fixture = RuntimeAppFixture(
+        extraOverrides: [
           dismissedAnnouncementIdsProvider.overrideWith(
             () => _FakeDismissedIds(),
           ),
         ],
       );
-      addTearDown(container.dispose);
-
-      final store = container.read(announcementStoreProvider.notifier);
+      final container = await fixture.boot();
+      addTearDown(fixture.dispose);
 
       // Seed two announcements.
-      store.addAnnouncement(const Announcement(
-        id: 'ann-1',
-        title: 'First',
-      ));
-      store.addAnnouncement(const Announcement(
-        id: 'ann-2',
-        title: 'Second',
-      ));
+      final store = container.read(announcementStoreProvider.notifier);
+      store.addAnnouncement(const Announcement(id: 'ann-1', title: 'First'));
+      store.addAnnouncement(const Announcement(id: 'ann-2', title: 'Second'));
 
       expect(
         container.read(announcementStoreProvider).announcements,
         hasLength(2),
       );
 
-      // Simulate announcement:deleted event.
-      store.removeAnnouncement('ann-1');
+      // Emit announcement:deleted through the router ingress.
+      fixture.ingress.accept(RealtimeEventEnvelope(
+        eventType: 'announcement:deleted',
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: {'id': 'ann-1'},
+      ));
+
+      await Future<void>.delayed(Duration.zero);
 
       final remaining = container.read(announcementStoreProvider).announcements;
       expect(
         remaining,
         hasLength(1),
-        reason: 'Scan #46: announcement:deleted must remove from list. '
-            'Removing removeAnnouncement handler → RED.',
+        reason: 'Scan #46: announcement:deleted must route through event '
+            'router and remove from store. '
+            'Removing router case → RED.',
       );
       expect(remaining.first.id, 'ann-2');
     });
 
-    test('no-ops when announcement not in list', () {
-      final container = ProviderContainer(
-        overrides: [
+    test('no-ops when announcement not in store', () async {
+      final fixture = RuntimeAppFixture(
+        extraOverrides: [
           dismissedAnnouncementIdsProvider.overrideWith(
             () => _FakeDismissedIds(),
           ),
         ],
       );
-      addTearDown(container.dispose);
+      final container = await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      final store = container.read(announcementStoreProvider.notifier);
+      container.read(announcementStoreProvider.notifier).addAnnouncement(
+            const Announcement(id: 'ann-1', title: 'Keep this'),
+          );
 
-      store.addAnnouncement(const Announcement(
-        id: 'ann-1',
-        title: 'Keep this',
+      // Delete a non-existent announcement through the router.
+      fixture.ingress.accept(RealtimeEventEnvelope(
+        eventType: 'announcement:deleted',
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: {'id': 'ann-999'},
       ));
 
-      // Delete a non-existent announcement.
-      store.removeAnnouncement('ann-999');
+      await Future<void>.delayed(Duration.zero);
 
       final state = container.read(announcementStoreProvider);
       expect(state.announcements, hasLength(1));
