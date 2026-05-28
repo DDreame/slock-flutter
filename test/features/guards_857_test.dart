@@ -37,89 +37,152 @@ void main() {
       ),
     );
 
-    late _SlowConversationRepository repo;
-    late _SlowSavedMessagesRepository savedRepo;
-    late ProviderContainer container;
-    late ProviderSubscription<dynamic> sub;
-
-    setUp(() {
-      repo = _SlowConversationRepository();
-      savedRepo = _SlowSavedMessagesRepository();
-      container = ProviderContainer(
+    test('editMessage does not mutate state after dispose', () async {
+      final repo = _SlowConversationRepository(target);
+      final savedRepo = _SlowSavedMessagesRepository();
+      final container = ProviderContainer(
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repo),
           savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
         ],
       );
-      sub = container.listen(conversationDetailStoreProvider, (_, __) {});
-    });
+      final sub = container.listen(conversationDetailStoreProvider, (_, __) {});
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
 
-    tearDown(() {
-      sub.close();
-      container.dispose();
-    });
+      // Get store into success state with a message.
+      await notifier.load();
+      // Drain microtasks from unawaited refreshSavedMessageIds().
+      await Future<void>.value();
 
-    test('editMessage does not mutate state after dispose', () async {
-      // Seed success state with a message.
-      final future = container
-          .read(conversationDetailStoreProvider.notifier)
-          .editMessage('msg-1', 'new content');
+      // Reset completer for the edit operation.
+      repo.operationCompleter = Completer<void>();
+
+      // Start the method — it awaits the completer.
+      final future = notifier.editMessage('msg-1', 'new content');
 
       // Dispose before the completer fires.
       sub.close();
       container.dispose();
 
-      // Complete the delayed repo call.
-      repo.completer.complete(null);
-      await future; // Must not throw StateError.
+      // Complete with AppFailure to drive the rollback path where the guard lives.
+      repo.operationCompleter.completeError(
+        const UnknownFailure(message: 'test', causeType: 'test'),
+      );
+      await future; // Must not throw — _disposed guard returns early.
     });
 
     test('deleteMessage does not mutate state after dispose', () async {
-      final future = container
-          .read(conversationDetailStoreProvider.notifier)
-          .deleteMessage('msg-1');
+      final repo = _SlowConversationRepository(target);
+      final savedRepo = _SlowSavedMessagesRepository();
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+          savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
+        ],
+      );
+      final sub = container.listen(conversationDetailStoreProvider, (_, __) {});
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      await notifier.load();
+      await Future<void>.value();
+      repo.operationCompleter = Completer<void>();
+
+      final future = notifier.deleteMessage('msg-1');
 
       sub.close();
       container.dispose();
 
-      repo.completer.complete(null);
+      repo.operationCompleter.completeError(
+        const UnknownFailure(message: 'test', causeType: 'test'),
+      );
       await future;
     });
 
     test('pinMessage does not mutate state after dispose', () async {
-      final future = container
-          .read(conversationDetailStoreProvider.notifier)
-          .pinMessage('msg-1');
+      final repo = _SlowConversationRepository(target);
+      final savedRepo = _SlowSavedMessagesRepository();
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+          savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
+        ],
+      );
+      final sub = container.listen(conversationDetailStoreProvider, (_, __) {});
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      await notifier.load();
+      await Future<void>.value();
+      repo.operationCompleter = Completer<void>();
+
+      final future = notifier.pinMessage('msg-1');
 
       sub.close();
       container.dispose();
 
-      repo.completer.complete(null);
+      repo.operationCompleter.completeError(
+        const UnknownFailure(message: 'test', causeType: 'test'),
+      );
       await future;
     });
 
     test('unpinMessage does not mutate state after dispose', () async {
-      final future = container
-          .read(conversationDetailStoreProvider.notifier)
-          .unpinMessage('msg-1');
+      final repo = _SlowConversationRepository(target);
+      final savedRepo = _SlowSavedMessagesRepository();
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+          savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
+        ],
+      );
+      final sub = container.listen(conversationDetailStoreProvider, (_, __) {});
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      await notifier.load();
+      await Future<void>.value();
+      repo.operationCompleter = Completer<void>();
+
+      final future = notifier.unpinMessage('msg-1');
 
       sub.close();
       container.dispose();
 
-      repo.completer.complete(null);
+      repo.operationCompleter.completeError(
+        const UnknownFailure(message: 'test', causeType: 'test'),
+      );
       await future;
     });
 
     test('toggleSaveMessage does not mutate state after dispose', () async {
-      final future = container
-          .read(conversationDetailStoreProvider.notifier)
-          .toggleSaveMessage('msg-1');
+      final repo = _SlowConversationRepository(target);
+      final savedRepo = _SlowSavedMessagesRepository();
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+          savedMessagesRepositoryProvider.overrideWithValue(savedRepo),
+        ],
+      );
+      final sub = container.listen(conversationDetailStoreProvider, (_, __) {});
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      // toggleSaveMessage doesn't require success status, but load anyway
+      // to be consistent.
+      await notifier.load();
+      await Future<void>.value();
+      savedRepo.completer = Completer<void>();
+
+      final future = notifier.toggleSaveMessage('msg-1');
 
       sub.close();
       container.dispose();
 
-      savedRepo.completer.complete(null);
+      savedRepo.completer.completeError(
+        const UnknownFailure(message: 'test', causeType: 'test'),
+      );
       await future;
     });
   });
@@ -130,43 +193,6 @@ void main() {
 
   group('MemberListStore epoch guard', () {
     const serverId = ServerScopeId('server-1');
-
-    test('concurrent load() calls discard stale result', () async {
-      final repo = _ConcurrentMemberRepository();
-      final container = ProviderContainer(
-        overrides: [
-          currentMembersServerIdProvider.overrideWithValue(serverId),
-          memberRepositoryProvider.overrideWithValue(repo),
-          sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final store = container.read(memberListStoreProvider.notifier);
-
-      // First load — will be delayed.
-      repo.completer = Completer<List<MemberProfile>>();
-      final firstFuture = store.load();
-
-      // Second load — immediately completes with fresh data.
-      repo.completer = Completer<List<MemberProfile>>();
-      final secondFuture = store.load();
-      repo.completer!.complete(const [
-        MemberProfile(id: 'user-fresh', displayName: 'Fresh'),
-      ]);
-      await secondFuture;
-
-      // Complete the first (stale) load after the second finished.
-      // The old completer was replaced, so first load will get its own completer.
-      // Actually we need a different approach: use separate completers for each call.
-      // Let's use a queue approach.
-      await firstFuture; // First load's completer is already replaced, so it uses the old one.
-
-      final state = container.read(memberListStoreProvider);
-      // If epoch guard works, the fresh data wins.
-      expect(state.status, MemberListStatus.success);
-      expect(state.members.first.displayName, 'Fresh');
-    });
 
     test('stale load result is discarded when epoch advances', () async {
       final repo = _QueuedMemberRepository();
@@ -285,12 +311,10 @@ void main() {
     test('addHumanMember wraps non-AppFailure in state', () async {
       fakeRepo.error = StateError('unexpected add failure');
 
-      await expectLater(
-        container
-            .read(channelMemberStoreProvider.notifier)
-            .addHumanMember('user-1'),
-        throwsStateError,
-      );
+      // catch-all absorbs the exception — no throw expected.
+      await container
+          .read(channelMemberStoreProvider.notifier)
+          .addHumanMember('user-1');
 
       final state = container.read(channelMemberStoreProvider);
       expect(state.failure, isA<UnknownFailure>());
@@ -299,12 +323,10 @@ void main() {
     test('addAgentMember wraps non-AppFailure in state', () async {
       fakeRepo.error = StateError('unexpected add failure');
 
-      await expectLater(
-        container
-            .read(channelMemberStoreProvider.notifier)
-            .addAgentMember('agent-1'),
-        throwsStateError,
-      );
+      // catch-all absorbs the exception — no throw expected.
+      await container
+          .read(channelMemberStoreProvider.notifier)
+          .addAgentMember('agent-1');
 
       final state = container.read(channelMemberStoreProvider);
       expect(state.failure, isA<UnknownFailure>());
@@ -316,9 +338,38 @@ void main() {
 // Fake repositories
 // =============================================================================
 
-/// Slow ConversationRepository that delays on a Completer.
+/// ConversationRepository that returns a success snapshot from [loadConversation]
+/// and delays mutation operations (edit/delete/pin/unpin) on a Completer.
 class _SlowConversationRepository implements ConversationRepository {
-  Completer<void> completer = Completer<void>();
+  _SlowConversationRepository(this._target);
+
+  final ConversationDetailTarget _target;
+
+  /// Completer for mutation operations (edit, delete, pin, unpin).
+  /// Reset between load() and the operation under test.
+  Completer<void> operationCompleter = Completer<void>();
+
+  @override
+  Future<ConversationDetailSnapshot> loadConversation(
+    ConversationDetailTarget target,
+  ) async {
+    return ConversationDetailSnapshot(
+      target: _target,
+      title: 'Test',
+      messages: [
+        ConversationMessageSummary(
+          id: 'msg-1',
+          content: 'hello',
+          createdAt: DateTime(2026),
+          senderType: 'human',
+          messageType: 'message',
+          seq: 1,
+        ),
+      ],
+      historyLimited: false,
+      hasOlder: false,
+    );
+  }
 
   @override
   Future<void> editMessage(
@@ -326,7 +377,7 @@ class _SlowConversationRepository implements ConversationRepository {
     required String messageId,
     required String content,
   }) async {
-    await completer.future;
+    await operationCompleter.future;
   }
 
   @override
@@ -334,7 +385,7 @@ class _SlowConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {
-    await completer.future;
+    await operationCompleter.future;
   }
 
   @override
@@ -342,7 +393,7 @@ class _SlowConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {
-    await completer.future;
+    await operationCompleter.future;
   }
 
   @override
@@ -350,7 +401,7 @@ class _SlowConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {
-    await completer.future;
+    await operationCompleter.future;
   }
 
   // Stubs for other required interface methods.
@@ -361,6 +412,13 @@ class _SlowConversationRepository implements ConversationRepository {
 /// Slow SavedMessagesRepository using its own completer.
 class _SlowSavedMessagesRepository implements SavedMessagesRepository {
   Completer<void> completer = Completer<void>();
+
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async =>
+      const {};
 
   @override
   Future<void> saveMessage(ServerScopeId serverId, String messageId) async {
@@ -385,19 +443,6 @@ class _QueuedMemberRepository implements MemberRepository {
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
     final completer = completers[_callIndex++];
     return completer.future;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => null;
-}
-
-/// MemberRepository with a replaceable completer.
-class _ConcurrentMemberRepository implements MemberRepository {
-  Completer<List<MemberProfile>>? completer;
-
-  @override
-  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
-    return completer!.future;
   }
 
   @override

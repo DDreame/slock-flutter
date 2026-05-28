@@ -116,7 +116,6 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
           causeType: error.runtimeType.toString(),
         ),
       );
-      rethrow;
     }
   }
 
@@ -145,7 +144,6 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
           causeType: error.runtimeType.toString(),
         ),
       );
-      rethrow;
     }
   }
 
