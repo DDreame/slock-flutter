@@ -108,6 +108,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       if (_disposed) return;
       state = state.copyWith(failure: failure);
       rethrow;
+    } catch (error) {
+      if (_disposed) return;
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to add channel member.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
   }
 
@@ -127,6 +136,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     } on AppFailure catch (failure) {
       if (_disposed) return;
       state = state.copyWith(failure: failure);
+      rethrow;
+    } catch (error) {
+      if (_disposed) return;
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to add channel member.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
       rethrow;
     }
   }

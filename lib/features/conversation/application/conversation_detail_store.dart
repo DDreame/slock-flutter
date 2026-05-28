@@ -732,6 +732,7 @@ class ConversationDetailStore
         await repo.saveMessage(serverId, messageId);
       }
     } on AppFailure {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(savedMessageIds: previousIds);
     }
@@ -754,6 +755,7 @@ class ConversationDetailStore
       await repo.editMessage(target, messageId: messageId, content: newContent);
       _persistSession();
     } on AppFailure {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(
         messages: _updateMessageById(
@@ -784,6 +786,7 @@ class ConversationDetailStore
       await repo.deleteMessage(target, messageId: messageId);
       _persistSession();
     } on AppFailure {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(
         messages: _updateMessageById(
@@ -812,6 +815,7 @@ class ConversationDetailStore
           .read(conversationRepositoryProvider)
           .pinMessage(target, messageId: messageId);
     } on AppFailure {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: false);
       _persistSession();
@@ -833,6 +837,7 @@ class ConversationDetailStore
           .read(conversationRepositoryProvider)
           .unpinMessage(target, messageId: messageId);
     } on AppFailure {
+      if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: true);
       _persistSession();
