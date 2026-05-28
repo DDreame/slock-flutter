@@ -162,6 +162,27 @@ void main() {
             'Removing Semantics wrapper → empty label → RED.',
       );
 
+      // Label must include activity text (not just name).
+      // The l10n produces "Alice, Thinking" (en).
+      expect(
+        data.label,
+        contains('hinking'),
+        reason: 'Label must include activity text. '
+            'Removing activity from agentsRowSemantics → RED.',
+      );
+
+      // Must have onLongPressHint (exposed via customSemanticsActionIds).
+      expect(
+        data.customSemanticsActionIds,
+        isNotNull,
+        reason: 'Removing onLongPressHint → no custom action IDs → RED.',
+      );
+      expect(
+        data.customSemanticsActionIds,
+        isNotEmpty,
+        reason: 'Removing onLongPressHint → empty custom action IDs → RED.',
+      );
+
       handle.dispose();
     });
   });
