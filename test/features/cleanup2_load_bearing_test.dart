@@ -190,7 +190,6 @@ void main() {
     'Cleanup2: HomeChannelRow wrapped in Semantics(button: true, label: name)',
     (tester) async {
       final handle = tester.ensureSemantics();
-      addTearDown(handle.dispose);
 
       const channelName = 'test-channel';
       final channel = HomeChannelSummary(
@@ -238,6 +237,8 @@ void main() {
         reason: 'Cleanup2: HomeChannelRow semantics label must contain '
             'the channel name for screen readers.',
       );
+
+      handle.dispose();
     },
   );
 
@@ -248,7 +249,6 @@ void main() {
     'Cleanup2: HomeDirectMessageRow wrapped in Semantics(button: true, label: title)',
     (tester) async {
       final handle = tester.ensureSemantics();
-      addTearDown(handle.dispose);
 
       const dmTitle = 'Alice';
       final dm = HomeDirectMessageSummary(
@@ -296,6 +296,8 @@ void main() {
         reason: 'Cleanup2: HomeDirectMessageRow semantics label must contain '
             'the DM title for screen readers.',
       );
+
+      handle.dispose();
     },
   );
 }
