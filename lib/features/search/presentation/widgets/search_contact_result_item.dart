@@ -24,53 +24,60 @@ class SearchContactResultItem extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>();
 
-    return InkWell(
-      key: ValueKey('search-contact-result-${result.identityId}'),
-      onTap: onTap,
-      borderRadius: _kCardBorderRadius,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: colors?.border ?? theme.colorScheme.outlineVariant,
+    return Semantics(
+      button: true,
+      label: result.displayName,
+      child: InkWell(
+        key: ValueKey('search-contact-result-${result.identityId}'),
+        onTap: onTap,
+        borderRadius: _kCardBorderRadius,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: colors?.border ?? theme.colorScheme.outlineVariant,
+            ),
+            borderRadius: _kCardBorderRadius,
           ),
-          borderRadius: _kCardBorderRadius,
-        ),
-        child: Row(
-          children: [
-            // Avatar circle with initial
-            CircleAvatar(
-              radius: 18,
-              backgroundColor:
-                  (colors?.primary ?? theme.colorScheme.primary).withAlpha(26),
-              child: Text(
-                result.displayName.characters.first.toUpperCase(),
-                style: AppTypography.body.copyWith(
-                  color: colors?.primary ?? theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+          child: Row(
+            children: [
+              // Avatar circle with initial
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: (colors?.primary ?? theme.colorScheme.primary)
+                    .withAlpha(26),
+                child: Text(
+                  result.displayName.characters.first.toUpperCase(),
+                  style: AppTypography.body.copyWith(
+                    color: colors?.primary ?? theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            // Display name with highlight
-            Expanded(
-              child: _HighlightedContactName(
-                name: result.displayName,
-                query: query,
-                baseStyle: AppTypography.body.copyWith(
-                  fontWeight: FontWeight.w500,
-                  color: colors?.text ?? theme.colorScheme.onSurface,
+              const SizedBox(width: 12),
+              // Display name with highlight
+              Expanded(
+                child: _HighlightedContactName(
+                  name: result.displayName,
+                  query: query,
+                  baseStyle: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: colors?.text ?? theme.colorScheme.onSurface,
+                  ),
+                  highlightColor:
+                      (colors?.warning ?? theme.colorScheme.tertiary)
+                          .withValues(alpha: 0.1),
                 ),
-                highlightColor: const Color(0x1AF59E0B),
               ),
-            ),
-            // Icon indicator
-            Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: colors?.textTertiary ?? theme.colorScheme.onSurfaceVariant,
-            ),
-          ],
+              // Icon indicator
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color:
+                    colors?.textTertiary ?? theme.colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

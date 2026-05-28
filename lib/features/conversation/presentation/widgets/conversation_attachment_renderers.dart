@@ -433,64 +433,68 @@ class _HtmlAttachmentRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    return InkWell(
-      key: ValueKey('html-attachment-${attachment.id ?? attachment.name}'),
-      onTap: () => _openHtmlPreview(context, ref),
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 6,
-        ),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: theme.colorScheme.outlineVariant,
+    return Semantics(
+      button: true,
+      label: attachment.name,
+      child: InkWell(
+        key: ValueKey('html-attachment-${attachment.id ?? attachment.name}'),
+        onTap: () => _openHtmlPreview(context, ref),
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 6,
           ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.language,
-              size: 18,
-              color: theme.colorScheme.primary,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant,
             ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    attachment.name,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      decoration: TextDecoration.underline,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    [
-                      context.l10n.attachmentHtmlOpensInBrowser,
-                      if (attachment.formattedSize != null)
-                        attachment.formattedSize!,
-                    ].join(' · '),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.language,
+                size: 18,
+                color: theme.colorScheme.primary,
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Icon(
-                Icons.open_in_new,
-                size: 14,
-                color: theme.colorScheme.onSurfaceVariant,
+              const SizedBox(width: 6),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      attachment.name,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      [
+                        context.l10n.attachmentHtmlOpensInBrowser,
+                        if (attachment.formattedSize != null)
+                          attachment.formattedSize!,
+                      ].join(' · '),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(
+                  Icons.open_in_new,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -547,40 +551,44 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final hasTapTarget = attachment.url != null || attachment.id != null;
-    return InkWell(
-      key: ValueKey('file-attachment-${attachment.id ?? attachment.name}'),
-      onTap: hasTapTarget ? () => _openFile(context, ref) : null,
-      borderRadius: BorderRadius.circular(4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.attach_file,
-            size: 16,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              attachment.name,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: hasTapTarget ? theme.colorScheme.primary : null,
-                decoration: hasTapTarget ? TextDecoration.underline : null,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            [
-              attachment.type,
-              if (attachment.formattedSize != null) attachment.formattedSize!,
-            ].join(' · '),
-            style: theme.textTheme.labelSmall?.copyWith(
+    return Semantics(
+      button: hasTapTarget,
+      label: attachment.name,
+      child: InkWell(
+        key: ValueKey('file-attachment-${attachment.id ?? attachment.name}'),
+        onTap: hasTapTarget ? () => _openFile(context, ref) : null,
+        borderRadius: BorderRadius.circular(4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.attach_file,
+              size: 16,
               color: theme.colorScheme.onSurfaceVariant,
             ),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                attachment.name,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: hasTapTarget ? theme.colorScheme.primary : null,
+                  decoration: hasTapTarget ? TextDecoration.underline : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              [
+                attachment.type,
+                if (attachment.formattedSize != null) attachment.formattedSize!,
+              ].join(' · '),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

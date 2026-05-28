@@ -30,91 +30,101 @@ class SearchChannelResultItem extends StatelessWidget {
     final colors = theme.extension<AppColors>();
     final isDm = result.surface == 'direct_message';
 
-    return InkWell(
-      key: ValueKey('search-channel-result-${result.channelId}'),
-      onTap: onTap,
-      borderRadius: _kCardBorderRadius,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: colors?.border ?? theme.colorScheme.outlineVariant,
+    return Semantics(
+      button: true,
+      label: isDm ? result.channelName : '#${result.channelName}',
+      child: InkWell(
+        key: ValueKey('search-channel-result-${result.channelId}'),
+        onTap: onTap,
+        borderRadius: _kCardBorderRadius,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: colors?.border ?? theme.colorScheme.outlineVariant,
+            ),
+            borderRadius: _kCardBorderRadius,
           ),
-          borderRadius: _kCardBorderRadius,
-        ),
-        child: Row(
-          children: [
-            // Avatar: # for channel, person icon for DM
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isDm
-                    ? (colors?.primary ?? theme.colorScheme.primary)
-                        .withAlpha(26)
-                    : (colors?.primary ?? theme.colorScheme.primary)
-                        .withAlpha(26),
-                borderRadius:
-                    isDm ? _kAvatarBorderRadiusDm : _kAvatarBorderRadiusChannel,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                isDm ? result.channelName.characters.first.toUpperCase() : '#',
-                style: AppTypography.body.copyWith(
-                  color: colors?.primary ?? theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
+          child: Row(
+            children: [
+              // Avatar: # for channel, person icon for DM
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDm
+                      ? (colors?.primary ?? theme.colorScheme.primary)
+                          .withAlpha(26)
+                      : (colors?.primary ?? theme.colorScheme.primary)
+                          .withAlpha(26),
+                  borderRadius: isDm
+                      ? _kAvatarBorderRadiusDm
+                      : _kAvatarBorderRadiusChannel,
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Name + preview
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _HighlightedName(
-                    name: isDm ? result.channelName : '#${result.channelName}',
-                    query: query,
-                    baseStyle: AppTypography.body.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: colors?.text ?? theme.colorScheme.onSurface,
-                    ),
-                    highlightColor: const Color(0x1AF59E0B),
+                alignment: Alignment.center,
+                child: Text(
+                  isDm
+                      ? result.channelName.characters.first.toUpperCase()
+                      : '#',
+                  style: AppTypography.body.copyWith(
+                    color: colors?.primary ?? theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  if (result.lastMessagePreview != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      result.lastMessagePreview!,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: colors?.textSecondary ??
-                            theme.colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // Surface badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: (colors?.surfaceAlt ??
-                    theme.colorScheme.surfaceContainerLow),
-                borderRadius: _kSurfaceBadgeBorderRadius,
-              ),
-              child: Text(
-                isDm
-                    ? context.l10n.searchBadgeDm
-                    : context.l10n.searchBadgeChannel,
-                style: AppTypography.caption.copyWith(
-                  color: colors?.textTertiary ??
-                      theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            ),
-          ],
+              const SizedBox(width: 12),
+              // Name + preview
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _HighlightedName(
+                      name:
+                          isDm ? result.channelName : '#${result.channelName}',
+                      query: query,
+                      baseStyle: AppTypography.body.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: colors?.text ?? theme.colorScheme.onSurface,
+                      ),
+                      highlightColor:
+                          (colors?.warning ?? theme.colorScheme.tertiary)
+                              .withValues(alpha: 0.1),
+                    ),
+                    if (result.lastMessagePreview != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        result.lastMessagePreview!,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: colors?.textSecondary ??
+                              theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              // Surface badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (colors?.surfaceAlt ??
+                      theme.colorScheme.surfaceContainerLow),
+                  borderRadius: _kSurfaceBadgeBorderRadius,
+                ),
+                child: Text(
+                  isDm
+                      ? context.l10n.searchBadgeDm
+                      : context.l10n.searchBadgeChannel,
+                  style: AppTypography.caption.copyWith(
+                    color: colors?.textTertiary ??
+                        theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

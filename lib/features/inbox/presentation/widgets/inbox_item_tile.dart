@@ -304,7 +304,7 @@ class InboxItemTile extends StatelessWidget {
               ? l10n.inboxUnreadCountOverflow
               : '${projection.unreadCount}',
           style: AppTypography.caption.copyWith(
-            color: Colors.white,
+            color: colors.primaryForeground,
             fontWeight: FontWeight.w600,
             fontSize: 11,
           ),

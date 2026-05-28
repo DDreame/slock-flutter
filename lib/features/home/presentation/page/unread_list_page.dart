@@ -156,7 +156,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
           itemBuilder: (context, index) {
             // Visible sources.
             if (index < visibleCount) {
-              return _UnreadListRow(
+              return UnreadListRow(
                 key: ValueKey('unread-list-item-${items[index].id}'),
                 item: items[index],
                 colors: colors,
@@ -189,7 +189,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
               final hiddenIndex = index - hiddenStart;
               return Opacity(
                 opacity: 0.7,
-                child: _UnreadListRow(
+                child: UnreadListRow(
                   key: ValueKey(
                     'unread-hidden-item-${hiddenItems[hiddenIndex].id}',
                   ),
@@ -262,8 +262,12 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _UnreadListRow extends StatelessWidget {
-  const _UnreadListRow({
+/// A single unread-list row with kind badge, title, preview, and count pill.
+///
+/// Exposed as [UnreadListRow] for testing theme token usage.
+@visibleForTesting
+class UnreadListRow extends StatelessWidget {
+  const UnreadListRow({
     super.key,
     required this.item,
     required this.colors,
@@ -358,7 +362,7 @@ class _UnreadListRow extends StatelessWidget {
                 child: Text(
                   item.unreadCount > 99 ? '99+' : '${item.unreadCount}',
                   style: AppTypography.caption.copyWith(
-                    color: Colors.white,
+                    color: colors.errorForeground,
                     fontWeight: FontWeight.w600,
                     fontSize: 11,
                   ),
