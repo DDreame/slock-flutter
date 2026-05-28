@@ -13,11 +13,19 @@
 // 5. Dead code: BaseUrlValidator.validateApiUrl removed — compile-only check
 // =============================================================================
 
+// ignore_for_file: lines_longer_than_80_chars, deprecated_member_use
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -27,6 +35,8 @@ import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/settings/data/base_url_validator.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   // ===========================================================================
@@ -58,18 +68,13 @@ void main() {
       final fab = find.byKey(const ValueKey('diagnostics-export-fab'));
       expect(fab, findsOneWidget);
 
-      // Tooltip must be ZH-localized (not English).
+      // Tooltip must be the exact ZH-localized string.
       final fabWidget = tester.widget<FloatingActionButton>(fab);
       expect(
         fabWidget.tooltip,
-        isNotNull,
-        reason: 'Diagnostics FAB must have a tooltip for accessibility. '
-            'Removing tooltip → RED.',
-      );
-      expect(
-        fabWidget.tooltip,
-        isNot('Export Diagnostics'),
-        reason: 'Under ZH locale, tooltip must be Chinese (not English).',
+        '导出诊断信息',
+        reason: 'Diagnostics FAB tooltip must be exact ZH-localized string. '
+            'Removing tooltip or wiring wrong key → RED.',
       );
     });
 
@@ -98,8 +103,8 @@ void main() {
       final fabWidget = tester.widget<FloatingActionButton>(fab);
       expect(
         fabWidget.tooltip,
-        isNotEmpty,
-        reason: 'FAB must have non-empty tooltip under EN locale.',
+        'Export diagnostics',
+        reason: 'Diagnostics FAB tooltip must be exact EN-localized string.',
       );
     });
   });
@@ -108,32 +113,134 @@ void main() {
   // Group 2: GestureDetector Semantics — reply dismiss button
   // ===========================================================================
   group('#849 — Semantics: reply dismiss button', () {
-    // The reply-preview-dismiss GestureDetector in conversation_composer.dart
-    // must be wrapped with Semantics(button: true, label: l10n.xxx).
-    // Mounting full ConversationComposer requires extensive provider setup.
-    // Instead, verify via the Semantics widget key pattern — the production
-    // code adds a Semantics wrapper with a known key.
-    //
-    // The load-bearing assertion: if Semantics wrapper is removed from
-    // conversation_composer.dart, the test in Group 1 (FAB tooltip) still
-    // demonstrates the pattern. Actual semantic verification is done via
-    // flutter analyze + manual accessibility audit.
-    //
-    // For automated proof: we verify the Semantics import and annotation
-    // exist in the source file at compile time via the dead-code group's
-    // normalizeApiUrl test proving compilation succeeds.
+    testWidgets(
+        'reply-preview-dismiss has Semantics(button, label) under ZH locale',
+        (tester) async {
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
+      );
+      final replyMessage = ConversationMessageSummary(
+        id: 'msg-reply',
+        content: 'Hello',
+        createdAt: DateTime(2026),
+        senderType: 'human',
+        messageType: 'message',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: ConversationComposer(
+                controller: TextEditingController(),
+                focusNode: FocusNode(),
+                state: ConversationDetailState(
+                  target: target,
+                  status: ConversationDetailStatus.success,
+                  replyToMessage: replyMessage,
+                ),
+                isRecording: false,
+                isFormattingToolbarVisible: false,
+                isEmojiPickerVisible: false,
+                onToggleFormattingToolbar: () {},
+                onToggleEmojiPicker: () {},
+                onChanged: (_) {},
+                onSend: () async {},
+                onPickAttachment: (_) {},
+                onRemoveAttachment: (_) {},
+                onCancelUpload: (_) {},
+                onClearReply: () {},
+                onMicTap: () {},
+                onSendRecording: () {},
+                onCancelRecording: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The reply-preview-dismiss GestureDetector must be wrapped in a
+      // Semantics widget with button: true and the localized label.
+      final dismissFinder = find.byKey(const ValueKey('reply-preview-dismiss'));
+      expect(dismissFinder, findsOneWidget,
+          reason:
+              'Reply-preview dismiss must render when replyToMessage is set');
+
+      final semanticsNode = tester.getSemantics(dismissFinder);
+      expect(semanticsNode.hasFlag(SemanticsFlag.isButton), isTrue,
+          reason: 'Removing Semantics(button: true) wrapper → RED');
+      expect(semanticsNode.label, '关闭回复',
+          reason: 'Semantics label must be ZH-localized string');
+    });
   });
 
   // ===========================================================================
   // Group 3: GestureDetector Semantics — linked task badge
   // ===========================================================================
   group('#849 — Semantics: linked task badge', () {
-    // Same rationale as Group 2. The _LinkedTaskBadge GestureDetector in
-    // conversation_message_card.dart must be wrapped with
-    // Semantics(button: true, label: l10n.xxx).
-    //
-    // Full widget-mount proof deferred to the accessibility audit PR (#822
-    // pattern). The implementation is verified via static analysis.
+    testWidgets(
+        'linked task badge has Semantics(button, label) under ZH locale',
+        (tester) async {
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
+      );
+      final message = ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'Hello world',
+        createdAt: DateTime(2026),
+        senderType: 'human',
+        messageType: 'message',
+        linkedTask: const ConversationLinkedTaskSummary(
+          id: 'task-1',
+          taskNumber: 42,
+          status: 'todo',
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationDetailStoreProvider
+                .overrideWith(() => _FakeConversationDetailStore(target)),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: ConversationMessageCard(
+                target: target,
+                message: message,
+                maxBubbleWidth: 300,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The linked task badge GestureDetector must be wrapped in a Semantics
+      // widget with button: true and the localized label.
+      final badgeFinder =
+          find.byKey(const ValueKey('message-linked-task-task-1'));
+      expect(badgeFinder, findsOneWidget,
+          reason:
+              'Linked task badge must render when message.linkedTask != null');
+
+      final semanticsNode = tester.getSemantics(badgeFinder);
+      expect(semanticsNode.hasFlag(SemanticsFlag.isButton), isTrue,
+          reason: 'Removing Semantics(button: true) wrapper → RED');
+      expect(semanticsNode.label, contains('查看关联任务'),
+          reason: 'Semantics label must contain ZH-localized string');
+    });
   });
 
   // ===========================================================================
@@ -311,4 +418,24 @@ class _FakeInboxRepository implements InboxRepository {
   Future<void> markAllRead(ServerScopeId serverId) async {}
 
   int _calcUnread() => items.fold(0, (sum, item) => sum + item.unreadCount);
+}
+
+class _FakeConversationDetailStore extends ConversationDetailStore {
+  _FakeConversationDetailStore(this._target);
+
+  final ConversationDetailTarget _target;
+
+  @override
+  ConversationDetailState build() => ConversationDetailState(
+        target: _target,
+        status: ConversationDetailStatus.success,
+      );
+}
+
+class _FakeSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        userId: 'user-test',
+        displayName: 'Test User',
+      );
 }
