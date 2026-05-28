@@ -34,7 +34,8 @@ class _MemberProfileSheet extends StatelessWidget {
   final MemberProfile member;
   final VoidCallback? onMessageTap;
 
-  static final _kHandleBorderRadius = BorderRadius.circular(AppSpacing.radiusFull);
+  static final _kHandleBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusFull);
 
   @override
   Widget build(BuildContext context) {
