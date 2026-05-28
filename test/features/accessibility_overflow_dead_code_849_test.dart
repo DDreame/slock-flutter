@@ -14,18 +14,24 @@
 // =============================================================================
 
 // ignore_for_file: lines_longer_than_80_chars, deprecated_member_use
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -34,9 +40,12 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/settings/data/base_url_validator.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
+import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 void main() {
   // ===========================================================================
@@ -105,6 +114,90 @@ void main() {
         fabWidget.tooltip,
         'Export diagnostics',
         reason: 'Diagnostics FAB tooltip must be exact EN-localized string.',
+      );
+    });
+
+    testWidgets('Scroll-to-bottom FAB has localized tooltip under ZH locale',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch-1'),
+      );
+
+      // Generate enough messages so the list is scrollable (> 300px offset).
+      final messages = List.generate(
+        30,
+        (i) => ConversationMessageSummary(
+          id: 'msg-$i',
+          content: 'Message $i with some content to fill space',
+          createdAt: DateTime(2026, 1, 1, 10, i),
+          senderType: 'human',
+          messageType: 'message',
+          senderName: 'User',
+          senderId: 'user-1',
+          seq: i + 1,
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            conversationDetailStoreProvider.overrideWith(
+              () => _ScrollFabConversationDetailStore(target, messages),
+            ),
+            conversationDetailSessionStoreProvider
+                .overrideWith(() => _FakeDetailSessionStore()),
+            voiceMessageStoreProvider
+                .overrideWith(() => _FakeVoiceMessageStore()),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            realtimeReductionIngressProvider
+                .overrideWithValue(RealtimeReductionIngress()),
+            connectivityServiceProvider.overrideWithValue(
+              ConnectivityService.withInitialStatus(
+                ConnectivityStatus.online,
+                controller: StreamController<ConnectivityStatus>.broadcast(),
+              ),
+            ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: ConversationDetailPage(
+              target: target,
+              registerOpenTarget: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Initially the FAB is hidden (scroll offset = 0).
+      expect(find.byKey(const ValueKey('scroll-to-bottom-fab')), findsNothing);
+
+      // Scroll up (in reverse list, drag down = scroll offset increases).
+      await tester.drag(
+        find.byType(ListView),
+        const Offset(0, 500),
+      );
+      await tester.pumpAndSettle();
+
+      // Now the scroll-to-bottom FAB should be visible with the tooltip.
+      final fabFinder = find.byKey(const ValueKey('scroll-to-bottom-fab'));
+      expect(fabFinder, findsOneWidget,
+          reason: 'Scroll-to-bottom FAB must appear after scrolling up');
+
+      final fabWidget = tester.widget<FloatingActionButton>(fabFinder);
+      expect(
+        fabWidget.tooltip,
+        '滚动到底部',
+        reason: 'Scroll-to-bottom FAB tooltip must be exact ZH-localized '
+            'string. Removing tooltip → RED.',
       );
     });
   });
@@ -432,10 +525,59 @@ class _FakeConversationDetailStore extends ConversationDetailStore {
       );
 }
 
+class _ScrollFabConversationDetailStore extends ConversationDetailStore {
+  _ScrollFabConversationDetailStore(this._target, this._messages);
+
+  final ConversationDetailTarget _target;
+  final List<ConversationMessageSummary> _messages;
+
+  @override
+  ConversationDetailState build() => ConversationDetailState(
+        target: _target,
+        status: ConversationDetailStatus.success,
+        messages: _messages,
+      );
+
+  @override
+  Future<void> ensureLoaded() async {}
+
+  @override
+  Future<void> refresh({String reason = 'manual'}) async {}
+
+  @override
+  Future<void> loadOlder() async {}
+
+  @override
+  Future<void> loadNewer() async {}
+}
+
+class _FakeDetailSessionStore extends ConversationDetailSessionStore {
+  @override
+  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
+      const {};
+}
+
+class _FakeVoiceMessageStore extends VoiceMessageStore {
+  @override
+  VoiceMessageState build() => const VoiceMessageState();
+}
+
+class _FakeHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => HomeListState(
+        status: HomeListStatus.success,
+      );
+}
+
 class _FakeSessionStore extends SessionStore {
   @override
   SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
         userId: 'user-test',
         displayName: 'Test User',
+        token: 'test-token',
       );
+
+  @override
+  Future<void> logout() async {}
 }
