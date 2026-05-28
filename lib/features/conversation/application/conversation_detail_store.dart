@@ -485,9 +485,14 @@ class ConversationDetailStore
         isRefreshing: false,
         clearFailure: true,
         clearSendFailure: true,
+        // #861: Include savedMessageIds from batch load (single state emit).
+        savedMessageIds: snapshot.savedMessageIds,
       );
       _persistSession();
-      unawaited(refreshSavedMessageIds());
+      // #861: Only call refreshSavedMessageIds if batch didn't provide them.
+      if (snapshot.savedMessageIds == null) {
+        unawaited(refreshSavedMessageIds());
+      }
     } on AppFailure catch (failure) {
       if (!_isCurrentRequest(requestEpoch, target)) {
         return;
@@ -558,9 +563,14 @@ class ConversationDetailStore
           hasOlder: snapshot.hasOlder,
           isRefreshing: false,
           clearFailure: true,
+          // #861: Include savedMessageIds from batch load (single state emit).
+          savedMessageIds: snapshot.savedMessageIds,
         );
         _persistSession();
-        unawaited(refreshSavedMessageIds());
+        // #861: Only call refreshSavedMessageIds if batch didn't provide them.
+        if (snapshot.savedMessageIds == null) {
+          unawaited(refreshSavedMessageIds());
+        }
       } on AppFailure catch (failure) {
         if (!_isCurrentRequest(requestEpoch, target)) {
           return;

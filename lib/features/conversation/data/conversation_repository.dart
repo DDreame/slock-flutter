@@ -162,6 +162,7 @@ class ConversationDetailSnapshot {
     required this.hasOlder,
     this.memberCount,
     this.description,
+    this.savedMessageIds,
   });
 
   final ConversationDetailTarget target;
@@ -174,6 +175,10 @@ class ConversationDetailSnapshot {
   /// Channel description/topic. Null when not provided by the API.
   /// Phase B (#577) wires parsing and UI display.
   final String? description;
+
+  /// #861: Saved message IDs included in the initial load response.
+  /// When non-null, eliminates the secondary rebuild from refreshSavedMessageIds.
+  final Set<String>? savedMessageIds;
 }
 
 @immutable

@@ -7,6 +7,8 @@ import 'package:slock_app/features/conversation/data/conversation_identity_parse
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 
 const _messagePageSize = 50;
 const _sendMessagePath = '/messages';
@@ -22,10 +24,12 @@ final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
   final appDioClient = ref.watch(appDioClientProvider);
   final localStore = ref.watch(conversationLocalStoreProvider);
   final crashReporter = ref.read(crashReporterProvider);
+  final savedMessagesRepo = ref.read(savedMessagesRepositoryProvider);
   return _ApiConversationRepository(
     appDioClient: appDioClient,
     localStore: localStore,
     crashReporter: crashReporter,
+    savedMessagesRepository: savedMessagesRepo,
   );
 });
 
@@ -34,13 +38,16 @@ class _ApiConversationRepository implements ConversationRepository {
     required AppDioClient appDioClient,
     required ConversationLocalStore localStore,
     required CrashReporter crashReporter,
+    required SavedMessagesRepository savedMessagesRepository,
   })  : _appDioClient = appDioClient,
         _localStore = localStore,
-        _crashReporter = crashReporter;
+        _crashReporter = crashReporter,
+        _savedMessagesRepository = savedMessagesRepository;
 
   final AppDioClient _appDioClient;
   final ConversationLocalStore _localStore;
   final CrashReporter _crashReporter;
+  final SavedMessagesRepository _savedMessagesRepository;
 
   /// #860: Read locally-stored messages from SQLite for instant display.
   /// Returns null if no local messages exist (first-ever load).
@@ -74,6 +81,9 @@ class _ApiConversationRepository implements ConversationRepository {
         _crashReporter.captureException(e, stackTrace: st);
       }
 
+      // #861: Fetch per-channel metadata instead of full channel list.
+      // Uses GET /channels/{id} (or /channels/dm/{id}) — scoped to the
+      // single channel being opened, eliminating redundant payload.
       final responses = await Future.wait([
         _appDioClient.get<Object?>(
           '$_messagesPathPrefix${target.conversationId}',
@@ -81,7 +91,7 @@ class _ApiConversationRepository implements ConversationRepository {
           options: _serverScopedOptions(target.serverId),
         ),
         _appDioClient.get<Object?>(
-          _metadataPath(target.surface),
+          _perChannelMetadataPath(target),
           options: _serverScopedOptions(target.serverId),
         ),
       ]);
@@ -91,11 +101,29 @@ class _ApiConversationRepository implements ConversationRepository {
         serverId: target.serverId.value,
         conversationId: target.conversationId,
       );
-      final metadata = _resolveMetadata(
+      final metadata = _resolveMetadataFromSingle(
         responses[1].data,
         target: target,
         fallbackChannelTitle: storedChannelTitle,
       );
+
+      // #861: Batch savedMessageIds check — fire after messages are known,
+      // include result in snapshot. Eliminates the secondary state emission
+      // from refreshSavedMessageIds().
+      Set<String>? savedMessageIds;
+      if (messagesPayload.messages.isNotEmpty) {
+        try {
+          final messageIds =
+              messagesPayload.messages.map((m) => m.id).toList(growable: false);
+          savedMessageIds = await _savedMessagesRepository.checkSavedMessages(
+            target.serverId,
+            messageIds,
+          );
+        } catch (_) {
+          // Saved messages check failure is non-fatal — UI will show no
+          // bookmark icons rather than blocking the entire load.
+        }
+      }
 
       try {
         // #860: Parallel writes — all three local store writes are independent
@@ -138,6 +166,7 @@ class _ApiConversationRepository implements ConversationRepository {
         hasOlder: messagesPayload.hasOlder,
         memberCount: metadata.memberCount,
         description: metadata.description,
+        savedMessageIds: savedMessageIds,
       );
     } on AppFailure {
       rethrow;
@@ -621,11 +650,87 @@ Options _serverScopedOptions(ServerScopeId serverId) {
   return Options(headers: {_serverHeaderName: serverId.routeParam});
 }
 
-String _metadataPath(ConversationSurface surface) {
-  return switch (surface) {
-    ConversationSurface.channel => _channelsPath,
-    ConversationSurface.directMessage => _directMessageChannelsPath,
+/// #861: Per-channel metadata endpoint — scoped to a single channel.
+/// Returns GET /channels/{id} or GET /channels/dm/{id} instead of the
+/// full list endpoint.
+String _perChannelMetadataPath(ConversationDetailTarget target) {
+  return switch (target.surface) {
+    ConversationSurface.channel => '$_channelsPath/${target.conversationId}',
+    ConversationSurface.directMessage =>
+      '$_directMessageChannelsPath/${target.conversationId}',
   };
+}
+
+/// #861: Parse metadata from a single-channel response object.
+///
+/// Unlike [_resolveMetadata] which scans an array for the matching ID,
+/// this parses the direct object returned by `GET /channels/{id}`.
+/// Falls back gracefully: if the response is still an array (server hasn't
+/// deployed the per-channel endpoint yet), delegates to [_resolveMetadata].
+_ConversationMetadata _resolveMetadataFromSingle(
+  Object? payload, {
+  required ConversationDetailTarget target,
+  String? fallbackChannelTitle,
+}) {
+  // Fallback: if server returns array (hasn't deployed per-channel yet),
+  // delegate to the existing list-scanning resolver.
+  if (payload is List) {
+    return _resolveMetadata(
+      payload,
+      target: target,
+      fallbackChannelTitle: fallbackChannelTitle,
+    );
+  }
+
+  // Single object response from GET /channels/{id}.
+  if (payload is! Map) {
+    return _ConversationMetadata(
+      displayTitle: target.defaultTitle,
+      summaryTitle: switch (target.surface) {
+        ConversationSurface.channel =>
+          target.defaultTitle.replaceFirst('#', ''),
+        ConversationSurface.directMessage => target.defaultTitle,
+      },
+    );
+  }
+
+  switch (target.surface) {
+    case ConversationSurface.channel:
+      final name = _readOptionalString(payload['name']);
+      if (name != null && name.isNotEmpty) {
+        return _ConversationMetadata(
+          displayTitle: '#$name',
+          summaryTitle: name,
+          memberCount: _readOptionalInt(payload['memberCount']),
+          description: _readOptionalString(payload['description']),
+        );
+      }
+    case ConversationSurface.directMessage:
+      final title = resolveDirectMessageTitle(payload);
+      if (title != null && title.isNotEmpty) {
+        return _ConversationMetadata(
+          displayTitle: title,
+          summaryTitle: title,
+        );
+      }
+  }
+
+  if (target.surface == ConversationSurface.channel &&
+      fallbackChannelTitle != null &&
+      fallbackChannelTitle.isNotEmpty) {
+    return _ConversationMetadata(
+      displayTitle: '#$fallbackChannelTitle',
+      summaryTitle: fallbackChannelTitle,
+    );
+  }
+
+  return _ConversationMetadata(
+    displayTitle: target.defaultTitle,
+    summaryTitle: switch (target.surface) {
+      ConversationSurface.channel => target.defaultTitle.replaceFirst('#', ''),
+      ConversationSurface.directMessage => target.defaultTitle,
+    },
+  );
 }
 
 String _surfaceKey(ConversationSurface surface) {
