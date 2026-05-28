@@ -12,11 +12,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/link_preview/data/link_metadata.dart';
 import 'package:slock_app/features/link_preview/presentation/widgets/link_preview_card.dart';
+import 'package:slock_app/features/tasks/application/tasks_state.dart';
+import 'package:slock_app/features/tasks/application/tasks_store.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -403,26 +410,170 @@ void main() {
   });
 
   // ===========================================================================
-  // H7: _FilterChip — borderRadius hoisted (via @visibleForTesting constant)
+  // H7: _FilterChip — borderRadius hoisted (production widget dual-pump)
   // ===========================================================================
   group('Scan #47 BorderRadius hoist — _FilterChip', () {
-    test('filterChipBorderRadius is identity-stable', () {
-      // The file-scope constant must return the same instance every time.
-      expect(
-        identical(filterChipBorderRadius, filterChipBorderRadius),
-        isTrue,
-        reason: 'filterChipBorderRadius must be a stable reference. '
-            'Reverting to inline would remove this constant → RED.',
+    testWidgets('Container borderRadius is identical across rebuilds',
+        (tester) async {
+      // Mount TasksPage with tasks spanning 2 channels so filter bar appears.
+      final store1 = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [
+            _taskItem(id: 't1', channelId: 'ch-1'),
+            _taskItem(id: 't2', channelId: 'ch-2'),
+          ],
+        ),
       );
-    });
 
-    test('filterChipBorderRadius has expected value', () {
-      // Pin the expected value so renaming/rebinding is caught.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tasksStoreProvider.overrideWith(() => store1),
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore(const [
+                  HomeChannelSummary(
+                    scopeId: ChannelScopeId(
+                      serverId: ServerScopeId('server-1'),
+                      value: 'ch-1',
+                    ),
+                    name: 'General',
+                  ),
+                  HomeChannelSummary(
+                    scopeId: ChannelScopeId(
+                      serverId: ServerScopeId('server-1'),
+                      value: 'ch-2',
+                    ),
+                    name: 'Engineering',
+                  ),
+                ])),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const TasksPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the "All" filter chip container.
+      final containerFinder = find.descendant(
+        of: find.byKey(const ValueKey('task-filter-all')),
+        matching: find.byType(Container),
+      );
+      expect(containerFinder, findsWidgets);
+      final container1 = tester.widget<Container>(containerFinder.first);
+      final br1 = (container1.decoration! as BoxDecoration).borderRadius;
+
+      // Rebuild with different channel set to force filter chip rebuild.
+      final store2 = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [
+            _taskItem(id: 't3', channelId: 'ch-3'),
+            _taskItem(id: 't4', channelId: 'ch-4'),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tasksStoreProvider.overrideWith(() => store2),
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore(const [
+                  HomeChannelSummary(
+                    scopeId: ChannelScopeId(
+                      serverId: ServerScopeId('server-1'),
+                      value: 'ch-3',
+                    ),
+                    name: 'Design',
+                  ),
+                  HomeChannelSummary(
+                    scopeId: ChannelScopeId(
+                      serverId: ServerScopeId('server-1'),
+                      value: 'ch-4',
+                    ),
+                    name: 'Support',
+                  ),
+                ])),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const TasksPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final containerFinder2 = find.descendant(
+        of: find.byKey(const ValueKey('task-filter-all')),
+        matching: find.byType(Container),
+      );
+      final container2 = tester.widget<Container>(containerFinder2.first);
+      final br2 = (container2.decoration! as BoxDecoration).borderRadius;
+
       expect(
-        filterChipBorderRadius,
-        BorderRadius.circular(16),
-        reason: 'filterChipBorderRadius must be circular(16).',
+        identical(br1, br2),
+        isTrue,
+        reason: 'Reverting _FilterChip to inline BorderRadius.circular(16) → '
+            'new instance each build → RED.',
+      );
+      // Also verify it matches the exported constant.
+      expect(
+        identical(br1, filterChipBorderRadius),
+        isTrue,
+        reason: 'Production widget must use filterChipBorderRadius.',
       );
     });
   });
+}
+
+// =============================================================================
+// Test helpers for TasksPage mounting
+// =============================================================================
+
+TaskItem _taskItem({
+  required String id,
+  required String channelId,
+}) {
+  return TaskItem(
+    id: id,
+    taskNumber: 1,
+    title: 'Task $id',
+    status: 'todo',
+    channelId: channelId,
+    channelType: 'channel',
+    createdById: 'user-1',
+    createdByName: 'Alice',
+    createdByType: 'human',
+    createdAt: DateTime(2026, 5, 28),
+  );
+}
+
+class _FakeTasksStore extends TasksStore {
+  _FakeTasksStore({required TasksState initialState})
+      : _initialState = initialState;
+
+  final TasksState _initialState;
+
+  @override
+  TasksState build() => _initialState;
+
+  @override
+  Future<void> load() async {}
+}
+
+class _FakeHomeListStore extends HomeListStore {
+  _FakeHomeListStore(this._channels);
+
+  final List<HomeChannelSummary> _channels;
+
+  @override
+  HomeListState build() => HomeListState(
+        status: HomeListStatus.success,
+        channels: _channels,
+      );
 }
