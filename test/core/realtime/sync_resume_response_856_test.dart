@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -615,98 +616,108 @@ void main() {
 
     test(
         'provider-level: exactly 1 inbox+home refresh after batch, not per-message',
-        () async {
-      const serverId = ServerScopeId('server-1');
-      final ingress = RealtimeReductionIngress();
-      final socket = _FakeRealtimeSocketClient();
-      final homeRepo = _TrackingHomeRepository();
-      final inboxRepo = _TrackingInboxRepository();
+        () {
+      // Uses fakeAsync to control time precisely. Without the batch
+      // suppression (`if (isBatchEvent) { return; }`) in
+      // scheduleInboxRefresh, a 2s debounce timer would be created for each
+      // message:new event. Advancing past 2s fires it → test RED.
+      // WITH suppression, no timer is ever created → test GREEN.
+      fakeAsync((async) {
+        const serverId = ServerScopeId('server-1');
+        final ingress = RealtimeReductionIngress();
+        final socket = _FakeRealtimeSocketClient();
+        final homeRepo = _TrackingHomeRepository();
+        final inboxRepo = _TrackingInboxRepository();
 
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(serverId),
-          realtimeReductionIngressProvider.overrideWithValue(ingress),
-          realtimeSocketClientProvider.overrideWithValue(socket),
-          homeRepositoryProvider.overrideWithValue(homeRepo),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(_TrackingAgentsRepository()),
-          tasksRepositoryProvider
-              .overrideWithValue(const _FakeTasksRepository()),
-          threadRepositoryProvider
-              .overrideWithValue(const _FakeThreadRepository()),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-          serverListRepositoryProvider
-              .overrideWithValue(_TrackingServerListRepository()),
-          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
-          crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
-          agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
-          inboxRepositoryProvider.overrideWithValue(inboxRepo),
-        ],
-      );
-      addTearDown(() {
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(serverId),
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWithValue(socket),
+            homeRepositoryProvider.overrideWithValue(homeRepo),
+            sidebarOrderRepositoryProvider
+                .overrideWithValue(const _FakeSidebarOrderRepository()),
+            agentsRepositoryProvider
+                .overrideWithValue(_TrackingAgentsRepository()),
+            tasksRepositoryProvider
+                .overrideWithValue(const _FakeTasksRepository()),
+            threadRepositoryProvider
+                .overrideWithValue(const _FakeThreadRepository()),
+            homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+            serverListRepositoryProvider
+                .overrideWithValue(_TrackingServerListRepository()),
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            inboxRepositoryProvider.overrideWithValue(inboxRepo),
+          ],
+        );
+
+        // Load home into success state.
+        container.read(homeListStoreProvider.notifier).load();
+        async.flushMicrotasks();
+        expect(container.read(homeListStoreProvider).status,
+            HomeListStatus.success);
+
+        // Trigger InboxStore build (auto-loads via Future.microtask).
+        container.read(inboxStoreProvider);
+        async.flushMicrotasks();
+        expect(container.read(inboxStoreProvider).status, InboxStatus.success);
+
+        // Mount the domain router (subscribes to ingress.acceptedEvents).
+        container.read(domainRuntimeEventRouterProvider);
+        async.flushMicrotasks();
+
+        // Record baseline calls after initial setup.
+        final homeRefreshBaseline = homeRepo.loadWorkspaceCalls;
+        final inboxRefreshBaseline = inboxRepo.fetchInboxCalls;
+
+        // Push 5 batch events through ingress (simulating sync:resume:response).
+        ingress.acceptSyncBatch([
+          for (int i = 1; i <= 5; i++)
+            RealtimeEventEnvelope(
+              eventType: 'message:new',
+              scopeKey: 'server:server-1/channel:ch-1',
+              seq: i,
+              payload: {
+                'id': 'msg-$i',
+                'channelId': 'ch-1',
+                'serverId': 'server-1',
+                'senderId': 'other-user',
+              },
+              receivedAt: DateTime(2026),
+            ),
+        ]);
+        async.flushMicrotasks();
+
+        // KEY ASSERTION: Advance clock past the 2s debounce window.
+        // Without batch suppression, a debounce timer would fire here →
+        // inboxRepo.fetchInboxCalls > inboxRefreshBaseline → test RED.
+        // With suppression, no timer exists → count unchanged → test GREEN.
+        async.elapse(const Duration(seconds: 3));
+
+        expect(inboxRepo.fetchInboxCalls, inboxRefreshBaseline,
+            reason:
+                'Inbox refresh must NOT fire during batch even after 2s debounce window passes');
+
+        // Now emit syncBatchComplete — triggers coalesced immediate refresh.
+        ingress.accept(RealtimeEventEnvelope(
+          eventType: syncBatchCompleteEvent,
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026),
+        ));
+        async.flushMicrotasks();
+
+        // After batch complete: exactly 1 inbox refresh + 1 home refresh.
+        expect(inboxRepo.fetchInboxCalls, inboxRefreshBaseline + 1,
+            reason: 'Exactly 1 inbox refresh after syncBatchComplete, not N');
+        expect(homeRepo.loadWorkspaceCalls, homeRefreshBaseline + 1,
+            reason: 'Exactly 1 home refresh after syncBatchComplete, not N');
+
         container.dispose();
         unawaited(ingress.dispose());
       });
-
-      // Load home and inbox into success state so refresh paths are active.
-      await container.read(homeListStoreProvider.notifier).load();
-      expect(
-          container.read(homeListStoreProvider).status, HomeListStatus.success);
-
-      // Trigger InboxStore build (auto-loads via Future.microtask).
-      container.read(inboxStoreProvider);
-      // Drain microtasks until it reaches success.
-      for (var i = 0; i < 5; i++) {
-        await Future<void>.delayed(Duration.zero);
-      }
-      expect(container.read(inboxStoreProvider).status, InboxStatus.success);
-
-      // Mount the domain router (subscribes to ingress.acceptedEvents).
-      container.read(domainRuntimeEventRouterProvider);
-      await Future<void>.delayed(Duration.zero);
-
-      // Record baseline calls after initial setup.
-      final homeRefreshBaseline = homeRepo.loadWorkspaceCalls;
-      final inboxRefreshBaseline = inboxRepo.fetchInboxCalls;
-
-      // Push 5 batch events through ingress (simulating sync:resume:response).
-      ingress.acceptSyncBatch([
-        for (int i = 1; i <= 5; i++)
-          RealtimeEventEnvelope(
-            eventType: 'message:new',
-            scopeKey: 'server:server-1/channel:ch-1',
-            seq: i,
-            payload: {
-              'id': 'msg-$i',
-              'channelId': 'ch-1',
-              'serverId': 'server-1',
-              'senderId': 'other-user',
-            },
-            receivedAt: DateTime(2026),
-          ),
-      ]);
-      await Future<void>.delayed(Duration.zero);
-
-      // During the batch: NO inbox refresh should have been scheduled
-      // (isBatchEvent=true → scheduleInboxRefresh returns early).
-      expect(inboxRepo.fetchInboxCalls, inboxRefreshBaseline,
-          reason: 'Inbox refresh must NOT fire per-message during sync batch');
-
-      // Now emit syncBatchComplete — triggers coalesced refresh.
-      ingress.accept(RealtimeEventEnvelope(
-        eventType: syncBatchCompleteEvent,
-        scopeKey: RealtimeEventEnvelope.globalScopeKey,
-        receivedAt: DateTime(2026),
-      ));
-      await Future<void>.delayed(Duration.zero);
-
-      // After batch complete: exactly 1 inbox refresh + 1 home refresh.
-      expect(inboxRepo.fetchInboxCalls, inboxRefreshBaseline + 1,
-          reason: 'Exactly 1 inbox refresh after syncBatchComplete, not N');
-      expect(homeRepo.loadWorkspaceCalls, homeRefreshBaseline + 1,
-          reason: 'Exactly 1 home refresh after syncBatchComplete, not N');
     });
   });
 }
