@@ -19,6 +19,7 @@ final memberListStoreProvider =
 
 class MemberListStore extends AutoDisposeNotifier<MemberListState> {
   bool _disposed = false;
+  int _loadEpoch = 0;
 
   @override
   MemberListState build() {
@@ -48,6 +49,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
   }
 
   Future<void> load() async {
+    final epoch = ++_loadEpoch;
     final serverId = ref.read(currentMembersServerIdProvider);
     state = state.copyWith(
       status: MemberListStatus.loading,
@@ -61,6 +63,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       final members =
           await ref.read(memberRepositoryProvider).listMembers(serverId);
       if (_disposed) return;
+      if (_loadEpoch != epoch) return;
       state = state.copyWith(
         status: MemberListStatus.success,
         members: members
@@ -76,6 +79,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       );
     } on AppFailure catch (failure) {
       if (_disposed) return;
+      if (_loadEpoch != epoch) return;
       state = state.copyWith(
         status: MemberListStatus.failure,
         failure: failure,
@@ -84,6 +88,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       );
     } catch (error, stackTrace) {
       if (_disposed) return;
+      if (_loadEpoch != epoch) return;
       _reportUnexpectedError('load', error, stackTrace);
       state = state.copyWith(
         status: MemberListStatus.failure,

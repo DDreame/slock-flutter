@@ -380,6 +380,19 @@ class AgentsStore extends Notifier<AgentsState> {
     } on AppFailure {
       if (_disposed) return;
       rethrow;
+    } catch (error, stackTrace) {
+      if (_disposed) return;
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.resetAgent',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to reset agent.',
+      );
+      state = state.copyWith(failure: failure);
+      throw failure;
     } finally {
       if (!_disposed) {
         state = state.copyWith(
