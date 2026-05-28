@@ -52,6 +52,12 @@ class MessageBubble extends StatelessWidget {
   /// The message content widget.
   final Widget child;
 
+  /// Hoisted BorderRadius for system-variant messages — avoids per-build
+  /// allocation (#853).
+  @visibleForTesting
+  static final systemBorderRadius =
+      BorderRadius.circular(BubbleTokens.radiusLarge);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -86,8 +92,7 @@ class MessageBubble extends StatelessWidget {
           bottomLeft: Radius.circular(BubbleTokens.radiusLarge),
           bottomRight: Radius.circular(BubbleTokens.radiusLarge),
         ),
-      MessageBubbleVariant.system =>
-        BorderRadius.circular(BubbleTokens.radiusLarge),
+      MessageBubbleVariant.system => MessageBubble.systemBorderRadius,
       _ => const BorderRadius.only(
           topLeft: Radius.circular(BubbleTokens.radiusSmall),
           topRight: Radius.circular(BubbleTokens.radiusLarge),

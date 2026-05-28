@@ -124,6 +124,16 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
   @visibleForTesting
   static const aiBadgeBaseStyle = AppTypography.captionBold;
 
+  /// Hoisted BorderRadius for system-variant messages — avoids per-build
+  /// allocation (#853).
+  @visibleForTesting
+  static final systemBorderRadius =
+      BorderRadius.circular(BubbleTokens.radiusLarge);
+
+  /// Hoisted BorderRadius for linked task badges — pill shape (#853).
+  @visibleForTesting
+  static final taskBadgeBorderRadius = BorderRadius.circular(999);
+
   @override
   ConsumerState<ConversationMessageCard> createState() =>
       ConversationMessageCardState();
@@ -337,7 +347,7 @@ class ConversationMessageCardState
           bottomRight: Radius.circular(BubbleTokens.radiusLarge),
         ),
       _ConversationMessageVisualKind.system =>
-        BorderRadius.circular(BubbleTokens.radiusLarge),
+        ConversationMessageCard.systemBorderRadius,
       _ => const BorderRadius.only(
           topLeft: Radius.circular(BubbleTokens.radiusSmall),
           topRight: Radius.circular(BubbleTokens.radiusLarge),
@@ -1118,7 +1128,7 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.container,
             border: Border.all(color: colors.foreground),
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: ConversationMessageCard.taskBadgeBorderRadius,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

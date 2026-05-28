@@ -204,6 +204,11 @@ class ReactionRow extends ConsumerWidget {
   final String messageId;
   final String? currentUserId;
 
+  /// Hoisted BorderRadius for reaction chips — avoids per-build allocation
+  /// (#853). Used by _ReactionChip for both InkWell and Container decoration.
+  @visibleForTesting
+  static final chipBorderRadius = BorderRadius.circular(AppSpacing.radiusFull);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (reactions.isEmpty) {
@@ -284,7 +289,7 @@ class _ReactionChip extends ConsumerWidget {
       onTap: () => _onTap(context, ref),
       child: InkWell(
         onTap: () => _onTap(context, ref),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        borderRadius: ReactionRow.chipBorderRadius,
         child: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.sm,
@@ -294,7 +299,7 @@ class _ReactionChip extends ConsumerWidget {
             color: isOwn
                 ? colors.primary.withValues(alpha: 0.15)
                 : colors.surfaceAlt,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            borderRadius: ReactionRow.chipBorderRadius,
             border: Border.all(
               color: isOwn ? colors.primary : colors.border,
               width: 1,
