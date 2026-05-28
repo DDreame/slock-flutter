@@ -64,53 +64,41 @@ class HomeDirectMessageRow extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final hasUnread = unreadCount > 0;
 
-    return Material(
-      color: hasUnread ? colors.primaryLight : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: _hasActions ? () => _showActionSheet(context) : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pageHorizontal,
-            vertical: AppSpacing.listItemVertical,
-          ),
-          child: Row(
-            children: [
-              if (isPinned)
-                Icon(
-                  Icons.push_pin,
-                  size: 20,
-                  color: hasUnread ? colors.primary : colors.textTertiary,
-                )
-              else
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: directMessage.peerId != null && !isAgent
-                      ? PresenceAvatar(
-                          key: ValueKey(
-                            'dm-presence-${directMessage.scopeId.routeParam}',
-                          ),
-                          userId: directMessage.peerId!,
-                          dotBorderColor:
-                              hasUnread ? colors.primaryLight : colors.surface,
-                          child: CircleAvatar(
-                            key: const ValueKey('dm-avatar'),
-                            radius: 16,
-                            backgroundColor: colors.primaryLight,
-                            child: Text(
-                              _initials(directMessage.title),
-                              style: AppTypography.label.copyWith(
-                                color: colors.primary,
-                                fontSize: 12,
-                              ),
+    return Semantics(
+      button: true,
+      label: directMessage.title,
+      child: Material(
+        color: hasUnread ? colors.primaryLight : Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: _hasActions ? () => _showActionSheet(context) : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.listItemVertical,
+            ),
+            child: Row(
+              children: [
+                if (isPinned)
+                  Icon(
+                    Icons.push_pin,
+                    size: 20,
+                    color: hasUnread ? colors.primary : colors.textTertiary,
+                  )
+                else
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: directMessage.peerId != null && !isAgent
+                        ? PresenceAvatar(
+                            key: ValueKey(
+                              'dm-presence-${directMessage.scopeId.routeParam}',
                             ),
-                          ),
-                        )
-                      : Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CircleAvatar(
+                            userId: directMessage.peerId!,
+                            dotBorderColor: hasUnread
+                                ? colors.primaryLight
+                                : colors.surface,
+                            child: CircleAvatar(
                               key: const ValueKey('dm-avatar'),
                               radius: 16,
                               backgroundColor: colors.primaryLight,
@@ -122,156 +110,175 @@ class HomeDirectMessageRow extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            Positioned(
-                              right: -1,
-                              bottom: -1,
-                              child: Container(
-                                key: const ValueKey('dm-status-dot'),
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: _resolveStatusDotColor(colors),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: hasUnread
-                                        ? colors.primaryLight
-                                        : colors.surface,
-                                    width: 2,
+                          )
+                        : Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                key: const ValueKey('dm-avatar'),
+                                radius: 16,
+                                backgroundColor: colors.primaryLight,
+                                child: Text(
+                                  _initials(directMessage.title),
+                                  style: AppTypography.label.copyWith(
+                                    color: colors.primary,
+                                    fontSize: 12,
                                   ),
                                 ),
+                              ),
+                              Positioned(
+                                right: -1,
+                                bottom: -1,
+                                child: Container(
+                                  key: const ValueKey('dm-status-dot'),
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: _resolveStatusDotColor(colors),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: hasUnread
+                                          ? colors.primaryLight
+                                          : colors.surface,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              directMessage.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.body.copyWith(
+                                color: colors.text,
+                                fontWeight: hasUnread
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                          if (isAgent) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              key: const ValueKey('dm-agent-badge'),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.primaryLight,
+                                borderRadius: _kAgentBadgeBorderRadius,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.smart_toy_outlined,
+                                    size: 12,
+                                    color: colors.primary,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    context.l10n.dmAgentBadge,
+                                    style: AppTypography.caption.copyWith(
+                                      color: colors.primary,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            directMessage.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.body.copyWith(
-                              color: colors.text,
-                              fontWeight:
-                                  hasUnread ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                        if (isAgent) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            key: const ValueKey('dm-agent-badge'),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.primaryLight,
-                              borderRadius: _kAgentBadgeBorderRadius,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.smart_toy_outlined,
-                                  size: 12,
-                                  color: colors.primary,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  context.l10n.dmAgentBadge,
-                                  style: AppTypography.caption.copyWith(
-                                    color: colors.primary,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Consumer(
-                      key: const ValueKey('dm-row-typing-indicator'),
-                      builder: (context, ref, _) {
-                        final scopeKey =
-                            'server:${directMessage.scopeId.serverId.value}'
-                            '/dm:${directMessage.scopeId.value}';
-                        final typingState = ref.watch(
-                          listTypingIndicatorStoreProvider(scopeKey),
-                        );
-                        final colors =
-                            Theme.of(context).extension<AppColors>()!;
-                        if (typingState.isActive) {
-                          final l10n = AppLocalizations.of(context)!;
-                          final names = typingState.typerNames;
-                          final text = switch (names.length) {
-                            1 => l10n.typingIndicatorOne(names[0]),
-                            2 => l10n.typingIndicatorTwo(names[0], names[1]),
-                            3 => l10n.typingIndicatorThreeOrMore(
-                                names.sublist(0, 2).join(', '),
-                                names[2],
+                      ),
+                      const SizedBox(height: 2),
+                      Consumer(
+                        key: const ValueKey('dm-row-typing-indicator'),
+                        builder: (context, ref, _) {
+                          final scopeKey =
+                              'server:${directMessage.scopeId.serverId.value}'
+                              '/dm:${directMessage.scopeId.value}';
+                          final typingState = ref.watch(
+                            listTypingIndicatorStoreProvider(scopeKey),
+                          );
+                          final colors =
+                              Theme.of(context).extension<AppColors>()!;
+                          if (typingState.isActive) {
+                            final l10n = AppLocalizations.of(context)!;
+                            final names = typingState.typerNames;
+                            final text = switch (names.length) {
+                              1 => l10n.typingIndicatorOne(names[0]),
+                              2 => l10n.typingIndicatorTwo(names[0], names[1]),
+                              3 => l10n.typingIndicatorThreeOrMore(
+                                  names.sublist(0, 2).join(', '),
+                                  names[2],
+                                ),
+                              _ => l10n.typingIndicatorSeveral,
+                            };
+                            return Text(
+                              text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: colors.primary,
+                                fontStyle: FontStyle.italic,
                               ),
-                            _ => l10n.typingIndicatorSeveral,
-                          };
+                            );
+                          }
                           return Text(
-                            text,
+                            resolvePreviewText(
+                              directMessage.lastMessagePreview,
+                              l10n: AppLocalizations.of(context)!,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.bodySmall.copyWith(
-                              color: colors.primary,
-                              fontStyle: FontStyle.italic,
+                              color: colors.textSecondary,
                             ),
                           );
-                        }
-                        return Text(
-                          resolvePreviewText(
-                            directMessage.lastMessagePreview,
-                            l10n: AppLocalizations.of(context)!,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        );
-                      },
-                    ),
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                if (reorderHandle != null) ...[
+                  reorderHandle!,
+                  const SizedBox(width: AppSpacing.sm),
+                ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (directMessage.lastActivityAt != null)
+                      RelativeTimeText(
+                        time: directMessage.lastActivityAt!,
+                        style: AppTypography.caption.copyWith(
+                          color:
+                              hasUnread ? colors.primary : colors.textTertiary,
+                        ),
+                      ),
+                    if (hasUnread) ...[
+                      const SizedBox(height: 4),
+                      UnreadBadge(count: unreadCount),
+                    ],
                   ],
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              if (reorderHandle != null) ...[
-                reorderHandle!,
-                const SizedBox(width: AppSpacing.sm),
               ],
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (directMessage.lastActivityAt != null)
-                    RelativeTimeText(
-                      time: directMessage.lastActivityAt!,
-                      style: AppTypography.caption.copyWith(
-                        color: hasUnread ? colors.primary : colors.textTertiary,
-                      ),
-                    ),
-                  if (hasUnread) ...[
-                    const SizedBox(height: 4),
-                    UnreadBadge(count: unreadCount),
-                  ],
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),

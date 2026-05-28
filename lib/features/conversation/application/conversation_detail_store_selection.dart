@@ -68,6 +68,8 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
           return (id: id, succeeded: true);
         } on AppFailure {
           return (id: id, succeeded: false);
+        } catch (_) {
+          return (id: id, succeeded: false);
         }
       }),
     );

@@ -50,125 +50,131 @@ class HomeChannelRow extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final hasUnread = unreadCount > 0;
 
-    return Material(
-      color: hasUnread ? colors.primaryLight : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress:
-            _hasActions && !isMutating ? () => _showActionSheet(context) : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pageHorizontal,
-            vertical: AppSpacing.listItemVertical,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                channel.isPrivate
-                    ? Icons.lock
-                    : isPinned
-                        ? Icons.push_pin
-                        : Icons.tag,
-                key: channel.isPrivate
-                    ? const ValueKey('channel-private-badge')
-                    : null,
-                size: 20,
-                color: hasUnread ? colors.primary : colors.textTertiary,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      channel.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.body.copyWith(
-                        color: colors.text,
-                        fontWeight:
-                            hasUnread ? FontWeight.w600 : FontWeight.w400,
+    return Semantics(
+      button: true,
+      label: channel.name,
+      child: Material(
+        color: hasUnread ? colors.primaryLight : Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: _hasActions && !isMutating
+              ? () => _showActionSheet(context)
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.listItemVertical,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  channel.isPrivate
+                      ? Icons.lock
+                      : isPinned
+                          ? Icons.push_pin
+                          : Icons.tag,
+                  key: channel.isPrivate
+                      ? const ValueKey('channel-private-badge')
+                      : null,
+                  size: 20,
+                  color: hasUnread ? colors.primary : colors.textTertiary,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        channel.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.body.copyWith(
+                          color: colors.text,
+                          fontWeight:
+                              hasUnread ? FontWeight.w600 : FontWeight.w400,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Consumer(
-                      key: const ValueKey('channel-row-typing-indicator'),
-                      builder: (context, ref, _) {
-                        final scopeKey =
-                            'server:${channel.scopeId.serverId.value}'
-                            '/channel:${channel.scopeId.value}';
-                        final typingState = ref.watch(
-                          listTypingIndicatorStoreProvider(scopeKey),
-                        );
-                        final colors =
-                            Theme.of(context).extension<AppColors>()!;
-                        if (typingState.isActive) {
-                          final l10n = AppLocalizations.of(context)!;
-                          final names = typingState.typerNames;
-                          final text = switch (names.length) {
-                            1 => l10n.typingIndicatorOne(names[0]),
-                            2 => l10n.typingIndicatorTwo(names[0], names[1]),
-                            3 => l10n.typingIndicatorThreeOrMore(
-                                names.sublist(0, 2).join(', '),
-                                names[2],
+                      const SizedBox(height: 2),
+                      Consumer(
+                        key: const ValueKey('channel-row-typing-indicator'),
+                        builder: (context, ref, _) {
+                          final scopeKey =
+                              'server:${channel.scopeId.serverId.value}'
+                              '/channel:${channel.scopeId.value}';
+                          final typingState = ref.watch(
+                            listTypingIndicatorStoreProvider(scopeKey),
+                          );
+                          final colors =
+                              Theme.of(context).extension<AppColors>()!;
+                          if (typingState.isActive) {
+                            final l10n = AppLocalizations.of(context)!;
+                            final names = typingState.typerNames;
+                            final text = switch (names.length) {
+                              1 => l10n.typingIndicatorOne(names[0]),
+                              2 => l10n.typingIndicatorTwo(names[0], names[1]),
+                              3 => l10n.typingIndicatorThreeOrMore(
+                                  names.sublist(0, 2).join(', '),
+                                  names[2],
+                                ),
+                              _ => l10n.typingIndicatorSeveral,
+                            };
+                            return Text(
+                              text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: colors.primary,
+                                fontStyle: FontStyle.italic,
                               ),
-                            _ => l10n.typingIndicatorSeveral,
-                          };
+                            );
+                          }
                           return Text(
-                            text,
+                            resolvePreviewText(
+                              channel.lastMessagePreview,
+                              l10n: AppLocalizations.of(context)!,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.bodySmall.copyWith(
-                              color: colors.primary,
-                              fontStyle: FontStyle.italic,
+                              color: colors.textSecondary,
                             ),
                           );
-                        }
-                        return Text(
-                          resolvePreviewText(
-                            channel.lastMessagePreview,
-                            l10n: AppLocalizations.of(context)!,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: colors.textSecondary,
-                          ),
-                        );
-                      },
-                    ),
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                if (reorderHandle != null) ...[
+                  reorderHandle!,
+                  const SizedBox(width: AppSpacing.sm),
+                ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (channel.lastActivityAt != null)
+                      RelativeTimeText(
+                        time: channel.lastActivityAt!,
+                        style: AppTypography.caption.copyWith(
+                          color:
+                              hasUnread ? colors.primary : colors.textTertiary,
+                        ),
+                      ),
+                    if (isMuted)
+                      Icon(
+                        Icons.notifications_off,
+                        size: 14,
+                        color: colors.textTertiary,
+                      ),
+                    if (hasUnread) ...[
+                      const SizedBox(height: 4),
+                      UnreadBadge(count: unreadCount),
+                    ],
                   ],
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              if (reorderHandle != null) ...[
-                reorderHandle!,
-                const SizedBox(width: AppSpacing.sm),
               ],
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (channel.lastActivityAt != null)
-                    RelativeTimeText(
-                      time: channel.lastActivityAt!,
-                      style: AppTypography.caption.copyWith(
-                        color: hasUnread ? colors.primary : colors.textTertiary,
-                      ),
-                    ),
-                  if (isMuted)
-                    Icon(
-                      Icons.notifications_off,
-                      size: 14,
-                      color: colors.textTertiary,
-                    ),
-                  if (hasUnread) ...[
-                    const SizedBox(height: 4),
-                    UnreadBadge(count: unreadCount),
-                  ],
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
