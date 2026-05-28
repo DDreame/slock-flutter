@@ -107,8 +107,7 @@ MachineItem parseMachineItem(Map<String, dynamic> map) {
 
   return MachineItem(
     id: _requiredString(map, 'id'),
-    name: _firstPresentString(map, fields: const ['name', 'hostname']) ??
-        '',
+    name: _firstPresentString(map, fields: const ['name', 'hostname']) ?? '',
     status: _firstPresentString(
           map,
           fields: const ['status', 'connectionStatus'],
@@ -161,8 +160,7 @@ WorkspaceItem parseWorkspaceItem(
 }) {
   return WorkspaceItem(
     id: _requiredString(map, 'id'),
-    name: _firstPresentString(map, fields: const ['name', 'title']) ??
-        '',
+    name: _firstPresentString(map, fields: const ['name', 'title']) ?? '',
     machineId: machineId,
     createdAt: _readDateTime(map['createdAt']) ?? DateTime(2020),
     path: _firstPresentString(map, fields: const ['path', 'workspacePath']),
