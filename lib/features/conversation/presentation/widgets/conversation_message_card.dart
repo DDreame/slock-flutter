@@ -651,7 +651,7 @@ class ConversationMessageCardState
         key: const ValueKey('search-current-match-highlight'),
         decoration: BoxDecoration(
           color: colors.primary.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(BubbleTokens.radiusLarge),
+          borderRadius: ConversationMessageCard.systemBorderRadius,
         ),
         padding: const EdgeInsets.all(4),
         child: shellContent,
@@ -665,7 +665,7 @@ class ConversationMessageCardState
         key: const ValueKey('quote-jump-highlight'),
         decoration: BoxDecoration(
           color: colors.primary.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(BubbleTokens.radiusLarge),
+          borderRadius: ConversationMessageCard.systemBorderRadius,
         ),
         padding: const EdgeInsets.all(4),
         child: shellContent,
@@ -1243,7 +1243,7 @@ class _QuotedMessageBlock extends StatelessWidget {
               left: BorderSide(color: accentColor, width: 3),
             ),
             color: bgColor,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            borderRadius: ConversationMessageCard._agentBadgeBorderRadius,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

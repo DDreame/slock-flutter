@@ -589,6 +589,10 @@ class _ReplyPreviewBanner extends StatelessWidget {
   final ConversationMessageSummary message;
   final VoidCallback onDismiss;
 
+  /// Hoisted BorderRadius for reply preview — avoids per-build allocation
+  /// (Scan #46 PR B).
+  static final _borderRadius = BorderRadius.circular(AppSpacing.radiusSm);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -603,7 +607,7 @@ class _ReplyPreviewBanner extends StatelessWidget {
           left: BorderSide(color: colors.primary, width: 3),
         ),
         color: colors.surfaceAlt,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        borderRadius: _borderRadius,
       ),
       child: Row(
         children: [

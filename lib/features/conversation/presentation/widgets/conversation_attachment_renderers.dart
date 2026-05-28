@@ -174,6 +174,10 @@ class _ImageAttachmentPreview extends StatelessWidget {
 
   final MessageAttachment attachment;
 
+  /// Hoisted BorderRadius for image clip — avoids per-build allocation
+  /// (Scan #46 PR B).
+  static final _borderRadius = BorderRadius.circular(8);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -192,7 +196,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: _borderRadius,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxHeight: 200,
