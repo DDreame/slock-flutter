@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 
 import 'package:slock_app/features/conversation/application/message_export_service.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #568: Multi-Select Message Export — Export Card Widget
@@ -128,7 +130,7 @@ class _MessageExportCardState extends State<MessageExportCard> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        msg.senderName ?? 'Unknown',
+                        msg.localizedSenderLabel(context.l10n),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,

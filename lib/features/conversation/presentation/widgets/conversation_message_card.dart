@@ -15,6 +15,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_reactions.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
@@ -306,7 +307,7 @@ class ConversationMessageCardState
         _resolveConversationMessageVisualKind(message, currentUserId);
     final senderLabel = switch (visualKind) {
       _ConversationMessageVisualKind.self => context.l10n.messageSenderYou,
-      _ => message.senderLabel,
+      _ => message.localizedSenderLabel(context.l10n),
     };
     final shellAlignment = switch (visualKind) {
       _ConversationMessageVisualKind.self => Alignment.centerRight,
@@ -1219,7 +1220,7 @@ class _QuotedMessageBlock extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              replyTo.senderLabel,
+              replyTo.localizedSenderLabel(context.l10n),
               // #655: Use pre-computed labelBold.
               style: ConversationMessageCard.senderNameBaseStyle.copyWith(
                 color: labelColor,

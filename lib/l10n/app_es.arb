@@ -8,7 +8,7 @@
   "loginPasswordLabel": "Contraseña",
   "loginSubmitLabel": "Iniciar sesión",
   "loginCreateAccountCta": "Crear cuenta",
-  "loginForgotPasswordCta": "Olvidaste tu contraseña?",
+  "loginForgotPasswordCta": "¿Olvidaste tu contraseña?",
   "loginEmailRequiredError": "El correo electrónico es obligatorio.",
   "loginEmailInvalidError": "Ingresa una dirección de correo electrónico válida.",
   "loginPasswordRequiredError": "La contraseña es obligatoria.",
@@ -1318,5 +1318,15 @@
   "agentsActivityLogWorking": "Trabajando",
   "agentsActivityLogError": "Error",
   "agentsActivityLogErrorDetail": "Error: {detail}",
-  "agentsActivityLogOffline": "Sin conexión"
+  "agentsActivityLogOffline": "Sin conexión",
+
+  "senderLabelAgent": "Agente",
+  "senderLabelMember": "Miembro",
+  "senderLabelSystem": "Sistema",
+  "senderLabelUnknown": "Desconocido",
+
+  "sharePreviewAttachmentCount": "{count, plural, =1{1 archivo adjunto} other{{count} archivos adjuntos}}",
+
+  "inboxFallbackDmName": "Desconocido",
+  "inboxFallbackMemberName": "Miembro"
 }

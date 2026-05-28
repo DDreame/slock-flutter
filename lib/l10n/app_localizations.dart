@@ -6370,6 +6370,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Offline'**
   String get agentsActivityLogOffline;
+
+  /// No description provided for @senderLabelAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get senderLabelAgent;
+
+  /// No description provided for @senderLabelMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get senderLabelMember;
+
+  /// No description provided for @senderLabelSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get senderLabelSystem;
+
+  /// No description provided for @senderLabelUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get senderLabelUnknown;
+
+  /// No description provided for @sharePreviewAttachmentCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 attachment} other{{count} attachments}}'**
+  String sharePreviewAttachmentCount(int count);
+
+  /// No description provided for @inboxFallbackDmName.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get inboxFallbackDmName;
+
+  /// No description provided for @inboxFallbackMemberName.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get inboxFallbackMemberName;
 }
 
 class _AppLocalizationsDelegate

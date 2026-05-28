@@ -3,6 +3,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Shows a compact preview of the [SharedContent] being shared.
 ///
@@ -15,6 +16,7 @@ class SharePreviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
     final combinedText = content.combinedText;
     final attachments = content.attachmentItems;
 
@@ -51,9 +53,7 @@ class SharePreviewCard extends StatelessWidget {
                       size: 16, color: colors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    attachments.length == 1
-                        ? '1 attachment'
-                        : '${attachments.length} attachments',
+                    l10n.sharePreviewAttachmentCount(attachments.length),
                     style: AppTypography.bodySmall.copyWith(
                       color: colors.textSecondary,
                     ),

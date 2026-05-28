@@ -1554,5 +1554,22 @@
       }
     }
   },
-  "agentsActivityLogOffline": "Offline"
+  "agentsActivityLogOffline": "Offline",
+
+  "senderLabelAgent": "Agent",
+  "senderLabelMember": "Member",
+  "senderLabelSystem": "System",
+  "senderLabelUnknown": "Unknown",
+
+  "sharePreviewAttachmentCount": "{count, plural, =1{1 attachment} other{{count} attachments}}",
+  "@sharePreviewAttachmentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "inboxFallbackDmName": "Unknown",
+  "inboxFallbackMemberName": "Member"
 }

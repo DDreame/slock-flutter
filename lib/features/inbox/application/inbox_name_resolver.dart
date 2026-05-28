@@ -1,4 +1,5 @@
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 /// Maps channelId → display name (from HomeListStore / ChannelListStore).
 typedef ChannelNameLookup = Map<String, String>;
@@ -15,6 +16,7 @@ class InboxNameResolver {
   InboxNameResolver({
     this.channelNames = const {},
     this.memberNames = const {},
+    this.l10n,
   });
 
   /// Local channel name lookup seeded from HomeListStore data.
@@ -22,6 +24,10 @@ class InboxNameResolver {
 
   /// Local member/agent name lookup seeded from MemberListStore data.
   final MemberNameLookup memberNames;
+
+  /// Optional localizations for fallback strings. When null, falls back
+  /// to English defaults for backward compatibility.
+  final AppLocalizations? l10n;
 
   /// Resolves the display title for an inbox item.
   ///
@@ -96,7 +102,7 @@ class InboxNameResolver {
       case InboxItemKind.thread:
         return '#${item.channelId}';
       case InboxItemKind.dm:
-        return 'Unknown';
+        return l10n?.inboxFallbackDmName ?? 'Unknown';
       case InboxItemKind.unknown:
         return item.channelId;
     }
@@ -110,8 +116,8 @@ class InboxNameResolver {
   ///
   /// Known ID formats: 'user-<name>', 'agent-<name>'.
   /// Strips the prefix and capitalizes the first letter.
-  /// Falls back to "Member" for unrecognized formats.
-  static String _deriveSenderDisplayName(String senderId) {
+  /// Falls back to localized "Member" for unrecognized formats.
+  String _deriveSenderDisplayName(String senderId) {
     String? rawName;
     if (senderId.startsWith('user-')) {
       rawName = senderId.substring(5);
@@ -121,7 +127,7 @@ class InboxNameResolver {
     if (rawName != null && rawName.isNotEmpty) {
       return rawName[0].toUpperCase() + rawName.substring(1);
     }
-    return 'Member';
+    return l10n?.inboxFallbackMemberName ?? 'Member';
   }
 
   /// Derives a display name from a channelId when not in any lookup.
