@@ -7,6 +7,9 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
@@ -20,6 +23,8 @@ ProviderContainer _createContainer(
       conversationLocalStoreProvider.overrideWithValue(
         localStore ?? FakeConversationLocalStore(),
       ),
+      savedMessagesRepositoryProvider
+          .overrideWithValue(_NoOpSavedMessagesRepository()),
     ],
   );
 }
@@ -44,9 +49,7 @@ void main() {
           ],
           'historyLimited': true,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient, localStore: localStore);
@@ -64,7 +67,7 @@ void main() {
 
     expect(
       appDioClient.requests.map((request) => request.path),
-      ['/messages/channel/general', '/channels'],
+      ['/messages/channel/general', '/channels/general'],
     );
     expect(
       appDioClient.requests.map((request) => request.serverIdHeader),
@@ -96,12 +99,10 @@ void main() {
             },
           ],
         },
-        '/channels/dm': [
-          {
-            'id': 'dm-1',
-            'participant': {'displayName': 'Alice'},
-          },
-        ],
+        '/channels/dm/dm-1': {
+          'id': 'dm-1',
+          'participant': {'displayName': 'Alice'},
+        },
       },
     );
     final container = _createContainer(appDioClient);
@@ -119,7 +120,7 @@ void main() {
 
     expect(
       appDioClient.requests.map((request) => request.path),
-      ['/messages/channel/dm-1', '/channels/dm'],
+      ['/messages/channel/dm-1', '/channels/dm/dm-1'],
     );
     expect(snapshot.title, 'Alice');
     expect(snapshot.hasOlder, isFalse);
@@ -148,9 +149,9 @@ void main() {
             },
           ],
         },
-        '/channels': [
-          {'id': 'different-channel', 'name': 'general'},
-        ],
+        '/channels/channel-uuid-1': {
+          'id': 'channel-uuid-1',
+        },
       },
     );
     final container = _createContainer(appDioClient, localStore: localStore);
@@ -216,9 +217,7 @@ void main() {
     );
     final appDioClient = _FakeAppDioClient(
       responses: {
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
       failures: {'/messages/channel/general': failure},
     );
@@ -252,9 +251,7 @@ void main() {
             },
           ],
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient);
@@ -293,9 +290,7 @@ void main() {
             },
           ],
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient);
@@ -620,9 +615,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient);
@@ -672,9 +665,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient);
@@ -719,9 +710,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient);
@@ -760,9 +749,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = ProviderContainer(
@@ -771,6 +758,8 @@ void main() {
         conversationLocalStoreProvider.overrideWithValue(
           _ThrowingConversationLocalStore(),
         ),
+        savedMessagesRepositoryProvider
+            .overrideWithValue(_NoOpSavedMessagesRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -808,12 +797,10 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels/dm': [
-          {
-            'id': 'dm-1',
-            'participant': {'displayName': 'Alice'},
-          },
-        ],
+        '/channels/dm/dm-1': {
+          'id': 'dm-1',
+          'participant': {'displayName': 'Alice'},
+        },
       },
     );
     final container = ProviderContainer(
@@ -822,6 +809,8 @@ void main() {
         conversationLocalStoreProvider.overrideWithValue(
           _ThrowingConversationLocalStore(),
         ),
+        savedMessagesRepositoryProvider
+            .overrideWithValue(_NoOpSavedMessagesRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -858,9 +847,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(appDioClient);
@@ -913,9 +900,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels': [
-          {'id': 'general', 'name': 'general'},
-        ],
+        '/channels/general': {'id': 'general', 'name': 'general'},
       },
     );
     final container = _createContainer(
@@ -1514,4 +1499,28 @@ class _ThrowingConversationLocalStore extends FakeConversationLocalStore {
   ) async {
     throw StateError('SQLite disk I/O error');
   }
+}
+
+/// No-op saved messages repository for tests that don't exercise saved logic.
+class _NoOpSavedMessagesRepository implements SavedMessagesRepository {
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async =>
+      {};
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async =>
+      const SavedMessagesPage(items: [], hasMore: false);
 }
