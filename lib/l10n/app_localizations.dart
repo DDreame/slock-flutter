@@ -6389,11 +6389,6 @@ abstract class AppLocalizations {
   /// **'System'**
   String get senderLabelSystem;
 
-  /// No description provided for @senderLabelUnknown.
-  ///
-  /// In en, this message translates to:
-  /// **'Unknown'**
-  String get senderLabelUnknown;
 
   /// No description provided for @sharePreviewAttachmentCount.
   ///

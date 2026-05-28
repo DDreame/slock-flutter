@@ -35,9 +35,7 @@ void resetDateFormatCaches() {
   _monthDayFormatCache.clear();
 }
 
-/// Formats [dt] relative to [now] using localized strings when [l10n] is
-/// provided. Falls back to hardcoded English when [l10n] is null (legacy
-/// compatibility).
+/// Formats [dt] relative to [now] using localized strings from [l10n].
 ///
 /// When [l10n] is provided, weekday and month names use ICU DateFormat
 /// with the locale from [l10n.localeName], producing localized output
@@ -45,71 +43,34 @@ void resetDateFormatCaches() {
 String formatRelativeTime(
   DateTime dt, {
   DateTime? now,
-  AppLocalizations? l10n,
+  required AppLocalizations l10n,
 }) {
   final local = dt.toLocal();
   final currentTime = now ?? DateTime.now();
   final diff = currentTime.difference(local);
 
   if (diff.inMinutes < 1) {
-    return l10n?.timeJustNow ?? 'just now';
+    return l10n.timeJustNow;
   }
   if (diff.inMinutes < 60) {
-    return l10n?.timeMinutesAgo(diff.inMinutes) ?? '${diff.inMinutes}m ago';
+    return l10n.timeMinutesAgo(diff.inMinutes);
   }
   if (diff.inHours < 24) {
-    return l10n?.timeHoursAgo(diff.inHours) ?? '${diff.inHours}h ago';
+    return l10n.timeHoursAgo(diff.inHours);
   }
 
   final localTime = _formatTime(local);
 
   if (diff.inDays < 7) {
-    if (l10n != null) {
-      final weekday = _cachedWeekdayFormat(l10n.localeName).format(local);
-      return '$weekday $localTime';
-    }
-    return '${_weekday(local.weekday)} $localTime';
+    final weekday = _cachedWeekdayFormat(l10n.localeName).format(local);
+    return '$weekday $localTime';
   }
 
-  if (l10n != null) {
-    final monthDay = _cachedMonthDayFormat(l10n.localeName).format(local);
-    return '$monthDay, $localTime';
-  }
-  return '${_month(local.month)} ${local.day}, $localTime';
+  final monthDay = _cachedMonthDayFormat(l10n.localeName).format(local);
+  return '$monthDay, $localTime';
 }
 
 String _formatTime(DateTime dt) {
   return '${dt.hour.toString().padLeft(2, '0')}:'
       '${dt.minute.toString().padLeft(2, '0')}';
-}
-
-String _weekday(int weekday) {
-  return switch (weekday) {
-    1 => 'Mon',
-    2 => 'Tue',
-    3 => 'Wed',
-    4 => 'Thu',
-    5 => 'Fri',
-    6 => 'Sat',
-    7 => 'Sun',
-    _ => '',
-  };
-}
-
-String _month(int month) {
-  return switch (month) {
-    1 => 'Jan',
-    2 => 'Feb',
-    3 => 'Mar',
-    4 => 'Apr',
-    5 => 'May',
-    6 => 'Jun',
-    7 => 'Jul',
-    8 => 'Aug',
-    9 => 'Sep',
-    10 => 'Oct',
-    11 => 'Nov',
-    12 => 'Dec',
-    _ => '',
-  };
 }

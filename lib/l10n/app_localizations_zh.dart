@@ -3305,8 +3305,6 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get senderLabelSystem => '系统';
 
-  @override
-  String get senderLabelUnknown => '未知';
 
   @override
   String sharePreviewAttachmentCount(int count) {
