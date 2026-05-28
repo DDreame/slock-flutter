@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_export_card.dart';
 import 'package:slock_app/features/inbox/application/inbox_name_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
@@ -263,6 +264,101 @@ void main() {
       final resolver = InboxNameResolver();
       final name = resolver.resolveSenderName(senderId: 'random-uuid-123');
       expect(name, 'Member');
+    });
+  });
+
+  // ===========================================================================
+  // Group 5: Widget-level load-bearing proof (mounting real production widget)
+  // ===========================================================================
+  group('#848 — Widget-level sender label l10n proof', () {
+    testWidgets(
+        'MessageExportCard renders Chinese sender label under ZH locale',
+        (tester) async {
+      final messages = [
+        ConversationMessageSummary(
+          id: 'msg-widget-1',
+          content: 'Test message',
+          createdAt: DateTime(2026, 5, 1, 10, 30),
+          senderType: 'agent',
+          messageType: 'text',
+          // No senderName → falls back to localizedSenderLabel → "机器人" in ZH
+        ),
+      ];
+      final boundaryKey = GlobalKey();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageExportCard(
+                messages: messages,
+                boundaryKey: boundaryKey,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Widget must display Chinese sender label "机器人" (not English "Agent").
+      // Reverting message_export_card.dart back to `.senderLabel` → this fails RED.
+      expect(
+        find.text('机器人'),
+        findsOneWidget,
+        reason:
+            'MessageExportCard must render localized ZH sender label "机器人". '
+            'Reverting to hardcoded .senderLabel → English "Agent" → RED.',
+      );
+      // English must NOT appear.
+      expect(
+        find.text('Agent'),
+        findsNothing,
+        reason: 'Under ZH locale, English "Agent" must not appear.',
+      );
+    });
+
+    testWidgets(
+        'MessageExportCard renders English sender label under EN locale',
+        (tester) async {
+      final messages = [
+        ConversationMessageSummary(
+          id: 'msg-widget-2',
+          content: 'Hello',
+          createdAt: DateTime(2026, 5, 1, 10, 30),
+          senderType: 'human',
+          messageType: 'text',
+        ),
+      ];
+      final boundaryKey = GlobalKey();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: MessageExportCard(
+                messages: messages,
+                boundaryKey: boundaryKey,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Member'),
+        findsOneWidget,
+        reason:
+            'MessageExportCard must render English "Member" for human type.',
+      );
     });
   });
 }
