@@ -258,6 +258,28 @@ class HomeListStore extends Notifier<HomeListState> {
         directMessages: const [],
         failure: failure,
       );
+    } catch (error) {
+      if (_disposed) return;
+      if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+      if (cached != null) {
+        state = state.copyWith(
+          failure: UnknownFailure(
+            message: 'Failed to load home.',
+            causeType: error.runtimeType.toString(),
+          ),
+        );
+        return;
+      }
+      state = state.copyWith(
+        serverScopeId: serverScopeId,
+        status: HomeListStatus.failure,
+        channels: const [],
+        directMessages: const [],
+        failure: UnknownFailure(
+          message: 'Failed to load home.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
     }
   }
 
@@ -515,6 +537,17 @@ class HomeListStore extends Notifier<HomeListState> {
         // Keep existing data visible on refresh failure, but surface
         // the failure so the UI can show a snackbar (INV-NET-DEGRADE-2).
         state = state.copyWith(isRefreshing: false, failure: failure);
+      } catch (error) {
+        if (_disposed) return;
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        _restoreRefreshRealtimePreviewIds(preRefreshRealtimePreviewIds);
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: UnknownFailure(
+            message: 'Failed to refresh home.',
+            causeType: error.runtimeType.toString(),
+          ),
+        );
       }
     });
   }
@@ -1343,6 +1376,22 @@ class HomeListStore extends Notifier<HomeListState> {
           );
       return true;
     } on AppFailure {
+      if (_disposed) return false;
+      if (ref.read(activeServerScopeIdProvider) != serverScopeId) return false;
+      _sidebarOrder = _rollbackSidebarOrder(
+        previous: previous,
+        attempted: attempted,
+        current: _sidebarOrder,
+        includeChannelOrder: includeChannelOrder,
+        includeDmOrder: includeDmOrder,
+        includePinnedChannelIds: includePinnedChannelIds,
+        includePinnedOrder: includePinnedOrder,
+        includeHiddenDmIds: includeHiddenDmIds,
+        includePinnedAgentIds: includePinnedAgentIds,
+      );
+      _emitPersonalizedState();
+      return false;
+    } catch (_) {
       if (_disposed) return false;
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return false;
       _sidebarOrder = _rollbackSidebarOrder(

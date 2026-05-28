@@ -50,6 +50,24 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       );
       _persistSession();
       rethrow;
+    } catch (_) {
+      if ((this as ConversationDetailStore)._disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(
+            reactions: _restoreReactionForEmoji(
+              message.reactions,
+              emoji,
+              previousReaction,
+            ),
+          ),
+        ),
+      );
+      _persistSession();
+      rethrow;
     }
   }
 
@@ -80,6 +98,24 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       final repo = ref.read(conversationRepositoryProvider);
       await repo.removeReaction(target, messageId: messageId, emoji: emoji);
     } on AppFailure {
+      if ((this as ConversationDetailStore)._disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(
+            reactions: _restoreReactionForEmoji(
+              message.reactions,
+              emoji,
+              previousReaction,
+            ),
+          ),
+        ),
+      );
+      _persistSession();
+      rethrow;
+    } catch (_) {
       if ((this as ConversationDetailStore)._disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(

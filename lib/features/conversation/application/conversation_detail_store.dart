@@ -849,6 +849,10 @@ class ConversationDetailStore
       if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(savedMessageIds: previousIds);
+    } catch (_) {
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(savedMessageIds: previousIds);
     }
   }
 
@@ -869,6 +873,18 @@ class ConversationDetailStore
       await repo.editMessage(target, messageId: messageId, content: newContent);
       _persistSession();
     } on AppFailure {
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(content: previousContent),
+        ),
+      );
+      _persistSession();
+      rethrow;
+    } catch (_) {
       if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(
@@ -911,6 +927,18 @@ class ConversationDetailStore
       );
       _persistSession();
       rethrow;
+    } catch (_) {
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(isDeleted: wasDeleted),
+        ),
+      );
+      _persistSession();
+      rethrow;
     }
   }
 
@@ -935,6 +963,13 @@ class ConversationDetailStore
       _persistSession();
       _syncPinnedListRemove(messageId);
       rethrow;
+    } catch (_) {
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      _togglePinLocally(messageId, isPinned: false);
+      _persistSession();
+      _syncPinnedListRemove(messageId);
+      rethrow;
     }
   }
 
@@ -951,6 +986,13 @@ class ConversationDetailStore
           .read(conversationRepositoryProvider)
           .unpinMessage(target, messageId: messageId);
     } on AppFailure {
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      _togglePinLocally(messageId, isPinned: true);
+      _persistSession();
+      _syncPinnedListAdd(messageId);
+      rethrow;
+    } catch (_) {
       if (_disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: true);

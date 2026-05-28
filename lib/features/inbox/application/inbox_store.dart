@@ -267,6 +267,12 @@ class InboxStore extends Notifier<InboxState> {
         previousIndex: previousIndex,
         mutationVersion: mutationVersion,
       );
+    } catch (_) {
+      _rollbackReadItem(
+        previousItem: previousItem,
+        previousIndex: previousIndex,
+        mutationVersion: mutationVersion,
+      );
     }
   }
 
@@ -343,6 +349,14 @@ class InboxStore extends Notifier<InboxState> {
           extra: const {'operation': 'InboxStore.markAsUnread'},
         );
       } catch (_) {}
+    } catch (_) {
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
+      _rollbackMarkAsUnread(
+        channelId: channelId,
+        previousItem: previousItem,
+        wasInserted: wasInserted,
+        unreadDelta: unreadDelta,
+      );
     }
   }
 
@@ -525,6 +539,15 @@ class InboxStore extends Notifier<InboxState> {
         successorChannelId: successorChannelId,
         predecessorChannelId: predecessorChannelId,
       );
+    } catch (_) {
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
+      _rollbackMarkDone(
+        removedItems: removedItems,
+        removedUnread: removedUnread,
+        removedCount: removedCount,
+        successorChannelId: successorChannelId,
+        predecessorChannelId: predecessorChannelId,
+      );
     }
   }
 
@@ -625,6 +648,11 @@ class InboxStore extends Notifier<InboxState> {
     try {
       await ref.read(inboxRepositoryProvider).markAllRead(serverId);
     } on AppFailure {
+      _rollbackReadItems(
+        previousItemsByChannelId: previousItemsByChannelId,
+        mutationVersion: mutationVersion,
+      );
+    } catch (_) {
       _rollbackReadItems(
         previousItemsByChannelId: previousItemsByChannelId,
         mutationVersion: mutationVersion,
