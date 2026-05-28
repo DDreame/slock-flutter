@@ -5,10 +5,12 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
+import 'package:slock_app/features/inbox/presentation/widgets/inbox_relative_time_text.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
@@ -130,7 +132,7 @@ void main() {
       );
 
       // Time uses accent color for unread
-      final timeWidget = tester.widget<Text>(
+      final timeWidget = tester.widget<InboxRelativeTimeText>(
         find.byKey(const ValueKey('inbox-tile-time-ch-1')),
       );
       expect(
@@ -185,7 +187,7 @@ void main() {
       );
 
       // Time uses tertiary color for read
-      final timeWidget = tester.widget<Text>(
+      final timeWidget = tester.widget<InboxRelativeTimeText>(
         find.byKey(const ValueKey('inbox-tile-time-ch-read')),
       );
       expect(
@@ -249,6 +251,7 @@ Widget _buildApp(_FakeInboxRepository repo, {ThemeData? theme}) {
       inboxRepositoryProvider.overrideWithValue(repo),
       activeServerScopeIdProvider
           .overrideWith((_) => const ServerScopeId('server-1')),
+      homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
     ],
     child: MaterialApp(
       theme: theme ?? AppTheme.light,

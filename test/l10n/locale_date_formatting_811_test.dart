@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/presentation/widgets/inbox_item_tile.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
@@ -101,25 +102,30 @@ void main() {
       final expectedZh = DateFormat.MMMd('zh').format(oldTime);
 
       await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('zh'),
-          theme: AppTheme.light,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: InboxItemTile(
-              projection: ConversationProjection(
-                kind: ConversationProjectionKind.channel,
-                id: 'channel:ch-old',
-                title: '#archive',
-                previewText: 'Old message',
-                unreadCount: 1,
-                senderName: 'Alice',
-                lastActivityAt: oldTime,
-                channelId: 'ch-old',
+        ProviderScope(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: InboxItemTile(
+                projection: ConversationProjection(
+                  kind: ConversationProjectionKind.channel,
+                  id: 'channel:ch-old',
+                  title: '#archive',
+                  previewText: 'Old message',
+                  unreadCount: 1,
+                  senderName: 'Alice',
+                  lastActivityAt: oldTime,
+                  channelId: 'ch-old',
+                ),
+                isMentioned: false,
+                onTap: () {},
               ),
-              isMentioned: false,
-              onTap: () {},
             ),
           ),
         ),
