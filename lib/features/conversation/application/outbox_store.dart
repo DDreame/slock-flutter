@@ -345,6 +345,22 @@ class OutboxStore extends Notifier<OutboxState> {
           failureMessage: e.message,
         );
         _drainCallbacks[targetKey]?.call(target, item.localId, null, e);
+      } catch (e) {
+        // Catch-all for non-AppFailure exceptions (TypeError, FormatException,
+        // RangeError, etc.) that would otherwise propagate unhandled and
+        // permanently stall the drain loop (#850).
+        _updateItemStatus(
+          targetKey,
+          item.localId,
+          OutboxMessageStatus.failed,
+          failureMessage: 'Unexpected error: $e',
+        );
+        _drainCallbacks[targetKey]?.call(
+          target,
+          item.localId,
+          null,
+          UnknownFailure(message: 'Unexpected error: $e'),
+        );
       }
     }
   }
