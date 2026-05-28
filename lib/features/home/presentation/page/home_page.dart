@@ -688,15 +688,17 @@ class _LiveDurationChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(homeNowProvider).value ?? DateTime.now();
     final l10n = context.l10n;
-    return _DurationChip(
+    return DurationChip(
       duration: now.difference(claimedAt),
       l10n: l10n,
     );
   }
 }
 
-class _DurationChip extends StatelessWidget {
-  const _DurationChip({
+@visibleForTesting
+class DurationChip extends StatelessWidget {
+  const DurationChip({
+    super.key,
     required this.duration,
     required this.l10n,
   });
@@ -708,18 +710,19 @@ class _DurationChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
     final totalMinutes = duration.inMinutes;
     final hours = duration.inHours;
     final minutes = totalMinutes % 60;
 
-    // Color: blue <1h, orange 1-4h, red >4h
+    // Color: primary <1h, warning 1-4h, error >4h
     final Color chipColor;
     if (hours < 1) {
-      chipColor = Colors.blue;
+      chipColor = colors.primary;
     } else if (hours <= 4) {
-      chipColor = Colors.orange;
+      chipColor = colors.warning;
     } else {
-      chipColor = Colors.red;
+      chipColor = colors.error;
     }
 
     // Format: <1h → "45m", 1-4h → "2h 15m", >4h → "6h"

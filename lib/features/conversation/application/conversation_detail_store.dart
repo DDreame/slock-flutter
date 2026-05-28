@@ -81,8 +81,20 @@ mixin _ConversationDetailCoreMixin
     if (nextSeq != null && existing.isNotEmpty) {
       final lastSeq = existing.last.seq;
       if (lastSeq != null && nextSeq < lastSeq) {
-        final result = [...existing, next];
-        result.sort((a, b) => (a.seq ?? 0).compareTo(b.seq ?? 0));
+        // Binary search for correct insertion index (list is sorted by seq).
+        var lo = 0;
+        var hi = existing.length;
+        while (lo < hi) {
+          final mid = (lo + hi) >>> 1;
+          final midSeq = existing[mid].seq ?? 0;
+          if (midSeq < nextSeq) {
+            lo = mid + 1;
+          } else {
+            hi = mid;
+          }
+        }
+        final result = List<ConversationMessageSummary>.of(existing);
+        result.insert(lo, next);
         return result;
       }
     }
