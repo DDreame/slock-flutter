@@ -1571,5 +1571,9 @@
   },
 
   "inboxFallbackDmName": "Unknown",
-  "inboxFallbackMemberName": "Member"
+  "inboxFallbackMemberName": "Member",
+  "diagnosticsExportFabTooltip": "Export diagnostics",
+  "scrollToBottomFabTooltip": "Scroll to bottom",
+  "replyPreviewDismissSemantics": "Dismiss reply",
+  "linkedTaskBadgeSemantics": "View linked task"
 }

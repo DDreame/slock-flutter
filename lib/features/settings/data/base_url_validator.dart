@@ -1,29 +1,3 @@
-import 'package:flutter/foundation.dart';
-
-/// Result of URL validation — contains normalized URL and optional warnings.
-@immutable
-class UrlValidationResult {
-  const UrlValidationResult(this.url, {this.isInsecure = false});
-
-  /// The normalized URL string.
-  final String url;
-
-  /// True when the URL uses `http://` (no TLS). Still valid for local dev,
-  /// but the UI should surface an "insecure connection" notice (#729).
-  final bool isInsecure;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is UrlValidationResult &&
-          runtimeType == other.runtimeType &&
-          url == other.url &&
-          isInsecure == other.isInsecure;
-
-  @override
-  int get hashCode => Object.hash(url, isInsecure);
-}
-
 /// Normalizes and validates base URL input.
 ///
 /// For API URLs: accepts http/https, strips trailing `/`,
@@ -33,19 +7,6 @@ class UrlValidationResult {
 /// and requires a parseable URI with non-empty host.
 class BaseUrlValidator {
   const BaseUrlValidator._();
-
-  /// Validates and normalizes an API base URL, returning a
-  /// [UrlValidationResult] with an insecure-scheme warning when applicable.
-  ///
-  /// Returns `null` if the URL is invalid (unsupported scheme or missing host).
-  /// Returns result with empty [url] for empty input.
-  static UrlValidationResult? validateApiUrl(String raw) {
-    final normalized = normalizeApiUrl(raw);
-    if (normalized == null) return null;
-    if (normalized.isEmpty) return const UrlValidationResult('');
-    final isInsecure = normalized.toLowerCase().startsWith('http://');
-    return UrlValidationResult(normalized, isInsecure: isInsecure);
-  }
 
   /// Validates and normalizes an API base URL.
   ///

@@ -548,6 +548,8 @@ class _ConversationDetailScreenState
                                 bottom: 16,
                                 child: FloatingActionButton.small(
                                   key: const ValueKey('scroll-to-bottom-fab'),
+                                  tooltip:
+                                      context.l10n.scrollToBottomFabTooltip,
                                   onPressed: () {
                                     _scrollController.animateTo(
                                       0,
