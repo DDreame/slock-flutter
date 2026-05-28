@@ -3,11 +3,34 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 
 void main() {
   // ===========================================================================
@@ -138,6 +161,44 @@ void main() {
       ]);
 
       expect(received, isEmpty);
+    });
+
+    test('advanceSeq advances cursor without emitting events', () async {
+      final ingress = RealtimeReductionIngress();
+      addTearDown(ingress.dispose);
+
+      final received = <RealtimeEventEnvelope>[];
+      ingress.acceptedEvents.listen(received.add);
+
+      // Set initial seq.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: 'server:1/channel:2',
+        seq: 5,
+        payload: const {'id': 'm1'},
+        receivedAt: DateTime(2026),
+      ));
+      await Future<void>.delayed(Duration.zero);
+      received.clear();
+
+      // Advance seq without emitting.
+      ingress.advanceSeq('server:1/channel:2', 42);
+
+      await Future<void>.delayed(Duration.zero);
+      expect(received, isEmpty, reason: 'advanceSeq must not emit any events');
+      expect(ingress.lastSeqByScope['server:1/channel:2'], 42,
+          reason: 'Cursor must advance to the provided seq');
+
+      // Verify that a normal accept with seq <= 42 is now rejected.
+      final accepted = ingress.accept(RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: 'server:1/channel:2',
+        seq: 40,
+        payload: const {'id': 'm2'},
+        receivedAt: DateTime(2026),
+      ));
+      expect(accepted, isFalse,
+          reason: 'Events with seq <= advanced cursor must be rejected');
     });
   });
 
@@ -322,12 +383,13 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       socket.emittedEvents.clear();
 
-      // Empty batch with hasMore=true.
+      // Empty batch with hasMore=true and currentSeq=42.
       socket.push(const RealtimeSocketRawEvent(
         eventName: 'sync:resume:response',
         payload: [
           {
             'messages': <Map>[],
+            'scopeKey': 'server:1/channel:2',
             'currentSeq': 42,
             'hasMore': true,
           }
@@ -335,9 +397,18 @@ void main() {
       ));
       await Future<void>.delayed(Duration.zero);
 
-      // Should re-emit sync:resume (hasMore=true) without crashing.
+      // Cursor must advance to prevent livelock — advanceSeq(42).
+      expect(ingress.lastSeqByScope['server:1/channel:2'], 42,
+          reason:
+              'Empty batch must advance cursor via currentSeq to prevent livelock');
+
+      // Should re-emit sync:resume with the advanced cursor.
       expect(socket.emittedEvents, hasLength(1));
       expect(socket.emittedEvents.first.$1, 'sync:resume');
+      final payload = socket.emittedEvents.first.$2 as Map;
+      final seqs = payload['lastSeqByScope'] as Map;
+      expect(seqs['server:1/channel:2'], 42,
+          reason: 'Re-emitted sync:resume must contain advanced cursor');
     });
   });
 
@@ -485,7 +556,7 @@ void main() {
   });
 
   // ===========================================================================
-  // 4. Domain router: coalesced refresh during sync batch
+  // 4. Provider-level: domain router coalesced refresh during sync batch
   // ===========================================================================
 
   group('Domain router coalesced refresh during sync batch', () {
@@ -540,6 +611,102 @@ void main() {
 
       expect(received.last.isSyncBatchEvent, isFalse,
           reason: 'Normal events must not have isSyncBatchEvent flag');
+    });
+
+    test(
+        'provider-level: exactly 1 inbox+home refresh after batch, not per-message',
+        () async {
+      const serverId = ServerScopeId('server-1');
+      final ingress = RealtimeReductionIngress();
+      final socket = _FakeRealtimeSocketClient();
+      final homeRepo = _TrackingHomeRepository();
+      final inboxRepo = _TrackingInboxRepository();
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          realtimeSocketClientProvider.overrideWithValue(socket),
+          homeRepositoryProvider.overrideWithValue(homeRepo),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(_TrackingAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(const _FakeTasksRepository()),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+          serverListRepositoryProvider
+              .overrideWithValue(_TrackingServerListRepository()),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
+          agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+          inboxRepositoryProvider.overrideWithValue(inboxRepo),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        unawaited(ingress.dispose());
+      });
+
+      // Load home and inbox into success state so refresh paths are active.
+      await container.read(homeListStoreProvider.notifier).load();
+      expect(
+          container.read(homeListStoreProvider).status, HomeListStatus.success);
+
+      // Trigger InboxStore build (auto-loads via Future.microtask).
+      container.read(inboxStoreProvider);
+      // Drain microtasks until it reaches success.
+      for (var i = 0; i < 5; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(container.read(inboxStoreProvider).status, InboxStatus.success);
+
+      // Mount the domain router (subscribes to ingress.acceptedEvents).
+      container.read(domainRuntimeEventRouterProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      // Record baseline calls after initial setup.
+      final homeRefreshBaseline = homeRepo.loadWorkspaceCalls;
+      final inboxRefreshBaseline = inboxRepo.fetchInboxCalls;
+
+      // Push 5 batch events through ingress (simulating sync:resume:response).
+      ingress.acceptSyncBatch([
+        for (int i = 1; i <= 5; i++)
+          RealtimeEventEnvelope(
+            eventType: 'message:new',
+            scopeKey: 'server:server-1/channel:ch-1',
+            seq: i,
+            payload: {
+              'id': 'msg-$i',
+              'channelId': 'ch-1',
+              'serverId': 'server-1',
+              'senderId': 'other-user',
+            },
+            receivedAt: DateTime(2026),
+          ),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      // During the batch: NO inbox refresh should have been scheduled
+      // (isBatchEvent=true → scheduleInboxRefresh returns early).
+      expect(inboxRepo.fetchInboxCalls, inboxRefreshBaseline,
+          reason: 'Inbox refresh must NOT fire per-message during sync batch');
+
+      // Now emit syncBatchComplete — triggers coalesced refresh.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: syncBatchCompleteEvent,
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime(2026),
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      // After batch complete: exactly 1 inbox refresh + 1 home refresh.
+      expect(inboxRepo.fetchInboxCalls, inboxRefreshBaseline + 1,
+          reason: 'Exactly 1 inbox refresh after syncBatchComplete, not N');
+      expect(homeRepo.loadWorkspaceCalls, homeRefreshBaseline + 1,
+          reason: 'Exactly 1 home refresh after syncBatchComplete, not N');
     });
   });
 }
@@ -642,4 +809,223 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+// =============================================================================
+// Provider-level router test fakes
+// =============================================================================
+
+class _TrackingHomeRepository implements HomeRepository {
+  int loadWorkspaceCalls = 0;
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async =>
+      null;
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
+    loadWorkspaceCalls++;
+    return HomeWorkspaceSnapshot(
+      serverId: serverId,
+      channels: const [],
+      directMessages: const [],
+    );
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async =>
+      summary;
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) async {}
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {}
+}
+
+class _TrackingInboxRepository implements InboxRepository {
+  int fetchInboxCalls = 0;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    fetchInboxCalls++;
+    return const InboxResponse(
+      items: [],
+      totalCount: 0,
+      totalUnreadCount: 0,
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+class _TrackingAgentsRepository implements AgentsRepository {
+  @override
+  Future<List<AgentItem>> listAgents() async => const [];
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
+}
+
+class _TrackingServerListRepository implements ServerListRepository {
+  @override
+  Future<List<ServerSummary>> loadServers() async => const [];
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> _store = {};
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _store.remove(key);
+  }
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async =>
+      const SidebarOrder();
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      const [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async =>
+      const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
 }

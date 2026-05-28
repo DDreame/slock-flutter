@@ -73,6 +73,17 @@ class RealtimeReductionIngress {
     _lastAcceptedSeqByScope.clear();
   }
 
+  /// INV-856: Advances the seq cursor for [scopeKey] without emitting events.
+  ///
+  /// Used when a sync:resume:response returns `messages: []` with a
+  /// `currentSeq` — the cursor must still advance to prevent livelock on
+  /// the next re-emit of sync:resume.
+  void advanceSeq(String scopeKey, int seq) {
+    if (_disposed) return;
+    final currentMax = _lastAcceptedSeqByScope[scopeKey] ?? 0;
+    _lastAcceptedSeqByScope[scopeKey] = max(currentMax, seq);
+  }
+
   Future<void> dispose() async {
     _disposed = true;
     _lastAcceptedSeqByScope.clear();

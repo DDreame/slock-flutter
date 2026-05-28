@@ -319,10 +319,15 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
       _ingress.acceptSyncBatch(envelopes);
     }
 
-    // Update ingress seq from currentSeq if provided (covers empty batches).
+    // INV-856: Advance cursor from currentSeq even on empty batches to prevent
+    // livelock. When messages is empty but hasMore is true, the cursor must
+    // still advance so the next sync:resume sends a higher seq.
     if (currentSeq is num) {
-      // currentSeq is the server's max — no specific scopeKey needed here.
-      // The per-scope tracking is already handled by acceptSyncBatch above.
+      final scopeKeyValue = payload['scopeKey'];
+      final scope = scopeKeyValue is String && scopeKeyValue.isNotEmpty
+          ? scopeKeyValue
+          : RealtimeEventEnvelope.globalScopeKey;
+      _ingress.advanceSeq(scope, currentSeq.toInt());
     }
 
     // hasMore loop: re-emit sync:resume with updated seq tracking.
