@@ -548,7 +548,7 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   final Completer<void>? stopAllCompleter;
   final List<String> createdNames = [];
   final List<ServerScopeId> createdServerIds = [];
-  final List<(String, String)> updatedChannels = [];
+  final List<(String, String?)> updatedChannels = [];
   final List<String> deletedChannelIds = [];
   final List<String> leftChannelIds = [];
   final List<String> stoppedAllAgentsChannelIds = [];
@@ -578,7 +578,9 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   Future<void> updateChannel(
     ServerScopeId serverId, {
     required String channelId,
-    required String name,
+    String? name,
+    String? description,
+    bool? isPrivate,
   }) async {
     updatedChannels.add((channelId, name));
   }
