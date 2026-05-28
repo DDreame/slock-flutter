@@ -1323,7 +1323,6 @@
   "senderLabelAgent": "Agente",
   "senderLabelMember": "Miembro",
   "senderLabelSystem": "Sistema",
-  "senderLabelUnknown": "Desconocido",
 
   "sharePreviewAttachmentCount": "{count, plural, =1{1 archivo adjunto} other{{count} archivos adjuntos}}",
 

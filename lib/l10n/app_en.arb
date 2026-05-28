@@ -1559,7 +1559,6 @@
   "senderLabelAgent": "Agent",
   "senderLabelMember": "Member",
   "senderLabelSystem": "System",
-  "senderLabelUnknown": "Unknown",
 
   "sharePreviewAttachmentCount": "{count, plural, =1{1 attachment} other{{count} attachments}}",
   "@sharePreviewAttachmentCount": {

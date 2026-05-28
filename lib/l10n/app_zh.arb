@@ -1163,7 +1163,6 @@
   "senderLabelAgent": "机器人",
   "senderLabelMember": "成员",
   "senderLabelSystem": "系统",
-  "senderLabelUnknown": "未知",
 
   "sharePreviewAttachmentCount": "{count, plural, =1{1 个附件} other{{count} 个附件}}",
 

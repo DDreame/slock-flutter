@@ -3403,8 +3403,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get senderLabelSystem => 'System';
 
-  @override
-  String get senderLabelUnknown => 'Unknown';
 
   @override
   String sharePreviewAttachmentCount(int count) {
