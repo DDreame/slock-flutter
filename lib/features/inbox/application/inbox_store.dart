@@ -141,6 +141,21 @@ class InboxStore extends Notifier<InboxState> {
           failure: failure,
         );
       }
+    } catch (error) {
+      if (epoch != _filterEpoch) return;
+      final failure = UnknownFailure(
+        message: 'Failed to load inbox.',
+        causeType: error.runtimeType.toString(),
+      );
+      if (hasExistingData) {
+        state = state.copyWith(isRefreshing: false, failure: failure);
+      } else {
+        state = state.copyWith(
+          status: InboxStatus.failure,
+          isRefreshing: false,
+          failure: failure,
+        );
+      }
     }
   }
 
@@ -191,6 +206,15 @@ class InboxStore extends Notifier<InboxState> {
       // INV-850-EPOCH: Discard stale error if filter switched during await.
       if (epoch != _filterEpoch) return;
       state = state.copyWith(failure: failure);
+    } catch (error) {
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
+      if (epoch != _filterEpoch) return;
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to load more inbox items.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
     } finally {
       _isLoadingMore = false;
     }

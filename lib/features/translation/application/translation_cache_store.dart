@@ -285,6 +285,21 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         }
       }
       state = state.copyWith(translations: _trimTranslations(failed));
+    } catch (_) {
+      if (_disposed) return;
+      // Mark all pending as failed on unexpected errors.
+      final failed = Map<String, TranslationEntry>.from(state.translations);
+      for (final id in uncached) {
+        final existing = failed[id];
+        if (existing != null &&
+            existing.status == TranslationEntryStatus.pending) {
+          failed[id] = restoreOnFailure[id] ??
+              existing.copyWith(
+                status: TranslationEntryStatus.failed,
+              );
+        }
+      }
+      state = state.copyWith(translations: _trimTranslations(failed));
     } finally {
       if (!_disposed) {
         _inFlight.removeAll(uncached);
