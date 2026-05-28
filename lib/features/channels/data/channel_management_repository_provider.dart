@@ -63,13 +63,19 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
   Future<void> updateChannel(
     ServerScopeId serverId, {
     required String channelId,
-    required String name,
+    String? name,
+    String? description,
+    bool? isPrivate,
   }) async {
     try {
+      final data = <String, Object>{};
+      if (name != null) data['name'] = name;
+      if (description != null) data['description'] = description;
+      if (isPrivate != null) data['isPrivate'] = isPrivate;
       await _appDioClient.request<Object?>(
         '$_channelsPath/$channelId',
         method: 'PATCH',
-        data: {'name': name},
+        data: data,
         options: _serverScopedOptions(serverId),
       );
     } on AppFailure {
