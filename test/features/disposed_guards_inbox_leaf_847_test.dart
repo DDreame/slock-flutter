@@ -6,12 +6,16 @@
 // 1. loadOlder after dispose → no StateError, state unchanged
 // 2. loadNewer after dispose → no StateError, state unchanged
 // 3. InboxItemTile renders InboxRelativeTimeText leaf (not inline DateTime.now)
+// 4. Parent InboxItemTile does NOT rebuild when homeNowProvider ticks —
+//    InboxRelativeTimeText leaf absorbs the rebuild.
 //
 // Falsification:
 // - Removing `if (_disposed) return;` guards → StateError on ref.read() after
 //   dispose (test RED)
 // - Reverting InboxRelativeTimeText → InboxItemTile calls DateTime.now() in
 //   build (no leaf widget found, test RED)
+// - Moving homeNowProvider watch from leaf back to parent → buildCount > 1
+//   after timer tick (test RED)
 // =============================================================================
 
 import 'dart:async';
@@ -25,6 +29,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/presentation/widgets/inbox_item_tile.dart';
 import 'package:slock_app/features/inbox/presentation/widgets/inbox_relative_time_text.dart';
@@ -318,6 +323,83 @@ void main() {
         reason: 'No InboxRelativeTimeText when lastActivityAt is null',
       );
     });
+  });
+
+  // ===========================================================================
+  // Group 3: Parent rebuild isolation — homeNowProvider tick must NOT rebuild
+  //          InboxItemTile (only the InboxRelativeTimeText leaf rebuilds)
+  // ===========================================================================
+  group('#847 — InboxItemTile parent rebuild isolation', () {
+    setUp(() {
+      InboxItemTile.buildCount = 0;
+    });
+
+    testWidgets(
+      'homeNowProvider tick does NOT rebuild parent InboxItemTile',
+      (tester) async {
+        final nowController = StreamController<DateTime>();
+        addTearDown(nowController.close);
+
+        // Emit initial value immediately.
+        final initialNow = DateTime(2026, 5, 27, 10, 0);
+        nowController.add(initialNow);
+
+        final projection = ConversationProjection(
+          id: 'conv-1',
+          title: 'General',
+          previewText: 'Hello world',
+          lastActivityAt: DateTime(2026, 5, 27, 9, 55),
+          unreadCount: 1,
+          kind: ConversationProjectionKind.channel,
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              homeNowProvider.overrideWith((ref) => nowController.stream),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: AppTheme.light,
+              home: Scaffold(
+                body: ListView(
+                  children: [
+                    InboxItemTile(
+                      projection: projection,
+                      isMentioned: false,
+                      onTap: () {},
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // After initial build, buildCount should be 1.
+        expect(
+          InboxItemTile.buildCount,
+          1,
+          reason: 'Initial render must build InboxItemTile exactly once.',
+        );
+
+        // Emit a timer tick — this should only rebuild the leaf widget.
+        nowController.add(DateTime(2026, 5, 27, 10, 1));
+        await tester.pumpAndSettle();
+
+        // Parent buildCount must remain 1 — leaf absorbed the rebuild.
+        expect(
+          InboxItemTile.buildCount,
+          1,
+          reason: 'homeNowProvider tick must NOT rebuild InboxItemTile — '
+              'InboxRelativeTimeText leaf absorbs the rebuild. '
+              'This test FAILS if homeNowProvider watch is moved to '
+              'InboxItemTile or if InboxRelativeTimeText leaf is removed.',
+        );
+      },
+    );
   });
 }
 

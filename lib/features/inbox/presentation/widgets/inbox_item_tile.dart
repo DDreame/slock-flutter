@@ -32,6 +32,12 @@ class InboxItemTile extends StatelessWidget {
     this.channelId,
   });
 
+  /// Build counter for parent rebuild isolation tests. Incremented every time
+  /// [build] is called. Proves that [InboxRelativeTimeText] absorbs
+  /// homeNowProvider ticks without triggering a parent rebuild.
+  @visibleForTesting
+  static int buildCount = 0;
+
   final ConversationProjection projection;
 
   /// Whether any unread message in this conversation @mentions the current user.
@@ -49,6 +55,7 @@ class InboxItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    buildCount++;
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
