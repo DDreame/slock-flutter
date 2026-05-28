@@ -164,6 +164,14 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
         currentItems.insert(insertAt, removedItem);
         state = state.copyWith(items: currentItems);
       }
+    } catch (_) {
+      if (_disposed) return;
+      if (removedItem != null) {
+        final currentItems = state.items.toList();
+        final insertAt = removedIndex.clamp(0, currentItems.length);
+        currentItems.insert(insertAt, removedItem);
+        state = state.copyWith(items: currentItems);
+      }
     }
   }
 
