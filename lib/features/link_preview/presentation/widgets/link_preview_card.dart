@@ -14,6 +14,9 @@ class LinkPreviewCard extends StatelessWidget {
     this.onTap,
   });
 
+  /// Hoisted border radius to avoid per-build allocations.
+  static final borderRadius = BorderRadius.circular(12);
+
   /// The link metadata to display.
   final LinkMetadata metadata;
 
@@ -35,7 +38,7 @@ class LinkPreviewCard extends StatelessWidget {
           margin: const EdgeInsets.only(top: 8),
           decoration: BoxDecoration(
             color: colors.surfaceAlt,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: borderRadius,
             border: Border.all(color: colors.border),
           ),
           clipBehavior: Clip.antiAlias,

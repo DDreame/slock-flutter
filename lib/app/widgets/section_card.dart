@@ -13,6 +13,9 @@ class SectionCard extends StatelessWidget {
     required this.child,
   });
 
+  /// Hoisted border radius to avoid per-build allocations.
+  static final borderRadius = BorderRadius.circular(AppSpacing.radiusMd);
+
   /// Optional custom padding. Defaults to [AppSpacing.cardPadding].
   final EdgeInsetsGeometry? padding;
 
@@ -29,7 +32,7 @@ class SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border.all(color: colors.border),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        borderRadius: borderRadius,
       ),
       child: child,
     );

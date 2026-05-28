@@ -28,6 +28,10 @@ const double _kFilterChipFontSize = 13.0;
 const FontWeight _kFilterChipFontWeight = FontWeight.w500;
 const double _kFilterChipGap = 8.0;
 
+/// Hoisted border radius for _FilterChip. Exposed for hoist identity tests.
+@visibleForTesting
+final filterChipBorderRadius = BorderRadius.circular(_kFilterChipRadius);
+
 class TasksPage extends StatelessWidget {
   const TasksPage({super.key, required this.serverId});
 
@@ -653,6 +657,8 @@ class _FilterChip extends StatelessWidget {
     required this.onTap,
   });
 
+  static final _borderRadius = filterChipBorderRadius;
+
   final String label;
   final bool isSelected;
   final AppColors colors;
@@ -673,7 +679,7 @@ class _FilterChip extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: isSelected ? colors.primary : colors.surfaceAlt,
-            borderRadius: BorderRadius.circular(_kFilterChipRadius),
+            borderRadius: _borderRadius,
             border: isSelected ? null : Border.all(color: colors.border),
           ),
           alignment: Alignment.center,
