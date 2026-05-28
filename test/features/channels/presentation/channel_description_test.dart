@@ -9,6 +9,9 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -63,13 +66,11 @@ void main() {
               },
             ],
           },
-          '/channels': [
-            {
-              'id': 'general',
-              'name': 'general',
-              'description': 'A channel for general discussion',
-            },
-          ],
+          '/channels/general': {
+            'id': 'general',
+            'name': 'general',
+            'description': 'A channel for general discussion',
+          },
         },
       );
 
@@ -79,6 +80,8 @@ void main() {
           conversationLocalStoreProvider.overrideWithValue(
             FakeConversationLocalStore(),
           ),
+          savedMessagesRepositoryProvider
+              .overrideWithValue(_NoOpSavedMessagesRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -504,4 +507,28 @@ class _FakeAppDioClient extends AppDioClient {
   }) async {
     return get<T>(path, queryParameters: queryParameters, options: options);
   }
+}
+
+/// No-op saved messages repository for tests that don't exercise saved logic.
+class _NoOpSavedMessagesRepository implements SavedMessagesRepository {
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async =>
+      {};
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async =>
+      const SavedMessagesPage(items: [], hasMore: false);
 }

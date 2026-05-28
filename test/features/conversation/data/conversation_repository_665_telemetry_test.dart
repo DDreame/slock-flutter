@@ -216,9 +216,7 @@ Map<String, Object?> _channelLoadResponses() => {
         ],
         'historyLimited': false,
       },
-      '/channels': [
-        {'id': 'ch-1', 'name': 'ch-1'},
-      ],
+      '/channels/ch-1': {'id': 'ch-1', 'name': 'ch-1'},
     };
 
 Map<String, Object?> _sendMessageResponses() => {
