@@ -358,7 +358,7 @@ class _UnreadListRow extends StatelessWidget {
                 child: Text(
                   item.unreadCount > 99 ? '99+' : '${item.unreadCount}',
                   style: AppTypography.caption.copyWith(
-                    color: Colors.white,
+                    color: colors.errorForeground,
                     fontWeight: FontWeight.w600,
                     fontSize: 11,
                   ),

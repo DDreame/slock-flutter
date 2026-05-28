@@ -247,92 +247,98 @@ class _SavedMessageCard extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final message = item.message;
 
-    return InkWell(
-      key: ValueKey('saved-message-${message.id}'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.md),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          border: Border.all(color: colors.border),
-          borderRadius: BorderRadius.circular(AppSpacing.md),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: avatar + sender + channel + actions
-            Row(
-              children: [
-                _SenderAvatar(
-                  name: message.localizedSenderLabel(context.l10n),
-                  colors: colors,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          message.localizedSenderLabel(context.l10n),
-                          style:
-                              AppTypography.label.copyWith(color: colors.text),
+    return Semantics(
+      button: true,
+      label:
+          '${message.localizedSenderLabel(context.l10n)}: ${message.content}',
+      excludeSemantics: true,
+      child: InkWell(
+        key: ValueKey('saved-message-${message.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            border: Border.all(color: colors.border),
+            borderRadius: BorderRadius.circular(AppSpacing.md),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: avatar + sender + channel + actions
+              Row(
+                children: [
+                  _SenderAvatar(
+                    name: message.localizedSenderLabel(context.l10n),
+                    colors: colors,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            message.localizedSenderLabel(context.l10n),
+                            style: AppTypography.label
+                                .copyWith(color: colors.text),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          _sourceLabel(context, item),
+                          style: AppTypography.caption
+                              .copyWith(color: colors.textSecondary),
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        _sourceLabel(context, item),
-                        style: AppTypography.caption
-                            .copyWith(color: colors.textSecondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  // Unsave action
+                  IconButton(
+                    key: ValueKey('saved-message-unsave-${message.id}'),
+                    icon: Icon(
+                      Icons.bookmark_remove_outlined,
+                      size: 20,
+                      color: colors.textSecondary,
+                    ),
+                    onPressed: onUnsave,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    tooltip: context.l10n.savedMessagesUnsaveTooltip,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              // Message content preview
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 32 + AppSpacing.sm, // avatar width + gap
                 ),
-                // Unsave action
-                IconButton(
-                  key: ValueKey('saved-message-unsave-${message.id}'),
-                  icon: Icon(
-                    Icons.bookmark_remove_outlined,
-                    size: 20,
-                    color: colors.textSecondary,
-                  ),
-                  onPressed: onUnsave,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  tooltip: context.l10n.savedMessagesUnsaveTooltip,
+                child: Text(
+                  message.content,
+                  style: AppTypography.body.copyWith(color: colors.text),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            // Message content preview
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 32 + AppSpacing.sm, // avatar width + gap
               ),
-              child: Text(
-                message.content,
-                style: AppTypography.body.copyWith(color: colors.text),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+              const SizedBox(height: AppSpacing.xs),
+              // Footer: timestamp (leaf widget — only rebuilds on minute tick)
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: 32 + AppSpacing.sm,
+                ),
+                child: RelativeTimeText(
+                  time: message.createdAt,
+                  style: AppTypography.caption
+                      .copyWith(color: colors.textSecondary),
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            // Footer: timestamp (leaf widget — only rebuilds on minute tick)
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 32 + AppSpacing.sm,
-              ),
-              child: RelativeTimeText(
-                time: message.createdAt,
-                style:
-                    AppTypography.caption.copyWith(color: colors.textSecondary),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

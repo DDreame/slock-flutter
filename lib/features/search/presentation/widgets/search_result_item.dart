@@ -23,53 +23,59 @@ class SearchResultItem extends StatelessWidget {
     final theme = Theme.of(context);
     final message = result.message;
 
-    return InkWell(
-      key: ValueKey('search-result-${message.id}'),
-      onTap: onTap,
-      borderRadius: _kCardBorderRadius,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: _kCardBorderRadius,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (result.channelName != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  result.surface == 'direct_message'
-                      ? result.channelName!
-                      : '#${result.channelName}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-            Row(
-              children: [
-                Expanded(
+    return Semantics(
+      button: true,
+      label:
+          '${message.localizedSenderLabel(context.l10n)}: ${message.content}',
+      excludeSemantics: true,
+      child: InkWell(
+        key: ValueKey('search-result-${message.id}'),
+        onTap: onTap,
+        borderRadius: _kCardBorderRadius,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: _kCardBorderRadius,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (result.channelName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    message.localizedSenderLabel(context.l10n),
-                    style: theme.textTheme.labelMedium,
+                    result.surface == 'direct_message'
+                        ? result.channelName!
+                        : '#${result.channelName}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-                RelativeTimeText(
-                  time: message.createdAt,
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            _HighlightedContent(
-              content: message.content,
-              query: query,
-              baseStyle: theme.textTheme.bodyMedium,
-              highlightColor: theme.colorScheme.primaryContainer,
-            ),
-          ],
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      message.localizedSenderLabel(context.l10n),
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  RelativeTimeText(
+                    time: message.createdAt,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              _HighlightedContent(
+                content: message.content,
+                query: query,
+                baseStyle: theme.textTheme.bodyMedium,
+                highlightColor: theme.colorScheme.primaryContainer,
+              ),
+            ],
+          ),
         ),
       ),
     );

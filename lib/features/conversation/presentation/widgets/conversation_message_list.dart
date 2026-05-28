@@ -241,36 +241,39 @@ class _UnreadDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    return Padding(
-      key: const ValueKey('unread-divider'),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Divider(
-              color: colors.primary,
-              thickness: 1,
-              height: 1,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              context.l10n.pendingNewMessages,
-              style: AppTypography.caption.copyWith(
+    return Semantics(
+      header: true,
+      child: Padding(
+        key: const ValueKey('unread-divider'),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Divider(
                 color: colors.primary,
-                fontWeight: FontWeight.w600,
+                thickness: 1,
+                height: 1,
               ),
             ),
-          ),
-          Expanded(
-            child: Divider(
-              color: colors.primary,
-              thickness: 1,
-              height: 1,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                context.l10n.pendingNewMessages,
+                style: AppTypography.caption.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Divider(
+                color: colors.primary,
+                thickness: 1,
+                height: 1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

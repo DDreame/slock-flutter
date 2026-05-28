@@ -1207,7 +1207,7 @@ class _UnreadBadge extends StatelessWidget {
       child: Text(
         count > 99 ? '99+' : '$count',
         style: AppTypography.caption.copyWith(
-          color: Colors.white,
+          color: colors.errorForeground,
           fontWeight: FontWeight.w600,
           fontSize: 11,
         ),

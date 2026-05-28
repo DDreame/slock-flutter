@@ -22,6 +22,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.success,
     required this.warning,
     required this.error,
+    required this.errorForeground,
     required this.errorContainer,
     required this.onErrorContainer,
     required this.agentAccent,
@@ -45,6 +46,7 @@ class AppColors extends ThemeExtension<AppColors> {
     success: Color(0xFF22C55E),
     warning: Color(0xFFF59E0B),
     error: Color(0xFFEF4444),
+    errorForeground: Color(0xFFFFFFFF),
     errorContainer: Color(0xFFFEE2E2),
     onErrorContainer: Color(0xFFB91C1C),
     agentAccent: Color(0xFF8B5CF6),
@@ -68,6 +70,7 @@ class AppColors extends ThemeExtension<AppColors> {
     success: Color(0xFF4ADE80),
     warning: Color(0xFFFBBF24),
     error: Color(0xFFF87171),
+    errorForeground: Color(0xFF1A1A1A),
     errorContainer: Color(0xFF7F1D1D),
     onErrorContainer: Color(0xFFFCA5A5),
     agentAccent: Color(0xFFA78BFA),
@@ -115,6 +118,9 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Error state color (error indicators, destructive actions).
   final Color error;
 
+  /// Text color on error backgrounds (WCAG AA contrast in both modes).
+  final Color errorForeground;
+
   /// Error container background (error banners, destructive dialogs).
   final Color errorContainer;
 
@@ -148,6 +154,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? success,
     Color? warning,
     Color? error,
+    Color? errorForeground,
     Color? errorContainer,
     Color? onErrorContainer,
     Color? agentAccent,
@@ -169,6 +176,7 @@ class AppColors extends ThemeExtension<AppColors> {
       success: success ?? this.success,
       warning: warning ?? this.warning,
       error: error ?? this.error,
+      errorForeground: errorForeground ?? this.errorForeground,
       errorContainer: errorContainer ?? this.errorContainer,
       onErrorContainer: onErrorContainer ?? this.onErrorContainer,
       agentAccent: agentAccent ?? this.agentAccent,
@@ -196,6 +204,7 @@ class AppColors extends ThemeExtension<AppColors> {
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,
+      errorForeground: Color.lerp(errorForeground, other.errorForeground, t)!,
       errorContainer: Color.lerp(errorContainer, other.errorContainer, t)!,
       onErrorContainer:
           Color.lerp(onErrorContainer, other.onErrorContainer, t)!,
