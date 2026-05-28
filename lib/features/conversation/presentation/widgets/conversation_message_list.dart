@@ -350,6 +350,10 @@ class _DateSeparatorWidget extends ConsumerWidget {
 
   final DateTime date;
 
+  /// Hoisted BorderRadius for date separator pill — avoids per-build
+  /// allocation (Scan #46 PR B).
+  static final _borderRadius = BorderRadius.circular(12);
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
@@ -365,7 +369,7 @@ class _DateSeparatorWidget extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: _borderRadius,
           ),
           child: Text(
             _formatDateLabel(date, now, toLocal, l10n, locale),

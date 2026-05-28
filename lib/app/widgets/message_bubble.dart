@@ -58,6 +58,12 @@ class MessageBubble extends StatelessWidget {
   static final systemBorderRadius =
       BorderRadius.circular(BubbleTokens.radiusLarge);
 
+  /// Hoisted BorderRadius for the AI badge — avoids per-build allocation in
+  /// hot-path build method (Scan #46 PR B).
+  @visibleForTesting
+  static final agentBadgeBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusSm);
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -141,8 +147,7 @@ class MessageBubble extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: colors.agentAccent,
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius: MessageBubble.agentBadgeBorderRadius,
                         ),
                         child: Text(
                           context.l10n.conversationMessageAiBadge,

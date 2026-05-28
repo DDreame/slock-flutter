@@ -62,10 +62,12 @@ class _ShimmerBoxState extends State<ShimmerBox>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _animation;
+  late BorderRadius _cachedBorderRadius;
 
   @override
   void initState() {
     super.initState();
+    _cachedBorderRadius = BorderRadius.circular(widget.borderRadius);
     _controller = AnimationController(
       vsync: this,
       duration: SkeletonTokens.shimmerDuration,
@@ -74,6 +76,14 @@ class _ShimmerBoxState extends State<ShimmerBox>
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
     _controller.repeat();
+  }
+
+  @override
+  void didUpdateWidget(ShimmerBox oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.borderRadius != widget.borderRadius) {
+      _cachedBorderRadius = BorderRadius.circular(widget.borderRadius);
+    }
   }
 
   @override
@@ -96,7 +106,7 @@ class _ShimmerBoxState extends State<ShimmerBox>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
+            borderRadius: _cachedBorderRadius,
             gradient: LinearGradient(
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
