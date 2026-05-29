@@ -255,8 +255,7 @@ class _FakeHomeListStore extends Notifier<HomeListState>
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakeInboxStore extends AutoDisposeNotifier<InboxState>
-    implements InboxStore {
+class _FakeInboxStore extends Notifier<InboxState> implements InboxStore {
   @override
   InboxState build() => const InboxState(status: InboxStatus.success);
 
