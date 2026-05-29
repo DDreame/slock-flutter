@@ -4,6 +4,7 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/inline_ref_syntax.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/mention_syntax.dart';
 
 // -- Layout constants --
@@ -110,6 +111,8 @@ class MarkdownMessageBody extends StatefulWidget {
     this.onLinkTap,
     this.currentUserName,
     this.onMentionTap,
+    this.onChannelRefTap,
+    this.onTaskRefTap,
   });
 
   /// The raw message content to render as Markdown.
@@ -133,6 +136,14 @@ class MarkdownMessageBody extends StatefulWidget {
   /// (without the `@` prefix). Used for mention → profile navigation.
   final void Function(String name)? onMentionTap;
 
+  /// Called when a user taps a #channel reference chip. Receives the channel
+  /// name (without the `#` prefix). Used for channel navigation.
+  final void Function(String name)? onChannelRefTap;
+
+  /// Called when a user taps a `task #N` reference chip. Receives the task
+  /// number as a string. Used for task page navigation.
+  final void Function(String number)? onTaskRefTap;
+
   @override
   State<MarkdownMessageBody> createState() => _MarkdownMessageBodyState();
 }
@@ -142,7 +153,11 @@ class MarkdownMessageBody extends StatefulWidget {
 final md.ExtensionSet _kExtensionSet = md.ExtensionSet(
   md.ExtensionSet.gitHubFlavored.blockSyntaxes,
   [
+    // TaskRefSyntax before ChannelRefSyntax — "task #3" is more specific than
+    // bare "#3" which would be caught by ChannelRefSyntax.
+    TaskRefSyntax(),
     MentionSyntax(),
+    ChannelRefSyntax(),
     md.StrikethroughSyntax(),
     ..._kGfmInlineSyntaxesWithoutAutolink,
   ],
@@ -169,7 +184,9 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
     if (oldWidget.kind != widget.kind ||
         oldWidget.baseStyle != widget.baseStyle ||
         oldWidget.currentUserName != widget.currentUserName ||
-        oldWidget.onMentionTap != widget.onMentionTap) {
+        oldWidget.onMentionTap != widget.onMentionTap ||
+        oldWidget.onChannelRefTap != widget.onChannelRefTap ||
+        oldWidget.onTaskRefTap != widget.onTaskRefTap) {
       _rebuildCache();
     }
   }
@@ -186,6 +203,12 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
       'mention': MentionBuilder(
         currentUserName: widget.currentUserName,
         onMentionTap: widget.onMentionTap,
+      ),
+      'channel_ref': ChannelRefBuilder(
+        onChannelRefTap: widget.onChannelRefTap,
+      ),
+      'task_ref': TaskRefBuilder(
+        onTaskRefTap: widget.onTaskRefTap,
       ),
     };
   }
