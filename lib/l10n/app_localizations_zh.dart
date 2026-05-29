@@ -3354,4 +3354,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unnamedWorkspaceFallback => '未命名工作区';
+
+  @override
+  String agentsStatusGroupSemantics(String status, int count) {
+    return '$status，$count个智能体';
+  }
+
+  @override
+  String agentsRowSemantics(String name, String activity) {
+    return '$name，$activity';
+  }
+
+  @override
+  String get agentsRowActionsHint => '显示操作';
+
+  @override
+  String get mentionSuggestionsSemantics => '提及建议';
+
+  @override
+  String mentionSuggestionItemSemantics(String name) {
+    return '提及$name';
+  }
 }

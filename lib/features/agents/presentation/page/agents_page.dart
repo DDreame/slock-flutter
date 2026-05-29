@@ -597,6 +597,8 @@ class _StatusGroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final statusLabel = displayStatusLabel(group.displayStatus, l10n: l10n);
     final dotColor = switch (group.displayStatus) {
       AgentDisplayStatus.thinking ||
       AgentDisplayStatus.working =>
@@ -608,54 +610,61 @@ class _StatusGroupHeader extends StatelessWidget {
         colors.textTertiary,
     };
 
-    return InkWell(
-      key: ValueKey(
-        'status-header-${group.foldKey}',
-      ),
-      onTap: onToggle,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pageHorizontal,
-          AppSpacing.md,
-          AppSpacing.pageHorizontal,
-          AppSpacing.xs,
+    return Semantics(
+      button: true,
+      expanded: !isCollapsed,
+      label: l10n.agentsStatusGroupSemantics(statusLabel, group.count),
+      child: InkWell(
+        key: ValueKey(
+          'status-header-${group.foldKey}',
         ),
-        child: Row(
-          children: [
-            Icon(
-              isCollapsed ? Icons.expand_more : Icons.expand_less,
-              size: 20,
-              color: colors.textTertiary,
+        onTap: onToggle,
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.pageHorizontal,
+              AppSpacing.md,
+              AppSpacing.pageHorizontal,
+              AppSpacing.xs,
             ),
-            const SizedBox(width: AppSpacing.xs),
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: dotColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                displayStatusLabel(group.displayStatus, l10n: context.l10n),
-                style: AppTypography.label.copyWith(
-                  color: colors.text,
-                  fontWeight: FontWeight.w600,
+            child: Row(
+              children: [
+                Icon(
+                  isCollapsed ? Icons.expand_more : Icons.expand_less,
+                  size: 20,
+                  color: colors.textTertiary,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+                const SizedBox(width: AppSpacing.xs),
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: dotColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    statusLabel,
+                    style: AppTypography.label.copyWith(
+                      color: colors.text,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '${group.count}',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textTertiary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              '${group.count}',
-              style: AppTypography.caption.copyWith(
-                color: colors.textTertiary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -735,68 +744,79 @@ class _AgentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isStopped = agent.isStopped;
+    final l10n = context.l10n;
+    final activityText =
+        _activityLabel(agent.activity, agent.activityDetail, l10n);
 
-    Widget row = InkWell(
-      key: ValueKey('agent-${agent.id}'),
-      onTap: () => onTap(agent),
-      onLongPress: () => _showAgentActions(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.pageHorizontal,
-          vertical: AppSpacing.listItemVertical,
-        ),
-        child: Row(
-          children: [
-            StatusGlowRing(
-              status: _mapActivityToGlowStatus(agent.activity),
-              size: 44,
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: colors.surfaceAlt,
-                child: Text(
-                  agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
-                  style: AppTypography.title.copyWith(color: colors.text),
-                ),
-              ),
+    Widget row = Semantics(
+      button: true,
+      label: l10n.agentsRowSemantics(agent.label, activityText),
+      onLongPressHint: l10n.agentsRowActionsHint,
+      child: InkWell(
+        key: ValueKey('agent-${agent.id}'),
+        onTap: () => onTap(agent),
+        onLongPress: () => _showAgentActions(context),
+        child: ExcludeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.listItemVertical,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            child: Row(
+              children: [
+                StatusGlowRing(
+                  status: _mapActivityToGlowStatus(agent.activity),
+                  size: 44,
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: colors.surfaceAlt,
+                    child: Text(
+                      agent.label.isNotEmpty
+                          ? agent.label[0].toUpperCase()
+                          : '?',
+                      style: AppTypography.title.copyWith(color: colors.text),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
-                        child: Text(
-                          agent.label,
-                          style: AppTypography.title.copyWith(
-                            color: colors.text,
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              agent.label,
+                              style: AppTypography.title.copyWith(
+                                color: colors.text,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                          const SizedBox(width: AppSpacing.sm),
+                          RoleBadge(
+                            label: agent.runtime,
+                            color: colors.agentAccent,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      RoleBadge(
-                        label: agent.runtime,
-                        color: colors.agentAccent,
+                      const SizedBox(height: 2),
+                      Text(
+                        activityText,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _activityLabel(
-                        agent.activity, agent.activityDetail, context.l10n),
-                    style: AppTypography.bodySmall.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

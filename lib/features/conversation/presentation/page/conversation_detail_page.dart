@@ -1311,6 +1311,20 @@ class _ConversationEmptyView extends StatelessWidget {
 // Mention suggestion overlay — shows channel members matching '@query'
 // ---------------------------------------------------------------------------
 
+/// Test-only factory for mounting [_MentionSuggestionOverlay] in isolation.
+@visibleForTesting
+Widget buildMentionSuggestionOverlay({
+  Key? key,
+  required List<ChannelMember> members,
+  required ValueChanged<ChannelMember> onSelect,
+}) {
+  return _MentionSuggestionOverlay(
+    key: key,
+    members: members,
+    onSelect: onSelect,
+  );
+}
+
 class _MentionSuggestionOverlay extends StatelessWidget {
   const _MentionSuggestionOverlay({
     super.key,
@@ -1324,56 +1338,67 @@ class _MentionSuggestionOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 200),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(
-          top: BorderSide(color: colors.border, width: 0.5),
+    final l10n = context.l10n;
+    return Semantics(
+      label: l10n.mentionSuggestionsSemantics,
+      namesRoute: true,
+      child: Container(
+        constraints: const BoxConstraints(maxHeight: 200),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          border: Border(
+            top: BorderSide(color: colors.border, width: 0.5),
+          ),
         ),
-      ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-        itemCount: members.length,
-        itemBuilder: (context, index) {
-          final member = members[index];
-          return InkWell(
-            key: ValueKey('mention-suggestion-$index'),
-            onTap: () => onSelect(member),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.sm,
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: colors.surfaceAlt,
-                    child: Text(
-                      member.displayName.isNotEmpty
-                          ? member.displayName[0].toUpperCase()
-                          : '?',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                      ),
+        child: ListView.builder(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          itemCount: members.length,
+          itemBuilder: (context, index) {
+            final member = members[index];
+            return Semantics(
+              button: true,
+              label: l10n.mentionSuggestionItemSemantics(member.displayName),
+              child: InkWell(
+                key: ValueKey('mention-suggestion-$index'),
+                onTap: () => onSelect(member),
+                child: ExcludeSemantics(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.sm,
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 14,
+                          backgroundColor: colors.surfaceAlt,
+                          child: Text(
+                            member.displayName.isNotEmpty
+                                ? member.displayName[0].toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          member.displayName,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colors.text,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    member.displayName,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colors.text,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

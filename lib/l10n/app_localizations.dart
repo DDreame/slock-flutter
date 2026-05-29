@@ -6472,6 +6472,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unnamed workspace'**
   String get unnamedWorkspaceFallback;
+
+  /// No description provided for @agentsStatusGroupSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{status}, {count} agents'**
+  String agentsStatusGroupSemantics(String status, int count);
+
+  /// No description provided for @agentsRowSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {activity}'**
+  String agentsRowSemantics(String name, String activity);
+
+  /// No description provided for @agentsRowActionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Show actions'**
+  String get agentsRowActionsHint;
+
+  /// No description provided for @mentionSuggestionsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Mention suggestions'**
+  String get mentionSuggestionsSemantics;
+
+  /// No description provided for @mentionSuggestionItemSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Mention {name}'**
+  String mentionSuggestionItemSemantics(String name);
 }
 
 class _AppLocalizationsDelegate
