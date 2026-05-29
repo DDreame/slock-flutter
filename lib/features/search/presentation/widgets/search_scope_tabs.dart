@@ -97,6 +97,7 @@ class _ScopeTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>();
     final surface = colors?.surface ?? Theme.of(context).colorScheme.surface;
+    final shadowColor = colors?.shadowLight ?? Colors.black.withAlpha(13);
     final textColor = isActive
         ? (colors?.text ?? Theme.of(context).colorScheme.onSurface)
         : (colors?.textSecondary ??
@@ -118,7 +119,7 @@ class _ScopeTab extends StatelessWidget {
               boxShadow: isActive
                   ? [
                       BoxShadow(
-                        color: Colors.black.withAlpha(13),
+                        color: shadowColor,
                         blurRadius: 2,
                         offset: const Offset(0, 1),
                       ),
