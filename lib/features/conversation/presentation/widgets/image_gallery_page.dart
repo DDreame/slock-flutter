@@ -335,8 +335,8 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
     }
 
     return Semantics(
-      button: true,
-      label: context.l10n.filePreviewDismissSemantics,
+      image: true,
+      label: attachment.name,
       child: imageWidget,
     );
   }

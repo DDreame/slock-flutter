@@ -345,13 +345,18 @@ class _ServerList extends ConsumerWidget {
           key: ValueKey('server-${server.id}'),
           title: Text(server.name),
           leading: hasUnread
-              ? Container(
-                  key: ValueKey('unread-badge-${server.id}'),
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: colors?.error ?? Colors.red,
-                    shape: BoxShape.circle,
+              ? Semantics(
+                  container: true,
+                  label: context.l10n.serverSwitcherUnreadBadge(server.name),
+                  excludeSemantics: true,
+                  child: Container(
+                    key: ValueKey('unread-badge-${server.id}'),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: colors?.error ?? Colors.red,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 )
               : null,

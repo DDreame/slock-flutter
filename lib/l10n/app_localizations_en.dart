@@ -3531,4 +3531,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get channelUnarchiveConfirmBody =>
       'This will restore the channel to active status and allow members to send messages again.';
+
+  @override
+  String serverSwitcherUnreadBadge(String name) {
+    return '$name, has unread messages';
+  }
 }

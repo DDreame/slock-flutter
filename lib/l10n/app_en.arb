@@ -1625,5 +1625,13 @@
   "channelArchiveConfirmTitle": "Archive channel?",
   "channelArchiveConfirmBody": "Archived channels are read-only. Members can still view messages but cannot send new ones.",
   "channelUnarchiveConfirmTitle": "Unarchive channel?",
-  "channelUnarchiveConfirmBody": "This will restore the channel to active status and allow members to send messages again."
+  "channelUnarchiveConfirmBody": "This will restore the channel to active status and allow members to send messages again.",
+  "serverSwitcherUnreadBadge": "{name}, has unread messages",
+  "@serverSwitcherUnreadBadge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -691,40 +691,44 @@ class ConversationMessageCardState
     // Thread indicator is placed BELOW the bubble, not inside it.
     Widget threadIndicator = const SizedBox.shrink();
     if (message.threadId != null) {
+      final threadLabel = message.replyCount != null && message.replyCount! > 0
+          ? context.l10n.conversationMessageReplyCount(message.replyCount!)
+          : context.l10n.conversationMessageInThread;
       threadIndicator = Padding(
         padding: const EdgeInsets.only(top: AppSpacing.xs),
-        child: InkWell(
-          key: const ValueKey('message-thread-entry'),
-          onTap: () {
-            context.push(
-              ThreadRouteTarget(
-                serverId: target.serverId.value,
-                parentChannelId: target.conversationId,
-                parentMessageId: message.id,
-                threadChannelId: message.threadId,
-              ).toLocation(),
-            );
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.forum_outlined,
-                size: 14,
-                color: colors.primary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                message.replyCount != null && message.replyCount! > 0
-                    ? context.l10n
-                        .conversationMessageReplyCount(message.replyCount!)
-                    : context.l10n.conversationMessageInThread,
-                key: const ValueKey('message-thread-indicator'),
-                style: AppTypography.label.copyWith(
+        child: Semantics(
+          button: true,
+          label: threadLabel,
+          child: InkWell(
+            key: const ValueKey('message-thread-entry'),
+            onTap: () {
+              context.push(
+                ThreadRouteTarget(
+                  serverId: target.serverId.value,
+                  parentChannelId: target.conversationId,
+                  parentMessageId: message.id,
+                  threadChannelId: message.threadId,
+                ).toLocation(),
+              );
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.forum_outlined,
+                  size: 14,
                   color: colors.primary,
                 ),
-              ),
-            ],
+                const SizedBox(width: 4),
+                Text(
+                  threadLabel,
+                  key: const ValueKey('message-thread-indicator'),
+                  style: AppTypography.label.copyWith(
+                    color: colors.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
