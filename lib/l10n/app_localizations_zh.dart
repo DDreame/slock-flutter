@@ -1229,6 +1229,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationContextCopyText => '复制文本';
 
   @override
+  String get conversationContextCopyMarkdown => '复制 Markdown';
+
+  @override
   String get conversationContextCopyLink => '复制链接';
 
   @override

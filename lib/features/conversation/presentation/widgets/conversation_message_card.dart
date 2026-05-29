@@ -998,7 +998,8 @@ class ConversationMessageCardState
       onReply: () => notifier.setReplyTo(widget.message),
       onReact: () => _showEmojiPicker(context, ref),
       onCopy: () {
-        Clipboard.setData(ClipboardData(text: widget.message.content));
+        Clipboard.setData(
+            ClipboardData(text: stripMarkdown(widget.message.content)));
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(
@@ -1095,6 +1096,13 @@ class ConversationMessageCardState
       onSelect: () => ref
           .read(conversationDetailStoreProvider.notifier)
           .enterSelectionMode(widget.message.id),
+      onCopyMarkdown: () {
+        Clipboard.setData(ClipboardData(text: widget.message.content));
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+              content: Text(context.l10n.conversationCopiedToClipboard)));
+      },
       onCopyLink: () {
         final threadContext = ref.read(currentThreadContextProvider);
         final permalink = buildMessagePermalink(

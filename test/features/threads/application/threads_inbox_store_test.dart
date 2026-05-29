@@ -418,6 +418,79 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // B125 PR 3: rooms:joined signal triggers load()
+  // ---------------------------------------------------------------------------
+
+  group('ThreadsInboxStore rooms:joined signal (B125 PR 3)', () {
+    test(
+      'rooms:joined signal triggers load() when status is success',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        // Keep provider alive for the duration of the test.
+        final sub = container.listen(threadsInboxStoreProvider, (_, __) {});
+        addTearDown(sub.close);
+
+        // Initial load to reach success state.
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).status,
+          ThreadsInboxStatus.success,
+        );
+        expect(repo.loadCallCount, 1);
+
+        // Increment the rooms:joined signal.
+        container.read(routedRoomsJoinedSignalProvider.notifier).state++;
+
+        // Wait for async load to complete.
+        await Future<void>.delayed(Duration.zero);
+
+        expect(repo.loadCallCount, 2,
+            reason: 'rooms:joined signal must trigger load()');
+      },
+    );
+
+    test(
+      'rooms:joined signal is ignored when status is not success',
+      () async {
+        final repo = _FailingThreadRepository(
+          failure: const ServerFailure(
+            message: 'Error',
+            statusCode: 500,
+          ),
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        // Keep provider alive.
+        final sub = container.listen(threadsInboxStoreProvider, (_, __) {});
+        addTearDown(sub.close);
+
+        // Load fails — status is failure.
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).status,
+          ThreadsInboxStatus.failure,
+        );
+        expect(repo.loadCallCount, 1);
+
+        // Increment the signal — should be ignored.
+        container.read(routedRoomsJoinedSignalProvider.notifier).state++;
+        await Future<void>.delayed(Duration.zero);
+
+        // No additional load attempt.
+        expect(repo.loadCallCount, 1,
+            reason:
+                'rooms:joined must not trigger load when status != success');
+      },
+    );
+  });
 }
 // Fakes
 // ---------------------------------------------------------------------------
@@ -426,11 +499,13 @@ class _FailingThreadRepository implements ThreadRepository {
   _FailingThreadRepository({required this.failure});
 
   final AppFailure failure;
+  int loadCallCount = 0;
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
     ServerScopeId serverId,
   ) async {
+    loadCallCount++;
     throw failure;
   }
 
@@ -473,6 +548,7 @@ class _ControllableThreadRepository implements ThreadRepository {
   Object? markDoneThrowable;
   AppFailure? unfollowFailure;
   Object? unfollowThrowable;
+  int loadCallCount = 0;
 
   /// When set, `markThreadDone` awaits this completer before returning.
   /// Allows tests to observe mid-flight optimistic state.
@@ -486,6 +562,7 @@ class _ControllableThreadRepository implements ThreadRepository {
   Future<List<ThreadInboxItem>> loadFollowedThreads(
     ServerScopeId serverId,
   ) async {
+    loadCallCount++;
     if (failure != null) throw failure!;
     return initialItems;
   }

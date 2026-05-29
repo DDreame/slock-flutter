@@ -2434,6 +2434,12 @@ abstract class AppLocalizations {
   /// **'Copy text'**
   String get conversationContextCopyText;
 
+  /// No description provided for @conversationContextCopyMarkdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy markdown'**
+  String get conversationContextCopyMarkdown;
+
   /// No description provided for @conversationContextCopyLink.
   ///
   /// In en, this message translates to:

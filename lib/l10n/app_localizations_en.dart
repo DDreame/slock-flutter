@@ -1264,6 +1264,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationContextCopyText => 'Copy text';
 
   @override
+  String get conversationContextCopyMarkdown => 'Copy markdown';
+
+  @override
   String get conversationContextCopyLink => 'Copy link';
 
   @override

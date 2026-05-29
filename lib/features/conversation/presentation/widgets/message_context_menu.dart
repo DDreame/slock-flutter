@@ -33,6 +33,7 @@ void showMessageContextMenu({
   VoidCallback? onTranslate,
   VoidCallback? onSelect,
   VoidCallback? onCopyLink,
+  VoidCallback? onCopyMarkdown,
 }) {
   final l10n = _conversationL10n(context);
   showModalBottomSheet<void>(
@@ -99,6 +100,16 @@ void showMessageContextMenu({
                 onCopy();
               },
             ),
+            if (onCopyMarkdown != null)
+              ListTile(
+                key: const ValueKey('ctx-action-copy-markdown'),
+                leading: const Icon(Icons.code_outlined),
+                title: Text(l10n.conversationContextCopyMarkdown),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onCopyMarkdown();
+                },
+              ),
             if (onCopyLink != null)
               ListTile(
                 key: const ValueKey('ctx-action-copy-link'),
