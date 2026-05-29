@@ -30,6 +30,7 @@ import 'package:slock_app/core/core.dart' show connectivityServiceProvider;
 import 'package:slock_app/core/deep_link/deep_link_lifecycle_binding.dart';
 import 'package:slock_app/core/network/connectivity_service.dart'
     show initConnectivityService;
+import 'package:slock_app/features/servers/application/unread_summary_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/biometric/biometric_lock_lifecycle_binding.dart';
@@ -181,6 +182,7 @@ class _LifecycleBindingsActivator extends ConsumerWidget {
     ref.watch(presenceRealtimeBindingProvider);
     ref.watch(domainRuntimeEventRouterProvider);
     ref.watch(deepLinkLifecycleBindingProvider);
+    ref.watch(unreadSummaryLifecycleBindingProvider);
     return child;
   }
 }

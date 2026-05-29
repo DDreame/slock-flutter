@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/application/unread_summary_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_management_dialogs.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
@@ -327,6 +329,8 @@ class _ServerList extends ConsumerWidget {
         ),
       ),
     );
+    final unreadSummary = ref.watch(unreadSummaryStoreProvider);
+    final colors = Theme.of(context).extension<AppColors>();
     return ListView.builder(
       shrinkWrap: true,
       itemCount: servers.length,
@@ -336,9 +340,21 @@ class _ServerList extends ConsumerWidget {
         final isBusy = busySets.savingServerIds.contains(server.id) ||
             busySets.deletingServerIds.contains(server.id) ||
             busySets.leavingServerIds.contains(server.id);
+        final hasUnread = !isSelected && (unreadSummary[server.id] ?? 0) > 0;
         return ListTile(
           key: ValueKey('server-${server.id}'),
           title: Text(server.name),
+          leading: hasUnread
+              ? Container(
+                  key: ValueKey('unread-badge-${server.id}'),
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: colors?.error ?? Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                )
+              : null,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
