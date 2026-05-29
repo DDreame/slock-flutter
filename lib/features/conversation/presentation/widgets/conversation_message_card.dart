@@ -28,6 +28,8 @@ import 'package:slock_app/features/profile/data/profile_repository_provider.dart
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/application/thread_replies_store.dart';
+import 'package:slock_app/features/conversation/presentation/utils/message_permalink_builder.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
@@ -959,16 +961,12 @@ class ConversationMessageCardState
           .read(conversationDetailStoreProvider.notifier)
           .enterSelectionMode(widget.message.id),
       onCopyLink: () {
-        final serverId = widget.target.serverId.value;
-        final conversationId = widget.target.conversationId;
-        final messageId = widget.message.id;
-        final segment = isChannel ? 'channels' : 'dms';
-        final permalink = Uri(
-          scheme: 'https',
-          host: 'app.slock.ai',
-          path: '/servers/$serverId/$segment/$conversationId',
-          queryParameters: {'messageId': messageId},
-        ).toString();
+        final threadContext = ref.read(currentThreadContextProvider);
+        final permalink = buildMessagePermalink(
+          target: widget.target,
+          messageId: widget.message.id,
+          threadContext: threadContext,
+        );
         Clipboard.setData(ClipboardData(text: permalink));
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
