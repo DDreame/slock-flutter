@@ -574,6 +574,7 @@
   "conversationContextReact": "React",
   "conversationContextTranslate": "Translate",
   "conversationContextCopyText": "Copy text",
+  "conversationContextCopyMarkdown": "Copy markdown",
   "conversationContextCopyLink": "Copy link",
   "conversationContextForward": "Forward",
   "conversationContextSaveMessage": "Save message",

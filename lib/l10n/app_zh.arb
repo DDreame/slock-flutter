@@ -403,6 +403,7 @@
   "conversationContextReact": "回应",
   "conversationContextTranslate": "翻译",
   "conversationContextCopyText": "复制文本",
+  "conversationContextCopyMarkdown": "复制 Markdown",
   "conversationContextCopyLink": "复制链接",
   "conversationContextForward": "转发",
   "conversationContextSaveMessage": "保存消息",

@@ -289,6 +289,7 @@
   "conversationContextReact": "Reaccionar",
   "conversationContextTranslate": "Traducir",
   "conversationContextCopyText": "Copiar texto",
+  "conversationContextCopyMarkdown": "Copiar markdown",
   "conversationContextCopyLink": "Copiar enlace",
   "conversationContextForward": "Reenviar",
   "conversationContextSaveMessage": "Guardar mensaje",

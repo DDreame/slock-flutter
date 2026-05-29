@@ -1071,6 +1071,29 @@ void main() {
     });
 
     // ------------------------------------------------------------------
+    // Rooms domain (B125 PR 3)
+    // ------------------------------------------------------------------
+    group('rooms domain', () {
+      test('rooms:joined increments routedRoomsJoinedSignalProvider', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        final before = container.read(routedRoomsJoinedSignalProvider);
+
+        pushEvent('rooms:joined');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          container.read(routedRoomsJoinedSignalProvider),
+          before + 1,
+          reason: 'rooms:joined must increment the signal provider',
+        );
+      });
+    });
+
+    // ------------------------------------------------------------------
     // Guard: home events skipped when no active server
     // ------------------------------------------------------------------
     test('channel:updated is no-op when active server is null', () async {

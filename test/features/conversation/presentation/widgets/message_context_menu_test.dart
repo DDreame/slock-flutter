@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   ConversationMessageSummary makeMessage({
@@ -384,6 +385,123 @@ void main() {
 
       // Bottom sheet should be dismissed.
       expect(find.byKey(const ValueKey('ctx-action-copy')), findsNothing);
+    });
+
+    testWidgets('shows copy-markdown action when onCopyMarkdown is provided',
+        (tester) async {
+      bool copiedMarkdown = false;
+      await tester.pumpWidget(wrap(
+        Builder(builder: (context) {
+          return ElevatedButton(
+            onPressed: () {
+              showMessageContextMenu(
+                context: context,
+                message: makeMessage(),
+                isOwn: false,
+                isSaved: false,
+                isChannel: true,
+                onReply: () {},
+                onReact: () {},
+                onCopy: () {},
+                onSave: () {},
+                onPin: () {},
+                onForward: () {},
+                onCopyMarkdown: () => copiedMarkdown = true,
+              );
+            },
+            child: const Text('Open menu'),
+          );
+        }),
+      ));
+
+      await tester.tap(find.text('Open menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('ctx-action-copy-markdown')),
+          findsOneWidget);
+      expect(find.text('Copy markdown'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('ctx-action-copy-markdown')));
+      await tester.pumpAndSettle();
+
+      expect(copiedMarkdown, isTrue);
+    });
+
+    testWidgets('hides copy-markdown action when onCopyMarkdown is null',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        Builder(builder: (context) {
+          return ElevatedButton(
+            onPressed: () {
+              showMessageContextMenu(
+                context: context,
+                message: makeMessage(),
+                isOwn: false,
+                isSaved: false,
+                isChannel: true,
+                onReply: () {},
+                onReact: () {},
+                onCopy: () {},
+                onSave: () {},
+                onPin: () {},
+                onForward: () {},
+              );
+            },
+            child: const Text('Open menu'),
+          );
+        }),
+      ));
+
+      await tester.tap(find.text('Open menu'));
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byKey(const ValueKey('ctx-action-copy-markdown')), findsNothing);
+    });
+
+    testWidgets('copy-markdown renders ZH locale string (load-bearing L10n)',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light,
+            locale: const Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showMessageContextMenu(
+                      context: context,
+                      message: makeMessage(),
+                      isOwn: false,
+                      isSaved: false,
+                      isChannel: true,
+                      onReply: () {},
+                      onReact: () {},
+                      onCopy: () {},
+                      onSave: () {},
+                      onPin: () {},
+                      onForward: () {},
+                      onCopyMarkdown: () {},
+                    );
+                  },
+                  child: const Text('Open menu'),
+                );
+              }),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open menu'));
+      await tester.pumpAndSettle();
+
+      // ZH string must appear.
+      expect(find.text('复制 Markdown'), findsOneWidget);
+      // English string must NOT appear — reverting to hardcoded breaks this.
+      expect(find.text('Copy markdown'), findsNothing);
     });
   });
 }

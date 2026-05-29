@@ -53,6 +53,7 @@ const _agentDeletedEvent = 'agent:deleted';
 const _announcementNewEvent = 'announcement:new';
 const _announcementUpdatedEvent = 'announcement:updated';
 const _announcementDeletedEvent = 'announcement:deleted';
+const _roomsJoinedEvent = 'rooms:joined';
 
 /// INV-856: Synthetic event emitted after a sync:resume:response batch
 /// completes with hasMore=false. Triggers a single coalesced inbox/home
@@ -85,6 +86,11 @@ final routedChannelMembersSignalProvider =
 /// Typed task event emitted by the router after payload parsing.
 /// The tasks page listens and applies upsert/remove to its scoped store.
 final routedTaskEventProvider = StateProvider<TaskRouterEvent?>((ref) => null);
+
+/// Counter signal incremented when a [rooms:joined] event arrives.
+/// The threads inbox page listens and reloads its scoped store — this
+/// refreshes followed threads after a reconnect room-rejoin.
+final routedRoomsJoinedSignalProvider = StateProvider<int>((ref) => 0);
 
 /// Lightweight signal carrying parsed server/channel IDs from a
 /// channel-scoped realtime event.
@@ -323,6 +329,10 @@ final domainRuntimeEventRouterProvider = Provider<void>(
           _handleAnnouncementUpdated(ref, event);
         case _announcementDeletedEvent:
           _handleAnnouncementDeleted(ref, event);
+
+        // — Rooms domain —
+        case _roomsJoinedEvent:
+          ref.read(routedRoomsJoinedSignalProvider.notifier).state++;
       }
     });
 

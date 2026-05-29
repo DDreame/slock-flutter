@@ -35,6 +35,16 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       }
     });
 
+    // Refresh when rooms:joined event fires — followed threads may have
+    // changed after the server rejoins the client to its rooms.
+    ref.listen(routedRoomsJoinedSignalProvider, (prev, next) {
+      if (prev != null && next != prev) {
+        if (state.status == ThreadsInboxStatus.success) {
+          load();
+        }
+      }
+    });
+
     Future.microtask(() {
       if (state.status == ThreadsInboxStatus.initial) {
         load();

@@ -1282,6 +1282,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get conversationContextCopyText => 'Copiar texto';
 
   @override
+  String get conversationContextCopyMarkdown => 'Copiar markdown';
+
+  @override
   String get conversationContextCopyLink => 'Copiar enlace';
 
   @override
