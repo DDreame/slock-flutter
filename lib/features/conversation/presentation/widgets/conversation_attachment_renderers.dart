@@ -17,6 +17,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/image_gallery_page.dart';
 import 'package:slock_app/features/voice/data/audio_player_service.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
@@ -67,6 +68,13 @@ class AttachmentSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Pre-compute list of image attachments for multi-image gallery.
+    final imageAttachments = attachments
+        .where((a) =>
+            _imageTypes.contains(a.type.toLowerCase()) &&
+            (a.thumbnailUrl != null || a.url != null))
+        .toList();
+
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
@@ -76,7 +84,8 @@ class AttachmentSection extends ConsumerWidget {
           for (final attachment in attachments)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: _buildAttachmentWidget(context, ref, attachment),
+              child: _buildAttachmentWidget(
+                  context, ref, attachment, imageAttachments),
             ),
         ],
       ),
@@ -87,12 +96,16 @@ class AttachmentSection extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     MessageAttachment attachment,
+    List<MessageAttachment> imageAttachments,
   ) {
     final mimeType = attachment.type.toLowerCase();
 
     if (_imageTypes.contains(mimeType) &&
         (attachment.thumbnailUrl != null || attachment.url != null)) {
-      final imageWidget = _ImageAttachmentPreview(attachment: attachment);
+      final imageWidget = _ImageAttachmentPreview(
+        attachment: attachment,
+        allImages: imageAttachments,
+      );
       // Wrap in VisibilityDetector so the scheduler knows which items are
       // on-screen (priority) vs offscreen (deferred). The actual enqueue
       // happens eagerly in _registerAttachmentDownloads on message load.
@@ -170,9 +183,15 @@ class AttachmentSection extends ConsumerWidget {
 }
 
 class _ImageAttachmentPreview extends StatelessWidget {
-  const _ImageAttachmentPreview({required this.attachment});
+  const _ImageAttachmentPreview({
+    required this.attachment,
+    required this.allImages,
+  });
 
   final MessageAttachment attachment;
+
+  /// All image attachments from the same message, for multi-image gallery.
+  final List<MessageAttachment> allImages;
 
   /// Hoisted BorderRadius for image clip — avoids per-build allocation
   /// (Scan #46 PR B).
@@ -267,9 +286,15 @@ class _ImageAttachmentPreview extends StatelessWidget {
   }
 
   void _openFullScreen(BuildContext context) {
-    // Use GoRouter push instead of Navigator.push so the page
-    // is visible to GoRouter's navigation stack.
-    context.push('/file-preview', extra: attachment);
+    // Multi-image: open gallery with all images, starting at this one.
+    final index = allImages.indexOf(attachment);
+    context.push(
+      '/image-gallery',
+      extra: ImageGalleryArgs(
+        images: allImages,
+        initialIndex: index >= 0 ? index : 0,
+      ),
+    );
   }
 }
 

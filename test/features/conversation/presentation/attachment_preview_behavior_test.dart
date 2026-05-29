@@ -13,6 +13,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/image_gallery_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -205,7 +206,7 @@ void main() {
       expect(attachmentRepo.signedUrlCalls, contains('att-img'));
       // InteractiveViewer should be visible (full-screen mode)
       expect(
-        find.byKey(const ValueKey('image-viewer-interactive')),
+        find.byKey(const ValueKey('gallery-interactive-viewer-0')),
         findsOneWidget,
         reason: 'Full-screen image viewer should render InteractiveViewer',
       );
@@ -528,7 +529,7 @@ void main() {
       );
       // Full-screen viewer should still render with direct URL fallback
       expect(
-        find.byKey(const ValueKey('image-viewer-interactive')),
+        find.byKey(const ValueKey('gallery-interactive-viewer-0')),
         findsOneWidget,
         reason: 'Full-screen viewer should render with direct url fallback',
       );
@@ -584,7 +585,7 @@ void main() {
       expect(attachmentRepo.signedUrlCalls, contains('att-fail'));
       // Viewer should still render (with fallback url)
       expect(
-        find.byKey(const ValueKey('image-viewer-interactive')),
+        find.byKey(const ValueKey('gallery-interactive-viewer-0')),
         findsOneWidget,
         reason:
             'Full-screen viewer should fall back to direct url on API failure',
@@ -841,6 +842,13 @@ GoRouter _testGoRouter({required ConversationDetailTarget target}) => GoRouter(
           builder: (_, state) {
             final attachment = state.extra as MessageAttachment;
             return FilePreviewPage(attachment: attachment);
+          },
+        ),
+        GoRoute(
+          path: '/image-gallery',
+          builder: (_, state) {
+            final args = state.extra as ImageGalleryArgs;
+            return ImageGalleryPage(args: args);
           },
         ),
       ],

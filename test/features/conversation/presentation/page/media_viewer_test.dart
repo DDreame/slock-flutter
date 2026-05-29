@@ -14,6 +14,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/image_gallery_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -60,15 +61,15 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-MEDIA-1: Tapping an image attachment in a message opens
-  // FilePreviewPage via GoRouter push to /file-preview.
+  // ImageGalleryPage via GoRouter push to /image-gallery.
   //
   // Production key for image tap target:
   //   ValueKey('image-preview-${attachment.id ?? attachment.name}')
-  // Production key for the viewer page:
-  //   ValueKey('file-preview-page')
+  // Production key for the gallery page:
+  //   ValueKey('image-gallery-page')
   // -----------------------------------------------------------------------
   testWidgets(
-    'Tapping image attachment opens FilePreviewPage (INV-MEDIA-1)',
+    'Tapping image attachment opens ImageGalleryPage (INV-MEDIA-1)',
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotWithImage(),
@@ -86,27 +87,27 @@ void main() {
           reason: 'Image attachment thumbnail must be rendered with '
               'production key image-preview-att-1');
 
-      // Tap the image thumbnail — production calls context.push('/file-preview').
+      // Tap the image thumbnail — production calls context.push('/image-gallery').
       await tester.tap(imageThumbnailFinder);
       await _pumpUntilLoaded(tester);
 
-      // FilePreviewPage must be pushed via GoRouter.
+      // ImageGalleryPage must be pushed via GoRouter.
       expect(
-        find.byKey(const ValueKey('file-preview-page')),
+        find.byKey(const ValueKey('image-gallery-page')),
         findsOneWidget,
-        reason: 'Tapping image attachment must open FilePreviewPage '
-            'via GoRouter /file-preview route (INV-MEDIA-1)',
+        reason: 'Tapping image attachment must open ImageGalleryPage '
+            'via GoRouter /image-gallery route (INV-MEDIA-1)',
       );
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-MEDIA-2: FilePreviewPage shows the image inside an
-  // InteractiveViewer widget (keyed 'image-viewer-interactive'),
+  // INV-MEDIA-2: ImageGalleryPage shows the image inside an
+  // InteractiveViewer widget (keyed 'gallery-interactive-viewer-0'),
   // enabling pinch-to-zoom.
   // -----------------------------------------------------------------------
   testWidgets(
-    'FilePreviewPage uses InteractiveViewer for pinch-to-zoom (INV-MEDIA-2)',
+    'ImageGalleryPage uses InteractiveViewer for pinch-to-zoom (INV-MEDIA-2)',
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotWithImage(),
@@ -122,19 +123,19 @@ void main() {
       await tester.tap(imageThumbnailFinder);
       await _pumpUntilLoaded(tester);
 
-      // FilePreviewPage must be open.
+      // ImageGalleryPage must be open.
       expect(
-        find.byKey(const ValueKey('file-preview-page')),
+        find.byKey(const ValueKey('image-gallery-page')),
         findsOneWidget,
-        reason: 'FilePreviewPage must be open',
+        reason: 'ImageGalleryPage must be open',
       );
 
       // InteractiveViewer must be rendered with production key.
       expect(
-        find.byKey(const ValueKey('image-viewer-interactive')),
+        find.byKey(const ValueKey('gallery-interactive-viewer-0')),
         findsOneWidget,
-        reason: 'FilePreviewPage must use InteractiveViewer '
-            '(keyed image-viewer-interactive) for pinch-to-zoom '
+        reason: 'ImageGalleryPage must use InteractiveViewer '
+            '(keyed gallery-interactive-viewer-0) for pinch-to-zoom '
             '(INV-MEDIA-2)',
       );
     },
@@ -143,7 +144,7 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-MEDIA-3: Swiping down on the viewer dismisses it and returns to
   // the conversation. Production must add a swipe-to-dismiss gesture
-  // handler (keyed 'media-viewer-dismiss-area') wrapping the viewer
+  // handler (keyed 'gallery-dismiss-area') wrapping the viewer
   // content. A vertical drag beyond threshold dismisses the page.
   //
   // skip:true — swipe-to-dismiss gesture is NOT yet implemented.
@@ -166,29 +167,28 @@ void main() {
       await tester.tap(imageThumbnailFinder);
       await _pumpUntilLoaded(tester);
 
-      // FilePreviewPage must be open.
+      // ImageGalleryPage must be open.
       expect(
-        find.byKey(const ValueKey('file-preview-page')),
+        find.byKey(const ValueKey('image-gallery-page')),
         findsOneWidget,
-        reason: 'FilePreviewPage must be open before swipe dismiss',
+        reason: 'ImageGalleryPage must be open before swipe dismiss',
       );
 
       // Swipe-to-dismiss area must exist in the viewer.
-      final dismissArea =
-          find.byKey(const ValueKey('media-viewer-dismiss-area'));
+      final dismissArea = find.byKey(const ValueKey('gallery-dismiss-area'));
       expect(dismissArea, findsOneWidget,
-          reason: 'FilePreviewPage must have a swipe-to-dismiss '
+          reason: 'ImageGalleryPage must have a swipe-to-dismiss '
               'gesture area (INV-MEDIA-3)');
 
       // Perform a vertical drag down (300 px) to trigger dismiss.
       await tester.drag(dismissArea, const Offset(0, 300));
       await _pumpUntilLoaded(tester);
 
-      // FilePreviewPage must be dismissed.
+      // ImageGalleryPage must be dismissed.
       expect(
-        find.byKey(const ValueKey('file-preview-page')),
+        find.byKey(const ValueKey('image-gallery-page')),
         findsNothing,
-        reason: 'Swiping down must dismiss FilePreviewPage '
+        reason: 'Swiping down must dismiss ImageGalleryPage '
             '(INV-MEDIA-3)',
       );
 
@@ -243,7 +243,7 @@ ConversationDetailSnapshot _makeSnapshotWithImage() {
 
 /// GoRouter for tests that includes the real route destinations the page
 /// pushes to. Initial route renders ConversationDetailPage; the pushed
-/// /file-preview route renders the production FilePreviewPage.
+/// /image-gallery route renders the production ImageGalleryPage.
 GoRouter _testGoRouter({required ConversationDetailTarget target}) => GoRouter(
       initialLocation: '/',
       routes: [
@@ -256,6 +256,13 @@ GoRouter _testGoRouter({required ConversationDetailTarget target}) => GoRouter(
           builder: (_, state) {
             final attachment = state.extra as MessageAttachment;
             return FilePreviewPage(attachment: attachment);
+          },
+        ),
+        GoRoute(
+          path: '/image-gallery',
+          builder: (_, state) {
+            final args = state.extra as ImageGalleryArgs;
+            return ImageGalleryPage(args: args);
           },
         ),
       ],
