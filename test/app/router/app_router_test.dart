@@ -695,6 +695,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -759,6 +761,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
           ],
         );
         addTearDown(container.dispose);
@@ -785,6 +789,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -857,6 +863,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -918,6 +926,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -1191,6 +1201,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -1280,6 +1292,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -1335,6 +1349,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -1390,6 +1406,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),

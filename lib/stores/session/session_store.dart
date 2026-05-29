@@ -3,6 +3,7 @@ import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
+import 'package:slock_app/features/auth/application/oauth_service.dart';
 import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/conversation/application/outbox_store.dart';
@@ -123,6 +124,28 @@ class SessionStore extends Notifier<SessionState> {
     await _hydrateAuthenticatedSession(
       fallbackDisplayName: displayName,
     );
+  }
+
+  /// Authenticate via OAuth/SSO using the system browser.
+  ///
+  /// Launches the browser, waits for callback, exchanges code for tokens.
+  /// Throws [OAuthCancelledException] if the user dismisses the browser.
+  Future<void> loginWithOAuth({required String providerId}) async {
+    final oAuthService = ref.read(oAuthServiceProvider);
+    final result = await oAuthService.authenticate(providerId: providerId);
+
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      token: result.accessToken,
+    );
+    await Future.wait([
+      _storage.write(key: SessionStorageKeys.token, value: result.accessToken),
+      _storage.write(
+        key: SessionStorageKeys.refreshToken,
+        value: result.refreshToken,
+      ),
+    ]);
+    await _hydrateAuthenticatedSession();
   }
 
   Future<void> requestPasswordReset({required String email}) async {

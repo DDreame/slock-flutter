@@ -78,6 +78,16 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> resendVerification() async {}
+
+  @override
+  Future<AuthResult> completeOAuth({
+    required String providerId,
+    required String code,
+  }) async =>
+      const AuthResult(
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
+      );
 }
 
 /// A [FakeAuthRepository] whose [getMe] can be configured with a callback,

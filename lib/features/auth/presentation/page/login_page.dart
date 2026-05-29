@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/login_controller.dart';
+import 'package:slock_app/features/auth/application/oauth_login_controller.dart';
+import 'package:slock_app/features/auth/application/oauth_service.dart';
 import 'package:slock_app/features/auth/presentation/widgets/social_login_buttons.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -99,9 +101,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     : Text(l10n.loginSubmitLabel),
               ),
               SocialLoginButtons(
-                onProviderTap: (_) {
-                  // OAuth flow handled in PR 2 (B122).
-                },
+                onProviderTap: (provider) => _submitOAuth(provider.id),
               ),
               const SizedBox(height: 12),
               TextButton(
@@ -148,6 +148,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!mounted) return;
     if (state.hasError) {
       final error = state.error;
+      setState(() {
+        _errorText =
+            error is AppFailure ? error.userMessage(l10n) : l10n.errorUnknown;
+      });
+    }
+  }
+
+  Future<void> _submitOAuth(String providerId) async {
+    setState(() => _errorText = null);
+
+    await ref.read(oauthLoginControllerProvider.notifier).submit(
+          providerId: providerId,
+        );
+
+    final state = ref.read(oauthLoginControllerProvider);
+    if (!mounted) return;
+    if (state.hasError) {
+      final error = state.error;
+      if (error is OAuthCancelledException) {
+        return; // User cancelled — no error.
+      }
+      final l10n = context.l10n;
       setState(() {
         _errorText =
             error is AppFailure ? error.userMessage(l10n) : l10n.errorUnknown;
