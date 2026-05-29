@@ -3587,4 +3587,8 @@ class AppLocalizationsEs extends AppLocalizations {
   String serverSwitcherUnreadBadge(String name) {
     return '$name, tiene mensajes no leídos';
   }
+
+  @override
+  String get outboxQueueFull =>
+      'La cola de mensajes está llena. Espere a que se envíen los mensajes pendientes.';
 }

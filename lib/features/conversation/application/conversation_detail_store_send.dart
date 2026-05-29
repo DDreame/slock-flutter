@@ -98,12 +98,33 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       // Enqueue in the outbox for later drain.
       // Use the same localId so the drain callback can find the
       // pending message and reconcile the conversation state.
-      ref.read(outboxStoreProvider.notifier).enqueue(
+      final enqueued = ref.read(outboxStoreProvider.notifier).enqueue(
             target,
             content,
             replyToId: replyToId,
             localId: localId,
           );
+      if (!enqueued) {
+        // Queue full — transition to failed with capacity error.
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(
+                status: MessageSendStatus.failed,
+                failure: const ValidationFailure(
+                  message: 'Outbox queue is full.',
+                  causeType: 'outboxQueueFull',
+                ),
+              );
+            }
+            return m;
+          }).toList(),
+          sendFailure: const ValidationFailure(
+            message: 'Outbox queue is full.',
+            causeType: 'outboxQueueFull',
+          ),
+        );
+      }
       _persistSession();
       return;
     }
@@ -377,21 +398,43 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
           (pendingFiles == null || pendingFiles.isEmpty)) {
         // Retryable failure on text-only message: hand off to the outbox
         // for automatic retry on reconnect.
-        ref.read(outboxStoreProvider.notifier).enqueue(
+        final enqueued = ref.read(outboxStoreProvider.notifier).enqueue(
               target,
               content,
               replyToId: replyToId,
               localId: localId,
             );
-        // Transition visible UI to queued so the user sees the real state.
-        state = state.copyWith(
-          pendingMessages: state.pendingMessages.map((m) {
-            if (m.localId == localId) {
-              return m.copyWith(status: MessageSendStatus.queued);
-            }
-            return m;
-          }).toList(),
-        );
+        if (enqueued) {
+          // Transition visible UI to queued so the user sees the real state.
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(status: MessageSendStatus.queued);
+              }
+              return m;
+            }).toList(),
+          );
+        } else {
+          // Queue full — mark as failed with capacity error.
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(
+                  status: MessageSendStatus.failed,
+                  failure: const ValidationFailure(
+                    message: 'Outbox queue is full.',
+                    causeType: 'outboxQueueFull',
+                  ),
+                );
+              }
+              return m;
+            }).toList(),
+            sendFailure: const ValidationFailure(
+              message: 'Outbox queue is full.',
+              causeType: 'outboxQueueFull',
+            ),
+          );
+        }
         _persistSession();
 
         // Update Home sidebar to "未发送，点击重试" — PM groups
@@ -584,20 +627,42 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       if (failure.isRetryable &&
           (pending.attachmentIds == null || pending.attachmentIds!.isEmpty)) {
         // Retryable failure: hand off to outbox for automatic retry.
-        ref.read(outboxStoreProvider.notifier).enqueue(
+        final enqueued = ref.read(outboxStoreProvider.notifier).enqueue(
               target,
               pending.content,
               replyToId: pending.replyToId,
               localId: localId,
             );
-        state = state.copyWith(
-          pendingMessages: state.pendingMessages.map((m) {
-            if (m.localId == localId) {
-              return m.copyWith(status: MessageSendStatus.queued);
-            }
-            return m;
-          }).toList(),
-        );
+        if (enqueued) {
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(status: MessageSendStatus.queued);
+              }
+              return m;
+            }).toList(),
+          );
+        } else {
+          // Queue full — mark as failed with capacity error.
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(
+                  status: MessageSendStatus.failed,
+                  failure: const ValidationFailure(
+                    message: 'Outbox queue is full.',
+                    causeType: 'outboxQueueFull',
+                  ),
+                );
+              }
+              return m;
+            }).toList(),
+            sendFailure: const ValidationFailure(
+              message: 'Outbox queue is full.',
+              causeType: 'outboxQueueFull',
+            ),
+          );
+        }
         _persistSession();
 
         // Update Home sidebar to "未发送，点击重试" — PM groups
@@ -787,20 +852,38 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         );
       } else {
         // Text-only: enqueue in outbox for automatic retry.
-        ref.read(outboxStoreProvider.notifier).enqueue(
+        final enqueued = ref.read(outboxStoreProvider.notifier).enqueue(
               target,
               content,
               replyToId: replyToId,
               localId: localId,
             );
-        state = state.copyWith(
-          pendingMessages: state.pendingMessages.map((m) {
-            if (m.localId == localId) {
-              return m.copyWith(status: MessageSendStatus.queued);
-            }
-            return m;
-          }).toList(),
-        );
+        if (enqueued) {
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(status: MessageSendStatus.queued);
+              }
+              return m;
+            }).toList(),
+          );
+        } else {
+          // Queue full — mark as failed with capacity error.
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(
+                  status: MessageSendStatus.failed,
+                  failure: const ValidationFailure(
+                    message: 'Outbox queue is full.',
+                    causeType: 'outboxQueueFull',
+                  ),
+                );
+              }
+              return m;
+            }).toList(),
+          );
+        }
       }
       _persistSession();
 
