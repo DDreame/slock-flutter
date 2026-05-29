@@ -4,8 +4,17 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 
-const _callbackUrlScheme = 'slock';
-const _callbackUrl = 'slock://oauth-callback';
+/// Callback URL scheme used for the OAuth deep link.
+const oAuthCallbackUrlScheme = 'slock';
+
+/// Full callback URL passed to the OAuth provider's `returnTo` parameter.
+const oAuthCallbackUrl = 'slock://oauth-callback';
+
+/// Function signature matching `FlutterWebAuth2.authenticate`.
+typedef BrowserLaunchFn = Future<String> Function({
+  required String url,
+  required String callbackUrlScheme,
+});
 
 /// Orchestrates the OAuth/SSO browser flow:
 /// 1. Launch system browser → provider's consent screen
@@ -32,31 +41,40 @@ class OAuthCancelledException implements Exception {
 final oAuthServiceProvider = Provider<OAuthService>((ref) {
   final networkConfig = ref.watch(networkConfigProvider);
   final authRepo = ref.watch(authRepositoryProvider);
-  return _FlutterWebAuthOAuthService(
+  return FlutterWebAuthOAuthService(
     baseUrl: networkConfig.baseUrl,
     authRepository: authRepo,
   );
 });
 
-class _FlutterWebAuthOAuthService implements OAuthService {
-  const _FlutterWebAuthOAuthService({
+/// Production OAuth service that launches the system browser via
+/// `FlutterWebAuth2` and exchanges the returned code for tokens.
+///
+/// The [browserLaunch] parameter is injectable for testing — it defaults
+/// to [FlutterWebAuth2.authenticate] in production.
+class FlutterWebAuthOAuthService implements OAuthService {
+  FlutterWebAuthOAuthService({
     required String baseUrl,
     required AuthRepository authRepository,
+    BrowserLaunchFn? browserLaunch,
   })  : _baseUrl = baseUrl,
-        _authRepository = authRepository;
+        _authRepository = authRepository,
+        _browserLaunch = browserLaunch ?? FlutterWebAuth2.authenticate;
 
   final String _baseUrl;
   final AuthRepository _authRepository;
+  final BrowserLaunchFn _browserLaunch;
 
   @override
   Future<AuthResult> authenticate({required String providerId}) async {
-    final startUrl = '$_baseUrl/auth/$providerId/start?returnTo=$_callbackUrl';
+    final startUrl =
+        '$_baseUrl/auth/$providerId/start?returnTo=$oAuthCallbackUrl';
 
     final String resultUrl;
     try {
-      resultUrl = await FlutterWebAuth2.authenticate(
+      resultUrl = await _browserLaunch(
         url: startUrl,
-        callbackUrlScheme: _callbackUrlScheme,
+        callbackUrlScheme: oAuthCallbackUrlScheme,
       );
     } on Exception catch (e) {
       // flutter_web_auth_2 throws PlatformException with code 'CANCELED'

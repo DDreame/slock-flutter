@@ -2,15 +2,18 @@
 // B122 PR 2 — OAuth flow + deep link handling (load-bearing tests).
 //
 // Tests prove:
-// 1. OAuthService.authenticate orchestrates browser → code → token exchange.
-// 2. OAuthCancelledException is thrown when user dismisses browser.
-// 3. Missing code in callback → SerializationFailure.
-// 4. SessionStore.loginWithOAuth stores tokens and hydrates session.
-// 5. LoginPage wires OAuth controller (button tap → session authenticated).
-// 6. completeOAuth endpoint is correctly wired (/auth/{provider}/complete).
-// 7. /auth/{provider}/complete is recognized as public endpoint (no Bearer).
+// 1. FlutterWebAuthOAuthService constructs correct start URL.
+// 2. FlutterWebAuthOAuthService passes correct callbackUrlScheme.
+// 3. FlutterWebAuthOAuthService extracts code from callback URI.
+// 4. FlutterWebAuthOAuthService calls completeOAuth with extracted code.
+// 5. OAuthCancelledException is thrown when user dismisses browser.
+// 6. Missing/empty code in callback → SerializationFailure.
+// 7. SessionStore.loginWithOAuth stores tokens and hydrates session.
+// 8. LoginPage wires OAuth controller (button tap → session authenticated).
+// 9. /auth/{provider}/complete is recognized as public endpoint (no Bearer).
 //
-// Removing OAuthService/SessionStore.loginWithOAuth/completeOAuth → tests RED.
+// Removing URL construction, callbackUrlScheme, callback parsing,
+// or OAuthService → tests RED.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -38,37 +41,148 @@ import '../../../stores/session/session_store_persistence_test.dart'
 
 void main() {
   // ===========================================================================
-  // OAuthService unit tests
+  // FlutterWebAuthOAuthService — real code path with injected browser seam
   // ===========================================================================
-  group('B122 OAuth — OAuthService', () {
-    test('authenticate calls completeOAuth with extracted code', () async {
-      final repo = _FakeAuthRepository();
-      final service = _FakeOAuthServiceWithRepo(
-        fakeCallbackUrl: 'slock://oauth-callback?code=test-code-123',
-        authRepository: repo,
+  group('B122 OAuth — FlutterWebAuthOAuthService (real path)', () {
+    test('constructs correct start URL with provider and returnTo', () async {
+      String? capturedUrl;
+      String? capturedScheme;
+
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.example.com',
+        authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          capturedUrl = url;
+          capturedScheme = callbackUrlScheme;
+          return 'slock://oauth-callback?code=abc';
+        },
       );
 
-      final result = await service.authenticate(providerId: 'google');
+      await service.authenticate(providerId: 'google');
 
-      expect(result.accessToken, 'oauth-access-token');
-      expect(result.refreshToken, 'oauth-refresh-token');
-      expect(repo.lastOAuthProviderId, 'google');
-      expect(repo.lastOAuthCode, 'test-code-123');
+      expect(
+        capturedUrl,
+        'https://api.example.com/auth/google/start?returnTo=slock://oauth-callback',
+        reason: 'Removing URL construction (baseUrl + provider + returnTo) → '
+            'wrong URL sent to browser → RED.',
+      );
+      expect(
+        capturedScheme,
+        'slock',
+        reason:
+            'Changing callbackUrlScheme → browser cannot intercept callback → RED.',
+      );
     });
 
-    test('throws OAuthCancelledException when user cancels', () async {
-      final service = _CancellingOAuthService();
+    test('passes callbackUrlScheme as "slock"', () async {
+      String? capturedScheme;
+
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.test.io',
+        authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          capturedScheme = callbackUrlScheme;
+          return 'slock://oauth-callback?code=xyz';
+        },
+      );
+
+      await service.authenticate(providerId: 'github');
+
+      expect(capturedScheme, oAuthCallbackUrlScheme);
+      expect(capturedScheme, 'slock');
+    });
+
+    test('extracts code from callback URI and calls completeOAuth', () async {
+      final repo = _FakeAuthRepository();
+
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.example.com',
+        authRepository: repo,
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          return 'slock://oauth-callback?code=extracted-code-456';
+        },
+      );
+
+      final result = await service.authenticate(providerId: 'github');
+
+      expect(repo.lastOAuthProviderId, 'github');
+      expect(
+        repo.lastOAuthCode,
+        'extracted-code-456',
+        reason: 'Removing URI code extraction → completeOAuth gets null → RED.',
+      );
+      expect(result.accessToken, 'oauth-access-token');
+      expect(result.refreshToken, 'oauth-refresh-token');
+    });
+
+    test('throws OAuthCancelledException when browser throws CANCELED',
+        () async {
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.example.com',
+        authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          throw Exception('PlatformException(CANCELED, User cancelled, null)');
+        },
+      );
 
       expect(
         () => service.authenticate(providerId: 'google'),
         throwsA(isA<OAuthCancelledException>()),
+        reason:
+            'Removing cancellation detection → exception propagates raw → RED.',
+      );
+    });
+
+    test('rethrows non-cancellation exceptions from browser', () async {
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.example.com',
+        authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          throw Exception('NetworkError: no internet');
+        },
+      );
+
+      expect(
+        () => service.authenticate(providerId: 'google'),
+        throwsA(
+          predicate<Exception>(
+            (e) => e.toString().contains('NetworkError'),
+          ),
+        ),
       );
     });
 
     test('throws SerializationFailure when callback has no code', () async {
-      final service = _FakeOAuthServiceWithRepo(
-        fakeCallbackUrl: 'slock://oauth-callback',
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.example.com',
         authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          return 'slock://oauth-callback'; // no code param
+        },
+      );
+
+      expect(
+        () => service.authenticate(providerId: 'google'),
+        throwsA(isA<SerializationFailure>()),
+        reason:
+            'Removing empty-code check → passes null to completeOAuth → RED.',
+      );
+    });
+
+    test('throws SerializationFailure when callback has empty code', () async {
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.example.com',
+        authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          return 'slock://oauth-callback?code=';
+        },
       );
 
       expect(
@@ -77,15 +191,25 @@ void main() {
       );
     });
 
-    test('throws SerializationFailure when callback has empty code', () async {
-      final service = _FakeOAuthServiceWithRepo(
-        fakeCallbackUrl: 'slock://oauth-callback?code=',
+    test('includes different provider IDs in start URL', () async {
+      String? capturedUrl;
+
+      final service = FlutterWebAuthOAuthService(
+        baseUrl: 'https://api.slock.dev',
         authRepository: _FakeAuthRepository(),
+        browserLaunch: (
+            {required String url, required String callbackUrlScheme}) async {
+          capturedUrl = url;
+          return 'slock://oauth-callback?code=c';
+        },
       );
 
+      await service.authenticate(providerId: 'microsoft');
+
       expect(
-        () => service.authenticate(providerId: 'google'),
-        throwsA(isA<SerializationFailure>()),
+        capturedUrl,
+        contains('/auth/microsoft/start'),
+        reason: 'Provider ID must appear in the start URL path.',
       );
     });
   });
@@ -244,33 +368,6 @@ void main() {
 // =============================================================================
 // Fakes
 // =============================================================================
-
-/// Simulates the OAuth service by faking the browser callback URL.
-/// Exercises the real code-extraction + token-exchange logic.
-class _FakeOAuthServiceWithRepo implements OAuthService {
-  _FakeOAuthServiceWithRepo({
-    required this.fakeCallbackUrl,
-    required this.authRepository,
-  });
-
-  final String fakeCallbackUrl;
-  final AuthRepository authRepository;
-
-  @override
-  Future<AuthResult> authenticate({required String providerId}) async {
-    // Simulate what _FlutterWebAuthOAuthService does, but with a fake
-    // callback URL instead of launching a real browser.
-    final uri = Uri.parse(fakeCallbackUrl);
-    final code = uri.queryParameters['code'];
-    if (code == null || code.isEmpty) {
-      throw const SerializationFailure(
-        message: 'OAuth callback missing authorization code.',
-        causeType: 'OAuthCallbackError',
-      );
-    }
-    return authRepository.completeOAuth(providerId: providerId, code: code);
-  }
-}
 
 class _CancellingOAuthService implements OAuthService {
   @override
