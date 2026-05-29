@@ -831,6 +831,43 @@ void main() {
           reason: 'unfollow() must be no-op when threadChannelId is null');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Scan #48 PR B: _markRead generic catch
+  // ---------------------------------------------------------------------------
+  group('_markRead generic catch', () {
+    test(
+      'StateError from markThreadRead does not crash (generic catch)',
+      () async {
+        // Setup: resolve succeeds so load() reaches _markRead call.
+        mockRepo.resolveResult = const ResolvedThreadChannel(
+          threadChannelId: 'thread-ch-1',
+          replyCount: 3,
+          participantIds: ['user-1'],
+        );
+        // markThreadRead will throw StateError (Error subclass, not AppFailure).
+        mockRepo.markReadThrowable =
+            StateError('Simulated disposed provider in markThreadRead');
+
+        final sub = container.listen(threadRepliesStoreProvider, (_, __) {});
+        addTearDown(sub.close);
+
+        // Trigger load → success → _markRead fires unawaited.
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        // Drain unawaited _markRead future.
+        await Future<void>.delayed(Duration.zero);
+
+        // Store must still be in success state (not crashed).
+        final state = container.read(threadRepliesStoreProvider);
+        expect(state.status, ThreadRepliesStatus.success,
+            reason:
+                'Reverting catch (_) to on AppFailure → StateError propagates '
+                '→ unhandled Future error → RED');
+        expect(mockRepo.markReadCallCount, 1);
+      },
+    );
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -850,6 +887,8 @@ class _MockThreadRepository implements ThreadRepository {
   int followCallCount = 0;
   int markDoneCallCount = 0;
   int unfollowCallCount = 0;
+  int markReadCallCount = 0;
+  Object? markReadThrowable;
 
   @override
   Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) async {
@@ -894,7 +933,10 @@ class _MockThreadRepository implements ThreadRepository {
   Future<void> markThreadRead(
     ServerScopeId serverId, {
     required String threadChannelId,
-  }) async {}
+  }) async {
+    markReadCallCount++;
+    if (markReadThrowable != null) throw markReadThrowable!;
+  }
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(

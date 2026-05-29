@@ -281,6 +281,10 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
           );
     } on AppFailure {
       return;
+    } catch (_) {
+      // Generic catch: Error subclasses (e.g. StateError from disposed
+      // provider) on this unawaited path must not surface as unhandled.
+      return;
     }
   }
 }
