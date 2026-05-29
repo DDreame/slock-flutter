@@ -5,6 +5,106 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 
+/// Data class for parsed thread reference info.
+///
+/// Used by [ThreadRefBuilder] and the fallback span builder to pass
+/// structured data to the tap callback.
+class ThreadRefData {
+  const ThreadRefData({
+    required this.targetName,
+    required this.messageShortId,
+    required this.isDm,
+  });
+
+  /// Channel name (for channel threads) or peer @handle (for DM threads).
+  final String targetName;
+
+  /// The 6-8 hex char short ID of the parent message.
+  final String messageShortId;
+
+  /// Whether this is a DM thread (`dm:@name:hexid`) vs channel thread.
+  final bool isDm;
+}
+
+/// Inline syntax that matches thread reference patterns in message text.
+///
+/// Two patterns:
+/// - Channel thread: `#channel-name:a1b2c3d4` (channel + colon + 6-8 hex ID)
+/// - DM thread: `dm:@username:a1b2c3d4` (dm + @handle + colon + 6-8 hex ID)
+///
+/// Must be registered BEFORE [ChannelRefSyntax] so that `#foo:abc123` is not
+/// partially consumed as a channel ref `#foo`.
+///
+/// Produces an `md.Element` with tag `thread_ref` containing attributes:
+/// - `target`: channel name or DM peer name
+/// - `messageId`: the hex short ID
+/// - `isDm`: "true" or "false"
+class ThreadRefSyntax extends md.InlineSyntax {
+  ThreadRefSyntax()
+      : super(
+          r'(?:#([a-zA-Z][\w-]+):([\da-f]{6,8})|dm:@([\w][\w.\-]*):([\da-f]{6,8}))',
+          caseSensitive: false,
+        );
+
+  @override
+  bool tryMatch(md.InlineParser parser, [int? startMatchPos]) {
+    final start = startMatchPos ?? parser.pos;
+    // Must be at start of string or preceded by whitespace/punctuation.
+    if (start > 0) {
+      final preceding = parser.source.codeUnitAt(start - 1);
+      if (_isWordCharOrDot(preceding)) {
+        return false;
+      }
+    }
+    return super.tryMatch(parser, startMatchPos);
+  }
+
+  static bool _isWordCharOrDot(int codeUnit) {
+    return (codeUnit >= 48 && codeUnit <= 57) ||
+        (codeUnit >= 65 && codeUnit <= 90) ||
+        codeUnit == 95 ||
+        (codeUnit >= 97 && codeUnit <= 122) ||
+        codeUnit == 46;
+  }
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    // Group layout:
+    // match[1] = channel name (channel thread)
+    // match[2] = hex ID (channel thread)
+    // match[3] = DM peer name (DM thread)
+    // match[4] = hex ID (DM thread)
+    final channelName = match.group(1);
+    final channelMsgId = match.group(2);
+    final dmPeerName = match.group(3);
+    final dmMsgId = match.group(4);
+
+    final String target;
+    final String messageId;
+    final bool isDm;
+
+    if (channelName != null && channelMsgId != null) {
+      target = channelName;
+      messageId = channelMsgId;
+      isDm = false;
+    } else if (dmPeerName != null && dmMsgId != null) {
+      target = dmPeerName;
+      messageId = dmMsgId;
+      isDm = true;
+    } else {
+      return false;
+    }
+
+    final fullText = match.group(0)!;
+    final element = md.Element.text('thread_ref', fullText);
+    element.attributes['target'] = target;
+    element.attributes['messageId'] = messageId;
+    element.attributes['isDm'] = isDm.toString();
+    parser.addNode(element);
+    return true;
+  }
+}
+
 /// Inline syntax that matches `#channel-name` patterns in message text.
 ///
 /// Matches: `#` followed by one or more word characters, hyphens, or dots.
@@ -187,6 +287,64 @@ class TaskRefBuilder extends MarkdownElementBuilder {
   }
 }
 
+/// Element builder that renders `thread_ref` elements as styled inline chips.
+///
+/// Displays `#channel:hexid` or `dm:@name:hexid` as a tappable chip.
+/// When [onThreadRefTap] is provided, tapping invokes the callback with
+/// structured [ThreadRefData].
+class ThreadRefBuilder extends MarkdownElementBuilder {
+  ThreadRefBuilder({this.onThreadRefTap});
+
+  /// Called when a thread ref chip is tapped. Receives structured thread
+  /// reference data for navigation.
+  final void Function(ThreadRefData data)? onThreadRefTap;
+
+  /// Colors reference — set during visitElementAfterWithContext from context.
+  AppColors? _colors;
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    _colors ??= Theme.of(context).extension<AppColors>();
+    final colors = _colors!;
+    final target = element.attributes['target'] ?? '';
+    final messageId = element.attributes['messageId'] ?? '';
+    final isDm = element.attributes['isDm'] == 'true';
+
+    final displayText = isDm ? 'dm:@$target:$messageId' : '#$target:$messageId';
+
+    final style =
+        (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
+      color: colors.primary,
+      fontWeight: FontWeight.w600,
+      backgroundColor: colors.primary.withValues(alpha: 0.1),
+    );
+
+    final child = Text.rich(
+      TextSpan(text: displayText, style: style),
+    );
+
+    if (onThreadRefTap == null) return child;
+
+    final data = ThreadRefData(
+      targetName: target,
+      messageShortId: messageId,
+      isDm: isDm,
+    );
+
+    return GestureDetector(
+      key: ValueKey('thread-ref-tap-$target-$messageId'),
+      onTap: () => onThreadRefTap!(data),
+      behavior: HitTestBehavior.opaque,
+      child: child,
+    );
+  }
+}
+
 /// Compiled channel-ref pattern shared by [buildInlineRefAwareSpan].
 ///
 /// Matches `#channel-name` at word boundaries. Promoted to module-level
@@ -201,20 +359,40 @@ final channelRefSpanRegex = RegExp(r'(?<![\w.])#([a-zA-Z][\w.\-]*)');
 final taskRefSpanRegex =
     RegExp(r'(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])', caseSensitive: false);
 
-/// Combined pattern that matches mentions, channel refs, and task refs.
+/// Compiled thread-ref pattern shared by [buildInlineRefAwareSpan].
 ///
-/// Group layout:
-/// - Group 1: mention name (from `@name`)
-/// - Group 2: channel name (from `#channel`)
-/// - Group 3: task number (from `task #N`)
+/// Matches `#channel-name:hexid` (channel thread) and `dm:@name:hexid`
+/// (DM thread) at word boundaries.
 @visibleForTesting
-final inlineRefCombinedRegex = RegExp(
-  r'(?<![\w.])@([\w][\w.\-]*)|(?<![\w.])#([a-zA-Z][\w.\-]*)|(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])',
+final threadRefSpanRegex = RegExp(
+  r'(?<![\w.])(?:#([a-zA-Z][\w-]+):([\da-f]{6,8})|dm:@([\w][\w.\-]*):([\da-f]{6,8}))',
   caseSensitive: false,
 );
 
-/// Parses message text for @mentions, #channel refs, and task #N refs,
-/// returning styled [TextSpan] children.
+/// Combined pattern that matches mentions, thread refs, channel refs, and
+/// task refs.
+///
+/// Group layout (thread refs BEFORE channel refs to prevent partial consumption):
+/// - Group 1: mention name (from `@name`)
+/// - Group 2: channel thread target (from `#channel:hexid`)
+/// - Group 3: channel thread message ID
+/// - Group 4: DM thread peer name (from `dm:@name:hexid`)
+/// - Group 5: DM thread message ID
+/// - Group 6: channel name (from `#channel`)
+/// - Group 7: task number (from `task #N`)
+@visibleForTesting
+final inlineRefCombinedRegex = RegExp(
+  // Mention | channel thread | DM thread | channel ref | task ref
+  r'(?<![\w.])@([\w][\w.\-]*)'
+  r'|(?<![\w.])#([a-zA-Z][\w-]+):([\da-f]{6,8})'
+  r'|(?<![\w.])dm:@([\w][\w.\-]*):([\da-f]{6,8})'
+  r'|(?<![\w.])#([a-zA-Z][\w.\-]*)'
+  r'|(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])',
+  caseSensitive: false,
+);
+
+/// Parses message text for @mentions, thread refs, #channel refs, and
+/// task #N refs, returning styled [TextSpan] children.
 ///
 /// Used in the search-highlight fallback path where Markdown rendering
 /// is bypassed. Each inline reference type is styled distinctly.
@@ -237,6 +415,7 @@ TextSpan buildInlineRefAwareSpan({
   void Function(String name)? onMentionTap,
   void Function(String name)? onChannelRefTap,
   void Function(String number)? onTaskRefTap,
+  void Function(ThreadRefData data)? onThreadRefTap,
   List<GestureRecognizer>? createdRecognizers,
 }) {
   final matches = inlineRefCombinedRegex.allMatches(text).toList();
@@ -270,8 +449,12 @@ TextSpan buildInlineRefAwareSpan({
     }
 
     final mentionName = match.group(1);
-    final channelName = match.group(2);
-    final taskNumber = match.group(3);
+    final channelThreadTarget = match.group(2);
+    final channelThreadMsgId = match.group(3);
+    final dmThreadPeer = match.group(4);
+    final dmThreadMsgId = match.group(5);
+    final channelName = match.group(6);
+    final taskNumber = match.group(7);
 
     if (mentionName != null) {
       // @mention
@@ -291,6 +474,50 @@ TextSpan buildInlineRefAwareSpan({
       spans.add(TextSpan(
         text: '@$mentionName',
         style: mentionStyle,
+        recognizer: recognizer,
+      ));
+    } else if (channelThreadTarget != null && channelThreadMsgId != null) {
+      // #channel:hexid (channel thread)
+      final refStyle = (baseStyle ?? const TextStyle()).copyWith(
+        color: refColor,
+        fontWeight: FontWeight.w600,
+        backgroundColor: refBackground,
+      );
+      TapGestureRecognizer? recognizer;
+      if (onThreadRefTap != null) {
+        final data = ThreadRefData(
+          targetName: channelThreadTarget,
+          messageShortId: channelThreadMsgId,
+          isDm: false,
+        );
+        recognizer = TapGestureRecognizer()..onTap = () => onThreadRefTap(data);
+        createdRecognizers?.add(recognizer);
+      }
+      spans.add(TextSpan(
+        text: '#$channelThreadTarget:$channelThreadMsgId',
+        style: refStyle,
+        recognizer: recognizer,
+      ));
+    } else if (dmThreadPeer != null && dmThreadMsgId != null) {
+      // dm:@name:hexid (DM thread)
+      final refStyle = (baseStyle ?? const TextStyle()).copyWith(
+        color: refColor,
+        fontWeight: FontWeight.w600,
+        backgroundColor: refBackground,
+      );
+      TapGestureRecognizer? recognizer;
+      if (onThreadRefTap != null) {
+        final data = ThreadRefData(
+          targetName: dmThreadPeer,
+          messageShortId: dmThreadMsgId,
+          isDm: true,
+        );
+        recognizer = TapGestureRecognizer()..onTap = () => onThreadRefTap(data);
+        createdRecognizers?.add(recognizer);
+      }
+      spans.add(TextSpan(
+        text: 'dm:@$dmThreadPeer:$dmThreadMsgId',
+        style: refStyle,
         recognizer: recognizer,
       ));
     } else if (channelName != null) {

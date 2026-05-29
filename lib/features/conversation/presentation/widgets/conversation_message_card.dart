@@ -19,6 +19,7 @@ import 'package:slock_app/features/conversation/presentation/utils/sender_label_
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_reactions.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/inline_ref_syntax.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
@@ -314,6 +315,64 @@ class ConversationMessageCardState
   void _onTaskRefTap(String taskNumber) {
     final target = widget.target;
     context.push('/servers/${target.serverId.value}/tasks');
+  }
+
+  /// Handles tapping a thread reference (`#channel:hexid` or `dm:@name:hexid`).
+  /// Resolves the channel/DM name to a scope ID via the home list store,
+  /// then navigates to the thread replies page.
+  ///
+  /// Degrades gracefully when the target channel/DM cannot be resolved.
+  void _onThreadRefTap(ThreadRefData data) {
+    final target = widget.target;
+    try {
+      final state = ref.read(homeListStoreProvider);
+      final nameLower = data.targetName.toLowerCase();
+      String? parentChannelId;
+
+      if (data.isDm) {
+        // Resolve DM peer name → DM scope ID.
+        final dmMatch = state.directMessages
+            .where((d) => d.title.toLowerCase() == nameLower)
+            .firstOrNull;
+        if (dmMatch == null) {
+          // Try pinned DMs as well.
+          final pinnedDmMatch = state.pinnedDirectMessages
+              .where((d) => d.title.toLowerCase() == nameLower)
+              .firstOrNull;
+          if (pinnedDmMatch == null) return;
+          parentChannelId = pinnedDmMatch.scopeId.value;
+        } else {
+          parentChannelId = dmMatch.scopeId.value;
+        }
+      } else {
+        // Resolve channel name → channel scope ID.
+        final channelMatch = state.channels
+            .where((c) => c.name.toLowerCase() == nameLower)
+            .firstOrNull;
+        if (channelMatch == null) {
+          final pinnedMatch = state.pinnedChannels
+              .where((c) => c.name.toLowerCase() == nameLower)
+              .firstOrNull;
+          if (pinnedMatch == null) return;
+          parentChannelId = pinnedMatch.scopeId.value;
+        } else {
+          parentChannelId = channelMatch.scopeId.value;
+        }
+      }
+
+      final threadTarget = ThreadRouteTarget(
+        serverId: target.serverId.value,
+        parentChannelId: parentChannelId,
+        parentMessageId: data.messageShortId,
+      );
+      context.push(threadTarget.toLocation());
+    } catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ConversationDetail',
+        'thread ref tap navigation failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
+    }
   }
 
   /// Returns `true` when the last pointer-down landed inside the sender
@@ -898,6 +957,7 @@ class ConversationMessageCardState
       onMentionTap: _onMentionTap,
       onChannelRefTap: _onChannelRefTap,
       onTaskRefTap: _onTaskRefTap,
+      onThreadRefTap: _onThreadRefTap,
     );
 
     // If translation is cached for this message, wrap with overlay.

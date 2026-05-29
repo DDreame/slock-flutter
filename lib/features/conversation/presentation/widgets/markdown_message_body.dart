@@ -113,6 +113,7 @@ class MarkdownMessageBody extends StatefulWidget {
     this.onMentionTap,
     this.onChannelRefTap,
     this.onTaskRefTap,
+    this.onThreadRefTap,
   });
 
   /// The raw message content to render as Markdown.
@@ -144,6 +145,10 @@ class MarkdownMessageBody extends StatefulWidget {
   /// number as a string. Used for task page navigation.
   final void Function(String number)? onTaskRefTap;
 
+  /// Called when a user taps a thread reference chip (`#channel:hexid` or
+  /// `dm:@name:hexid`). Receives structured [ThreadRefData] for navigation.
+  final void Function(ThreadRefData data)? onThreadRefTap;
+
   @override
   State<MarkdownMessageBody> createState() => _MarkdownMessageBodyState();
 }
@@ -153,6 +158,9 @@ class MarkdownMessageBody extends StatefulWidget {
 final md.ExtensionSet _kExtensionSet = md.ExtensionSet(
   md.ExtensionSet.gitHubFlavored.blockSyntaxes,
   [
+    // ThreadRefSyntax before ChannelRefSyntax — "#channel:hexid" must not be
+    // partially consumed as "#channel".
+    ThreadRefSyntax(),
     // TaskRefSyntax before ChannelRefSyntax — "task #3" is more specific than
     // bare "#3" which would be caught by ChannelRefSyntax.
     TaskRefSyntax(),
@@ -186,7 +194,8 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
         oldWidget.currentUserName != widget.currentUserName ||
         oldWidget.onMentionTap != widget.onMentionTap ||
         oldWidget.onChannelRefTap != widget.onChannelRefTap ||
-        oldWidget.onTaskRefTap != widget.onTaskRefTap) {
+        oldWidget.onTaskRefTap != widget.onTaskRefTap ||
+        oldWidget.onThreadRefTap != widget.onThreadRefTap) {
       _rebuildCache();
     }
   }
@@ -203,6 +212,9 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
       'mention': MentionBuilder(
         currentUserName: widget.currentUserName,
         onMentionTap: widget.onMentionTap,
+      ),
+      'thread_ref': ThreadRefBuilder(
+        onThreadRefTap: widget.onThreadRefTap,
       ),
       'channel_ref': ChannelRefBuilder(
         onChannelRefTap: widget.onChannelRefTap,
