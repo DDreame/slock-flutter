@@ -38,6 +38,7 @@ class ThreadRepliesPage extends StatelessWidget {
       child: ProviderScope(
         overrides: [
           currentThreadRouteTargetProvider.overrideWithValue(target),
+          currentThreadContextProvider.overrideWithValue(target),
         ],
         child: const _ThreadRepliesScreen(),
       ),

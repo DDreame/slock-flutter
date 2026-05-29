@@ -1282,6 +1282,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get conversationContextCopyText => 'Copiar texto';
 
   @override
+  String get conversationContextCopyLink => 'Copiar enlace';
+
+  @override
   String get conversationContextForward => 'Reenviar';
 
   @override
@@ -2692,6 +2695,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get conversationCopiedToClipboard => 'Copiado al portapapeles.';
+
+  @override
+  String get conversationLinkCopied => 'Enlace copiado';
 
   @override
   String get conversationMessageForwarded => 'Mensaje reenviado';

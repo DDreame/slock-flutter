@@ -13,6 +13,12 @@ final currentThreadRouteTargetProvider = Provider<ThreadRouteTarget>((ref) {
   );
 });
 
+/// Nullable variant of [currentThreadRouteTargetProvider] that is safe to read
+/// outside of a thread scope. Returns `null` in regular channel/DM contexts.
+/// Overridden alongside [currentThreadRouteTargetProvider] in ThreadRepliesPage.
+final currentThreadContextProvider =
+    Provider<ThreadRouteTarget?>((ref) => null);
+
 final threadRepliesStoreProvider =
     NotifierProvider.autoDispose<ThreadRepliesStore, ThreadRepliesState>(
   ThreadRepliesStore.new,
