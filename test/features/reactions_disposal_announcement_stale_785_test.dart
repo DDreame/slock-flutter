@@ -274,6 +274,18 @@ class _DelayedReactionRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

@@ -292,6 +292,51 @@ class _ApiConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '/messages/context/$messageId',
+        options: _serverScopedOptions(target.serverId),
+      );
+      final map = _requireMap(response.data, payloadName: 'contextResponse');
+      final messages = _requireList(
+        map['messages'],
+        payloadName: 'contextResponse.messages',
+      );
+      final payload = _messagesPayloadFromList(
+        messages,
+        serverId: target.serverId.value,
+        conversationId: target.conversationId,
+        payloadName: 'contextResponse.messages',
+        historyLimited: false,
+      );
+      try {
+        await _localStore.upsertMessages(payload.storedMessages);
+        await _localStore.upsertIdentities(payload.identities);
+      } catch (e, st) {
+        // Local store write failure is non-fatal.
+        _crashReporter.captureException(e, stackTrace: st);
+      }
+      return ConversationMessagePage(
+        messages: payload.messages,
+        historyLimited: false,
+        hasOlder: map['hasOlder'] == true,
+        hasNewer: map['hasNewer'] == true,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load message context.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
     PendingAttachment attachment, {

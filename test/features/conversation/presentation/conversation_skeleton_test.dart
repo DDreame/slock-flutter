@@ -297,6 +297,18 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
+
+  @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
     PendingAttachment attachment, {
@@ -429,6 +441,18 @@ class _DelayedFakeConversationRepository implements ConversationRepository {
       hasOlder: false,
     );
   }
+
+  @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
 
   @override
   Future<String> uploadAttachment(

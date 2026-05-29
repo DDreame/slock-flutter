@@ -139,40 +139,63 @@ void main() {
     },
   );
 
-  testWidgets('Quote-jump searches multiple older pages before not found',
+  testWidgets('Quote-jump loads context page and highlights target',
       (tester) async {
     final repo = _PagedOlderFakeRepository(
       snapshot: _makeSnapshotMissingTarget(),
-      pages: [
-        ConversationMessagePage(
-          messages: [
-            ConversationMessageSummary(
-              id: 'msg-2',
-              content: 'Second message',
-              createdAt: DateTime.utc(2026, 5, 16, 14, 10),
-              senderType: 'human',
-              messageType: 'message',
-              seq: 2,
-            ),
-          ],
-          historyLimited: false,
-          hasOlder: true,
-        ),
-        ConversationMessagePage(
-          messages: [
-            ConversationMessageSummary(
+      contextPage: ConversationMessagePage(
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-1',
+            content: 'Original message here',
+            createdAt: DateTime.utc(2026, 5, 16, 14),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+          ConversationMessageSummary(
+            id: 'msg-2',
+            content: 'Second message',
+            createdAt: DateTime.utc(2026, 5, 16, 14, 10),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 2,
+          ),
+          ConversationMessageSummary(
+            id: 'msg-3',
+            content: 'Third message',
+            createdAt: DateTime.utc(2026, 5, 16, 14, 20),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 3,
+          ),
+          ConversationMessageSummary(
+            id: 'msg-4',
+            content: 'Fourth message',
+            createdAt: DateTime.utc(2026, 5, 16, 14, 30),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 4,
+          ),
+          ConversationMessageSummary(
+            id: 'msg-5',
+            content: 'Replying to original',
+            createdAt: DateTime.utc(2026, 5, 16, 14, 40),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 5,
+            replyTo: const ReplyToSummary(
               id: 'msg-1',
               content: 'Original message here',
-              createdAt: DateTime.utc(2026, 5, 16, 14),
+              senderName: 'Alice',
               senderType: 'human',
-              messageType: 'message',
-              seq: 1,
             ),
-          ],
-          historyLimited: false,
-          hasOlder: false,
-        ),
-      ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      ),
     );
 
     await tester.pumpWidget(_buildConversationApp(repo));
@@ -181,7 +204,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('quoted-msg-5')));
     await tester.pumpAndSettle();
 
-    expect(repo.loadOlderCallCount, 2);
+    expect(repo.loadContextCallCount, 1);
     expect(find.byKey(const ValueKey('quote-jump-not-found')), findsNothing);
     expect(find.byKey(const ValueKey('quote-jump-highlight')), findsOneWidget);
   });
@@ -255,10 +278,10 @@ void main() {
     'Quote-jump shows loading during fetch, notFound only after '
     '(INV-QUOTE-JUMP-TEMPORAL)',
     (tester) async {
-      final loadCompleter = Completer<ConversationMessagePage>();
+      final loadContextCompleter = Completer<ConversationMessagePage>();
       final repo = _DelayedLoadFakeRepository(
         snapshot: _makeSnapshotMissingTarget(),
-        loadOlderCompleter: loadCompleter,
+        loadContextCompleter: loadContextCompleter,
       );
 
       await tester.pumpWidget(_buildConversationApp(repo));
@@ -272,7 +295,7 @@ void main() {
       await tester.tap(quotedBlock);
 
       // Pump a single frame — the setState for loading has fired, but
-      // loadOlder is still pending (gated by Completer).
+      // loadContext is still pending (gated by Completer).
       await tester.pump();
 
       // ASSERT: loading indicator must be visible.
@@ -291,11 +314,15 @@ void main() {
       );
 
       // Complete the fetch — returns empty (target not found).
-      loadCompleter.complete(const ConversationMessagePage(
+      loadContextCompleter.complete(const ConversationMessagePage(
         messages: [],
         historyLimited: false,
         hasOlder: false,
+        hasNewer: false,
       ));
+      // Two pumps: first resolves the store's async continuation, second
+      // resolves the page's continuation (nested microtask boundaries).
+      await tester.pump();
       await tester.pump();
 
       // ASSERT: loading gone, notFound visible.
@@ -326,6 +353,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('quoted-msg-5')));
     await tester.pump();
+    await tester.pump();
     expect(find.byKey(const ValueKey('quote-jump-not-found')), findsOneWidget);
 
     await tester.pump(const Duration(seconds: 3));
@@ -344,6 +372,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('quoted-msg-5')));
+    await tester.pump();
     await tester.pump();
     expect(find.byKey(const ValueKey('quote-jump-not-found')), findsOneWidget);
 
@@ -539,6 +568,18 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
+
+  @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
     PendingAttachment attachment, {
@@ -639,30 +680,23 @@ class _FakeConversationRepository implements ConversationRepository {
 class _PagedOlderFakeRepository extends _FakeConversationRepository {
   _PagedOlderFakeRepository({
     required super.snapshot,
-    required List<ConversationMessagePage> pages,
-  }) : _pages = List<ConversationMessagePage>.of(pages);
+    required this.contextPage,
+  });
 
-  final List<ConversationMessagePage> _pages;
-  int loadOlderCallCount = 0;
+  final ConversationMessagePage contextPage;
+  int loadContextCallCount = 0;
 
   @override
-  Future<ConversationMessagePage> loadOlderMessages(
+  Future<ConversationMessagePage> loadMessageContext(
     ConversationDetailTarget target, {
-    required int beforeSeq,
+    required String messageId,
   }) async {
-    loadOlderCallCount += 1;
-    if (_pages.isEmpty) {
-      return const ConversationMessagePage(
-        messages: [],
-        historyLimited: false,
-        hasOlder: false,
-      );
-    }
-    return _pages.removeAt(0);
+    loadContextCallCount += 1;
+    return contextPage;
   }
 }
 
-/// A variant of [_FakeConversationRepository] where [loadOlderMessages]
+/// A variant of [_FakeConversationRepository] where [loadMessageContext]
 /// is gated by a [Completer], allowing tests to assert the loading state
 /// before the fetch resolves.
 class _DelayedLoadFakeRepository implements ConversationRepository {
@@ -674,11 +708,11 @@ class _DelayedLoadFakeRepository implements ConversationRepository {
 
   _DelayedLoadFakeRepository({
     required this.snapshot,
-    required this.loadOlderCompleter,
+    required this.loadContextCompleter,
   });
 
   final ConversationDetailSnapshot snapshot;
-  final Completer<ConversationMessagePage> loadOlderCompleter;
+  final Completer<ConversationMessagePage> loadContextCompleter;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -691,8 +725,12 @@ class _DelayedLoadFakeRepository implements ConversationRepository {
   Future<ConversationMessagePage> loadOlderMessages(
     ConversationDetailTarget target, {
     required int beforeSeq,
-  }) {
-    return loadOlderCompleter.future;
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+    );
   }
 
   @override
@@ -706,6 +744,14 @@ class _DelayedLoadFakeRepository implements ConversationRepository {
       hasOlder: false,
       hasNewer: false,
     );
+  }
+
+  @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) {
+    return loadContextCompleter.future;
   }
 
   @override

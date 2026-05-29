@@ -1193,32 +1193,25 @@ class _ConversationDetailScreenState
   }
 
   /// Handles quote-jump when the target message is not in the loaded window.
-  /// Attempts to load older messages; if the target is still not found,
-  /// shows a persistent "not found" feedback widget.
+  /// Uses the context endpoint to load a centered window around the target
+  /// message, then scrolls to it and highlights.
   Future<void> _handleQuoteJumpMissing(String messageId) async {
     _quoteJumpNotFoundTimer?.cancel();
     setState(() => _quoteJumpState = QuoteJumpState.loading);
 
     final notifier = ref.read(conversationDetailStoreProvider.notifier);
 
-    for (var attempts = 0; attempts < 5; attempts++) {
-      final state = ref.read(conversationDetailStoreProvider);
-      if (!state.hasOlder) break;
+    await notifier.loadContext(messageId);
+    if (!mounted) return;
 
-      await notifier.loadOlder();
-      if (!mounted) return;
-
-      // Re-check after each loaded page.
-      final updatedState = ref.read(conversationDetailStoreProvider);
-      final idx = updatedState.messages.indexWhere((m) => m.id == messageId);
-      if (idx >= 0) {
-        _scrollToAndHighlight(messageId);
-        return;
-      }
-      if (!updatedState.hasOlder) break;
+    final updatedState = ref.read(conversationDetailStoreProvider);
+    final idx = updatedState.messages.indexWhere((m) => m.id == messageId);
+    if (idx >= 0) {
+      _scrollToAndHighlight(messageId);
+      return;
     }
 
-    // Still not found — show "not found" feedback.
+    // Context load succeeded but target not in response — show "not found".
     if (mounted) {
       setState(() => _quoteJumpState = QuoteJumpState.notFound);
       _scheduleQuoteJumpNotFoundDismiss();

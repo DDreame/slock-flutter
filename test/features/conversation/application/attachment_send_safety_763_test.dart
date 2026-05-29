@@ -661,6 +661,18 @@ class _ControllableConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
+
+  @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
     String content, {
