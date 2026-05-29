@@ -6502,6 +6502,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mention {name}'**
   String mentionSuggestionItemSemantics(String name);
+
+  /// No description provided for @oauthDividerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'or continue with'**
+  String get oauthDividerLabel;
+
+  /// No description provided for @oauthProviderButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with {provider}'**
+  String oauthProviderButton(String provider);
 }
 
 class _AppLocalizationsDelegate

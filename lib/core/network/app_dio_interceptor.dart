@@ -25,6 +25,7 @@ const _publicAuthPaths = <String>{
   '/auth/verify-email',
   '/auth/resend-verification',
   '/auth/refresh',
+  '/auth/providers',
 };
 
 bool isPublicAuthEndpoint(String path) => _publicAuthPaths.contains(path);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/login_controller.dart';
+import 'package:slock_app/features/auth/presentation/widgets/social_login_buttons.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -96,6 +97,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : Text(l10n.loginSubmitLabel),
+              ),
+              SocialLoginButtons(
+                onProviderTap: (_) {
+                  // OAuth flow handled in PR 2 (B122).
+                },
               ),
               const SizedBox(height: 12),
               TextButton(

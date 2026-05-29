@@ -1603,5 +1603,12 @@
     "placeholders": {
       "name": { "type": "String" }
     }
+  },
+  "oauthDividerLabel": "or continue with",
+  "oauthProviderButton": "Continue with {provider}",
+  "@oauthProviderButton": {
+    "placeholders": {
+      "provider": { "type": "String" }
+    }
   }
 }
