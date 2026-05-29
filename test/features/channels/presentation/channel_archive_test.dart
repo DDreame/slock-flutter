@@ -17,6 +17,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -145,6 +146,8 @@ void main() {
 Widget _buildApp({required HomeChannelSummary channel}) {
   return ProviderScope(
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: ThemeData.light().copyWith(
         extensions: [AppColors.light],
       ),

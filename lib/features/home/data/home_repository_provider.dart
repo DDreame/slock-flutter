@@ -212,6 +212,13 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       for (final ch in channelSummaries) ch.scopeId.value: ch.isPrivate,
     };
 
+    // Build a lookup for isArchived from the parsed channels so we can
+    // carry the flag through the store round-trip (store schema does
+    // not persist isArchived).
+    final parsedArchivedFlags = <String, bool>{
+      for (final ch in channelSummaries) ch.scopeId.value: ch.isArchived,
+    };
+
     return HomeWorkspaceSnapshot(
       serverId: serverId,
       channels: storedChannels
@@ -225,6 +232,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
                 lastMessagePreview: row.lastMessagePreview,
                 lastActivityAt: row.lastActivityAt,
                 isPrivate: parsedPrivateFlags[row.conversationId] ?? false,
+                isArchived: parsedArchivedFlags[row.conversationId] ?? false,
               ))
           .toList(growable: false),
       directMessages: storedDirectMessages
@@ -278,6 +286,10 @@ Future<HomeWorkspaceSnapshot?> _loadCachedWorkspaceSnapshot({
 
   return HomeWorkspaceSnapshot(
     serverId: serverId,
+    // Note: isPrivate and isArchived are not persisted in the local store
+    // schema, so cached channels default to false for both. These flags are
+    // corrected on the next successful API load via parsedPrivateFlags /
+    // parsedArchivedFlags lookups.
     channels: storedChannels
         .map((row) => HomeChannelSummary(
               scopeId: ChannelScopeId(
