@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -56,8 +57,11 @@ class MentionSyntax extends md.InlineSyntax {
 /// When [currentUserName] matches the mentioned name (case-insensitive),
 /// the mention is rendered with extra emphasis (background highlight)
 /// so the user can easily spot their own mentions.
+///
+/// When [onMentionTap] is provided, tapping a mention chip invokes the
+/// callback with the mention name (without the `@` prefix).
 class MentionBuilder extends MarkdownElementBuilder {
-  MentionBuilder({this.currentUserName})
+  MentionBuilder({this.currentUserName, this.onMentionTap})
       : currentUserNameLower = currentUserName?.toLowerCase();
 
   /// The display name of the current user, for self-mention highlighting.
@@ -65,6 +69,10 @@ class MentionBuilder extends MarkdownElementBuilder {
 
   /// Lowercased [currentUserName], cached for hot mention rendering paths.
   final String? currentUserNameLower;
+
+  /// Called when a mention chip is tapped. Receives the mention name
+  /// (without the `@` prefix).
+  final void Function(String name)? onMentionTap;
 
   /// Colors reference — set during visitElementAfterWithContext from context.
   AppColors? _colors;
@@ -91,8 +99,17 @@ class MentionBuilder extends MarkdownElementBuilder {
           : colors.primary.withValues(alpha: 0.1),
     );
 
-    return Text.rich(
+    final child = Text.rich(
       TextSpan(text: '@$name', style: style),
+    );
+
+    if (onMentionTap == null) return child;
+
+    return GestureDetector(
+      key: ValueKey('mention-tap-$name'),
+      onTap: () => onMentionTap!(name),
+      behavior: HitTestBehavior.opaque,
+      child: child,
     );
   }
 }
@@ -110,6 +127,11 @@ final mentionSpanRegex = RegExp(r'(?<![\w.])@([\w][\w.\-]*)');
 /// Used in the search-highlight fallback path where Markdown rendering
 /// is bypassed. Mentions are styled distinctly, with self-mentions getting
 /// extra background emphasis.
+///
+/// When [onMentionTap] is provided, a [TapGestureRecognizer] is attached
+/// to each mention span so taps navigate to the mentioned user's profile.
+/// Created recognizers are appended to [createdRecognizers] when provided,
+/// so the caller can track and dispose them on rebuild/unmount.
 TextSpan buildMentionAwareSpan({
   required String text,
   required TextStyle? baseStyle,
@@ -120,6 +142,8 @@ TextSpan buildMentionAwareSpan({
   String? currentUserName,
   String highlightQuery = '',
   Color? highlightColor,
+  void Function(String name)? onMentionTap,
+  List<GestureRecognizer>? createdRecognizers,
 }) {
   final matches = mentionSpanRegex.allMatches(text).toList();
 
@@ -163,6 +187,13 @@ TextSpan buildMentionAwareSpan({
       backgroundColor: isSelf ? selfMentionBackground : mentionBackground,
     );
 
+    // Build recognizer for tappable mentions.
+    TapGestureRecognizer? recognizer;
+    if (onMentionTap != null) {
+      recognizer = TapGestureRecognizer()..onTap = () => onMentionTap(name);
+      createdRecognizers?.add(recognizer);
+    }
+
     // Apply highlight overlay inside the mention when search query matches.
     if (highlightQuery.isNotEmpty && highlightColor != null) {
       final mentionText = '@$name';
@@ -174,12 +205,28 @@ TextSpan buildMentionAwareSpan({
       );
       if (highlightedMention.children != null &&
           highlightedMention.children!.isNotEmpty) {
-        spans.addAll(highlightedMention.children!);
+        // Wrap highlighted children in a parent span with the recognizer.
+        if (recognizer != null) {
+          spans.add(TextSpan(
+            children: highlightedMention.children,
+            recognizer: recognizer,
+          ));
+        } else {
+          spans.addAll(highlightedMention.children!);
+        }
       } else {
-        spans.add(TextSpan(text: mentionText, style: mentionStyle));
+        spans.add(TextSpan(
+          text: mentionText,
+          style: mentionStyle,
+          recognizer: recognizer,
+        ));
       }
     } else {
-      spans.add(TextSpan(text: '@$name', style: mentionStyle));
+      spans.add(TextSpan(
+        text: '@$name',
+        style: mentionStyle,
+        recognizer: recognizer,
+      ));
     }
 
     lastEnd = match.end;

@@ -22,6 +22,8 @@ import 'package:slock_app/features/conversation/presentation/widgets/markdown_me
 import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
+import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
+import 'package:slock_app/features/conversation/presentation/utils/mention_profile_resolver.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
@@ -241,6 +243,32 @@ class ConversationMessageCardState
         metadata: {'stackTrace': st.toString()},
       );
       // Fail-soft: if DM open fails, do nothing.
+    }
+  }
+
+  /// Handles tapping an @mention in message content. Resolves the mention
+  /// handle to a member entity ID, then navigates to their profile page.
+  ///
+  /// Degrades gracefully when the mention cannot be resolved (e.g. member
+  /// left the channel).
+  Future<void> _onMentionTap(String mentionName) async {
+    final target = widget.target;
+    try {
+      final route = await resolveMentionProfileRoute(
+        memberRepo: ref.read(channelMemberRepositoryProvider),
+        serverId: target.serverId,
+        channelId: target.conversationId,
+        mentionName: mentionName,
+      );
+      if (route == null || !mounted) return;
+
+      context.push(route);
+    } catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ConversationDetail',
+        'mention tap profile navigation failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
     }
   }
 
@@ -823,6 +851,7 @@ class ConversationMessageCardState
       highlightColor: colors.primaryLight,
       onLinkTap: onLinkTap,
       currentUserName: currentUserName,
+      onMentionTap: _onMentionTap,
     );
 
     // If translation is cached for this message, wrap with overlay.

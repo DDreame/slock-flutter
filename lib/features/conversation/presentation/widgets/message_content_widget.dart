@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -30,6 +31,7 @@ class MessageContentWidget extends ConsumerStatefulWidget {
     this.highlightColor,
     this.onLinkTap,
     this.currentUserName,
+    this.onMentionTap,
   });
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
@@ -37,6 +39,13 @@ class MessageContentWidget extends ConsumerStatefulWidget {
   /// Reset manually in test setUp.
   @visibleForTesting
   static int debugBuildCount = 0;
+
+  /// Disposal counter for recognizer-lifecycle tests. Incremented each time
+  /// [_MessageContentWidgetState._disposeMentionRecognizers] is called.
+  /// Debug-only via assert(); zero-cost in release builds.
+  /// Reset manually in test setUp.
+  @visibleForTesting
+  static int debugDisposeCount = 0;
 
   final ConversationMessageSummary message;
   final bool isSystem;
@@ -49,6 +58,10 @@ class MessageContentWidget extends ConsumerStatefulWidget {
   /// The current user's display name for self-mention highlighting.
   final String? currentUserName;
 
+  /// Called when a user taps a @mention in the message body.
+  /// Receives the mention name (without the `@` prefix).
+  final void Function(String name)? onMentionTap;
+
   @override
   ConsumerState<MessageContentWidget> createState() =>
       _MessageContentWidgetState();
@@ -56,6 +69,27 @@ class MessageContentWidget extends ConsumerStatefulWidget {
 
 class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
   String? _detectedUrl;
+
+  /// Tracks [TapGestureRecognizer]s created by [buildMentionAwareSpan] so
+  /// they can be disposed on rebuild/unmount to avoid memory leaks.
+  final _mentionRecognizers = <GestureRecognizer>[];
+
+  void _disposeMentionRecognizers() {
+    assert(() {
+      MessageContentWidget.debugDisposeCount++;
+      return true;
+    }());
+    for (final r in _mentionRecognizers) {
+      r.dispose();
+    }
+    _mentionRecognizers.clear();
+  }
+
+  @override
+  void dispose() {
+    _disposeMentionRecognizers();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -87,6 +121,8 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Dispose recognizers from previous build frame before creating new ones.
+    _disposeMentionRecognizers();
     assert(() {
       MessageContentWidget.debugBuildCount++;
       return true;
@@ -116,6 +152,8 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
             currentUserName: widget.currentUserName,
             highlightQuery: widget.highlightQuery,
             highlightColor: colors.primaryLight,
+            onMentionTap: widget.onMentionTap,
+            createdRecognizers: _mentionRecognizers,
           ),
           key: const ValueKey('message-content'),
         );
@@ -129,6 +167,8 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           selfMentionColor: colors.primaryForeground,
           selfMentionBackground: colors.primary,
           currentUserName: widget.currentUserName,
+          onMentionTap: widget.onMentionTap,
+          createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
       );
@@ -150,6 +190,8 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           currentUserName: widget.currentUserName,
           highlightQuery: widget.highlightQuery,
           highlightColor: colors.primaryLight,
+          onMentionTap: widget.onMentionTap,
+          createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
       );
@@ -161,6 +203,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
         baseStyle: effectiveBaseStyle,
         onLinkTap: widget.onLinkTap,
         currentUserName: widget.currentUserName,
+        onMentionTap: widget.onMentionTap,
       );
     }
 
