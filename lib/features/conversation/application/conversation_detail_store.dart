@@ -896,6 +896,9 @@ class ConversationDetailStore
       state = state.copyWith(savedMessageIds: savedIds);
     } on AppFailure {
       // Fail-soft: keep existing saved state.
+    } catch (_) {
+      // Generic catch: Error subclasses (e.g. StateError from disposed
+      // provider) on this unawaited path must not surface as unhandled.
     }
   }
 
