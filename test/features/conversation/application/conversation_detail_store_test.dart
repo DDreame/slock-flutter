@@ -3218,6 +3218,188 @@ void main() {
           reason: 'Only one send attempt should occur');
     });
   });
+
+  // -------------------------------------------------------------------------
+  // loadContext
+  // -------------------------------------------------------------------------
+
+  test('loadContext replaces messages and sets flags on non-empty response',
+      () async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'old-msg-1',
+            content: 'Old message',
+            createdAt: DateTime.utc(2026, 5, 16, 14),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    // Configure loadMessageContext to return a non-empty page.
+    repository.contextPage = ConversationMessagePage(
+      messages: [
+        ConversationMessageSummary(
+          id: 'ctx-msg-1',
+          content: 'Context before',
+          createdAt: DateTime.utc(2026, 5, 16, 13),
+          senderType: 'human',
+          messageType: 'message',
+          seq: 10,
+        ),
+        ConversationMessageSummary(
+          id: 'ctx-msg-2',
+          content: 'Target',
+          createdAt: DateTime.utc(2026, 5, 16, 13, 5),
+          senderType: 'human',
+          messageType: 'message',
+          seq: 11,
+        ),
+      ],
+      historyLimited: false,
+      hasOlder: true,
+      hasNewer: true,
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // Load initial state.
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    var state = container.read(conversationDetailStoreProvider);
+    expect(state.messages.single.id, 'old-msg-1');
+
+    // Call loadContext.
+    await container
+        .read(conversationDetailStoreProvider.notifier)
+        .loadContext('ctx-msg-2');
+    state = container.read(conversationDetailStoreProvider);
+
+    // Messages must be replaced with context page content.
+    expect(state.messages.length, 2);
+    expect(state.messages[0].id, 'ctx-msg-1');
+    expect(state.messages[1].id, 'ctx-msg-2');
+    // Pagination flags must reflect context response.
+    expect(state.hasOlder, isTrue);
+    expect(state.hasNewer, isTrue);
+    expect(state.isLoadingOlder, isFalse);
+  });
+
+  test('loadContext preserves current messages on empty response', () async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'existing-msg',
+            content: 'Existing',
+            createdAt: DateTime.utc(2026, 5, 16, 14),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 5,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: true,
+      ),
+    );
+    // Empty context response — message not found.
+    repository.contextPage = const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+      hasNewer: false,
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    var state = container.read(conversationDetailStoreProvider);
+    expect(state.messages.single.id, 'existing-msg');
+    expect(state.hasOlder, isTrue);
+
+    // Call loadContext with empty response.
+    await container
+        .read(conversationDetailStoreProvider.notifier)
+        .loadContext('nonexistent');
+    state = container.read(conversationDetailStoreProvider);
+
+    // Messages must be preserved (no blank flash).
+    expect(state.messages.single.id, 'existing-msg');
+    // hasOlder should be unchanged since messages weren't replaced.
+    expect(state.hasOlder, isTrue);
+    expect(state.isLoadingOlder, isFalse);
+  });
+
+  test('loadContext preserves messages and surfaces failure on error',
+      () async {
+    const failure = ServerFailure(
+      message: 'Server error.',
+      statusCode: 500,
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'preserved-msg',
+            content: 'Keep me',
+            createdAt: DateTime.utc(2026, 5, 16, 14),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 3,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    repository.contextFailure = failure;
+
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    var state = container.read(conversationDetailStoreProvider);
+    expect(state.messages.single.id, 'preserved-msg');
+
+    // Call loadContext which throws.
+    await container
+        .read(conversationDetailStoreProvider.notifier)
+        .loadContext('target-id');
+    state = container.read(conversationDetailStoreProvider);
+
+    // Messages preserved on failure.
+    expect(state.messages.single.id, 'preserved-msg');
+    // Failure surfaced in state.
+    expect(state.failure, same(failure));
+    expect(state.isLoadingOlder, isFalse);
+  });
 }
 
 /// Mutable fake for tests that need to change send behavior mid-test.
@@ -3258,6 +3440,18 @@ class _MutableFakeConversationRepository implements ConversationRepository {
         messages: [],
         historyLimited: false,
         hasOlder: false,
+      );
+
+  @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
       );
 
   @override
@@ -3445,6 +3639,8 @@ class _FakeConversationRepository implements ConversationRepository {
   final List<String> pinnedMessageIds = [];
   final List<String> unpinnedMessageIds = [];
   final List<String> removedStoredMessageIds = [];
+  ConversationMessagePage? contextPage;
+  AppFailure? contextFailure;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -3488,6 +3684,21 @@ class _FakeConversationRepository implements ConversationRepository {
           messages: [],
           historyLimited: false,
           hasOlder: false,
+        );
+  }
+
+  @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    if (contextFailure != null) throw contextFailure!;
+    return contextPage ??
+        const ConversationMessagePage(
+          messages: [],
+          historyLimited: false,
+          hasOlder: false,
+          hasNewer: false,
         );
   }
 

@@ -82,6 +82,18 @@ abstract class ConversationRepository {
     required int afterSeq,
   });
 
+  /// Loads a centered window of messages around [messageId].
+  ///
+  /// Returns [ConversationMessagePage] with `hasOlder` and `hasNewer`
+  /// indicating whether more messages exist in both directions from
+  /// the context window.
+  ///
+  /// Used for: permalink deep links, search result taps, quote jumps.
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  });
+
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
     PendingAttachment attachment, {

@@ -792,6 +792,80 @@ class ConversationDetailStore
     }
   }
 
+  /// Loads a centered window of messages around [messageId], replacing
+  /// the current message list entirely.
+  ///
+  /// Unlike [loadOlder]/[loadNewer] which extend the current window,
+  /// this method resets the view to a new context position. Used for
+  /// permalink jumps, search result navigation, and quote taps to
+  /// distant messages.
+  ///
+  /// Sets both [hasOlder] and [hasNewer] from the server response
+  /// to enable bidirectional pagination from the new position.
+  Future<void> loadContext(String messageId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+
+    state = state.copyWith(
+      isLoadingOlder: true,
+      clearFailure: true,
+    );
+
+    try {
+      final page =
+          await ref.read(conversationRepositoryProvider).loadMessageContext(
+                target,
+                messageId: messageId,
+              );
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      // Only replace messages when the context page has content.
+      // An empty response means "not found" — preserve the current window.
+      if (page.messages.isNotEmpty) {
+        state = state.copyWith(
+          status: ConversationDetailStatus.success,
+          messages: page.messages,
+          hasOlder: page.hasOlder,
+          hasNewer: page.hasNewer,
+          historyLimited: page.historyLimited,
+          isLoadingOlder: false,
+          isLoadingNewer: false,
+          clearFailure: true,
+        );
+        _persistSession();
+      } else {
+        state = state.copyWith(
+          isLoadingOlder: false,
+          clearFailure: true,
+        );
+      }
+    } on AppFailure catch (failure) {
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        isLoadingOlder: false,
+        failure: failure,
+      );
+    } catch (error, stackTrace) {
+      _captureUnexpectedLoadingException(
+        error,
+        stackTrace,
+        operation: 'ConversationDetailStore.loadContext',
+      );
+      if (_disposed) return;
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        isLoadingOlder: false,
+        failure: _unexpectedConversationFailure(error),
+      );
+    }
+  }
+
   void updateViewportOffset(double offset) {
     ref
         .read(conversationDetailSessionStoreProvider.notifier)

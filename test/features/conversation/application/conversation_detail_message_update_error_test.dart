@@ -102,6 +102,18 @@ class _ThrowingConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
+
+  @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
     String content, {
@@ -239,6 +251,18 @@ class _SuccessConversationRepository implements ConversationRepository {
   }) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
 
   @override
   Future<ConversationMessageSummary> sendMessage(
