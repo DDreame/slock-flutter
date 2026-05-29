@@ -138,12 +138,13 @@ void main() {
       // Initially shows "1 / 2".
       expect(find.text('1 / 2'), findsOneWidget);
 
-      // Swipe left to go to next page.
-      await tester.drag(
+      // Fling left to go to next page (velocity triggers PageView paging).
+      await tester.fling(
         find.byKey(const ValueKey('gallery-page-view')),
-        const Offset(-400, 0),
+        const Offset(-300, 0),
+        1000,
       );
-      await _pumpFrames(tester);
+      await tester.pumpAndSettle();
 
       // Now should show "2 / 2".
       expect(
@@ -167,6 +168,47 @@ void main() {
 
       // App bar shows the current image's filename.
       expect(find.text('photo_a.png'), findsOneWidget);
+    });
+
+    testWidgets('out-of-range initialIndex is clamped without crash',
+        (tester) async {
+      // initialIndex=99 is beyond array bounds — should clamp to last.
+      await tester.pumpWidget(
+        _buildApp(
+          images: [_image('img-1', 'a.png'), _image('img-2', 'b.png')],
+          initialIndex: 99,
+        ),
+      );
+      await _pumpFrames(tester);
+
+      // Should not crash and should clamp to last image (index 1 → "2 / 2").
+      expect(
+        find.text('2 / 2'),
+        findsOneWidget,
+        reason: 'Out-of-range index must be clamped to last image',
+      );
+      expect(
+        find.byKey(const ValueKey('image-gallery-page')),
+        findsOneWidget,
+        reason: 'Gallery must render without crash on out-of-range index',
+      );
+    });
+
+    testWidgets('negative initialIndex is clamped to 0', (tester) async {
+      await tester.pumpWidget(
+        _buildApp(
+          images: [_image('img-1', 'a.png'), _image('img-2', 'b.png')],
+          initialIndex: -5,
+        ),
+      );
+      await _pumpFrames(tester);
+
+      // Should clamp to 0 → "1 / 2".
+      expect(
+        find.text('1 / 2'),
+        findsOneWidget,
+        reason: 'Negative index must be clamped to 0',
+      );
     });
   });
 }

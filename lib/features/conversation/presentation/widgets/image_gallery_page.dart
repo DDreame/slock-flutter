@@ -63,7 +63,9 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.args.initialIndex;
+    // Clamp to valid range to prevent index-out-of-range crash.
+    _currentIndex =
+        widget.args.initialIndex.clamp(0, widget.args.images.length - 1);
     _pageController = PageController(initialPage: _currentIndex);
     // Kick off URL resolution for the initial page.
     WidgetsBinding.instance
@@ -90,9 +92,15 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
     if (_signedUrls.containsKey(index)) return;
 
     final attachment = widget.args.images[index];
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
 
     // If no id, use direct URL immediately.
     if (attachment.id == null || attachment.id!.isEmpty) {
+      diagnostics.info(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=missing, '
+            'mimeType=${attachment.type}, fallback=directUrl',
+      );
       if (mounted) {
         setState(() {
           _signedUrls[index] = attachment.url;
@@ -115,6 +123,19 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
       if (mounted) {
         setState(() {
           _signedUrls[index] = url;
+          _loadingStates[index] = false;
+        });
+      }
+    } on AppFailure catch (e) {
+      diagnostics.error(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=${attachment.id}, '
+            'mimeType=${attachment.type}, failureType=${e.runtimeType}',
+      );
+      // Fall back to direct URL.
+      if (mounted) {
+        setState(() {
+          _signedUrls[index] = attachment.url;
           _loadingStates[index] = false;
         });
       }
@@ -248,6 +269,7 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
     }
 
     final transformController = _getTransformController(index);
+    final isZoomed = transformController.value.getMaxScaleOnAxis() > 1.05;
 
     // Only apply Hero on the initial page to avoid conflicting animations.
     final isInitialPage = index == widget.args.initialIndex;
@@ -258,8 +280,11 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
       transformationController: transformController,
       minScale: 0.5,
       maxScale: 4.0,
+      // Disable panning at default scale so PageView receives horizontal drags.
+      // When zoomed, panning is needed to move around the zoomed image.
+      panEnabled: isZoomed,
       onInteractionEnd: (_) {
-        // Force rebuild to update _isAtDefaultScale check.
+        // Force rebuild to update zoom state checks.
         setState(() {});
       },
       child: Center(
