@@ -724,13 +724,18 @@ void main() {
       final nodes = document.parseInline('#general:abcdef123');
       final refs =
           nodes.whereType<md.Element>().where((e) => e.tag == 'thread_ref');
-      // Should not match because > 8 hex chars in the ID.
-      // The regex matches up to 8, so "abcdef12" is consumed and "3" is left.
-      if (refs.isNotEmpty) {
-        // If it matches 8 chars and leaves trailing as text, that's acceptable.
-        expect(
-            refs.first.attributes['messageId']!.length, lessThanOrEqualTo(8));
-      }
+      expect(refs, isEmpty,
+          reason:
+              'Trailing boundary guard rejects >8 hex chars; removing it → RED');
+    });
+
+    test('does not match dm:@name:toolong (more than 8 hex chars)', () {
+      final nodes = document.parseInline('dm:@alice:abcdef123');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'thread_ref');
+      expect(refs, isEmpty,
+          reason:
+              'Trailing boundary guard rejects >8 hex chars; removing it → RED');
     });
 
     test('matches 8-char hex ID', () {

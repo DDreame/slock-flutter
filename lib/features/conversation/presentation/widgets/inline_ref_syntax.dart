@@ -42,7 +42,7 @@ class ThreadRefData {
 class ThreadRefSyntax extends md.InlineSyntax {
   ThreadRefSyntax()
       : super(
-          r'(?:#([a-zA-Z][\w-]+):([\da-f]{6,8})|dm:@([\w][\w.\-]*):([\da-f]{6,8}))',
+          r'(?:#([a-zA-Z][\w-]+):([\da-f]{6,8})(?![\da-f])|dm:@([\w][\w.\-]*):([\da-f]{6,8})(?![\da-f]))',
           caseSensitive: false,
         );
 
@@ -365,7 +365,7 @@ final taskRefSpanRegex =
 /// (DM thread) at word boundaries.
 @visibleForTesting
 final threadRefSpanRegex = RegExp(
-  r'(?<![\w.])(?:#([a-zA-Z][\w-]+):([\da-f]{6,8})|dm:@([\w][\w.\-]*):([\da-f]{6,8}))',
+  r'(?<![\w.])(?:#([a-zA-Z][\w-]+):([\da-f]{6,8})(?![\da-f])|dm:@([\w][\w.\-]*):([\da-f]{6,8})(?![\da-f]))',
   caseSensitive: false,
 );
 
@@ -384,8 +384,8 @@ final threadRefSpanRegex = RegExp(
 final inlineRefCombinedRegex = RegExp(
   // Mention | channel thread | DM thread | channel ref | task ref
   r'(?<![\w.])@([\w][\w.\-]*)'
-  r'|(?<![\w.])#([a-zA-Z][\w-]+):([\da-f]{6,8})'
-  r'|(?<![\w.])dm:@([\w][\w.\-]*):([\da-f]{6,8})'
+  r'|(?<![\w.])#([a-zA-Z][\w-]+):([\da-f]{6,8})(?![\da-f])'
+  r'|(?<![\w.])dm:@([\w][\w.\-]*):([\da-f]{6,8})(?![\da-f])'
   r'|(?<![\w.])#([a-zA-Z][\w.\-]*)'
   r'|(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])',
   caseSensitive: false,
