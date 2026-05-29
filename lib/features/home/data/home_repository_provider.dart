@@ -379,6 +379,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
         value: id,
       ),
       name: name,
+      description: item['description'] as String?,
       lastMessageId: lastMessage?.id,
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,

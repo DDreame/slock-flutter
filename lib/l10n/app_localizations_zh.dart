@@ -1616,6 +1616,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsDialogEditNameLabel => '频道名称';
 
   @override
+  String get channelsDialogEditDescriptionLabel => '描述';
+
+  @override
+  String get channelsDialogEditDescriptionHint => '这个频道是关于什么的？';
+
+  @override
+  String get channelsDialogEditPrivateLabel => '私密频道';
+
+  @override
+  String get channelsDialogEditPrivateDescription => '仅受邀成员可以访问';
+
+  @override
   String get channelsDialogEditCancel => '取消';
 
   @override

@@ -533,16 +533,25 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             final store = ref.read(channelManagementStoreProvider.notifier);
             return EditChannelDialog(
               currentName: channel.name,
+              currentDescription: channel.description,
+              currentIsPrivate: channel.isPrivate,
               isSubmitting: state.isRunning(
                 ChannelManagementAction.edit,
                 channelId: channel.scopeId.value,
               ),
               onCancel: () => Navigator.of(dialogContext).pop(),
-              onSave: (name) async {
+              onSave: (result) async {
                 try {
-                  await store.renameChannel(
+                  await store.updateChannel(
                     channel.scopeId,
-                    name: name,
+                    name: result.name != channel.name ? result.name : null,
+                    description:
+                        result.description != (channel.description ?? '')
+                            ? result.description
+                            : null,
+                    isPrivate: result.isPrivate != channel.isPrivate
+                        ? result.isPrivate
+                        : null,
                   );
                   if (!context.mounted) return;
                   if (dialogContext.mounted) {

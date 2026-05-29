@@ -191,6 +191,7 @@ class HomeChannelSummary {
   const HomeChannelSummary({
     required this.scopeId,
     required this.name,
+    this.description,
     this.lastMessageId,
     this.lastMessagePreview,
     this.lastActivityAt,
@@ -200,6 +201,10 @@ class HomeChannelSummary {
 
   final ChannelScopeId scopeId;
   final String name;
+
+  /// Optional channel description (may be null if never set).
+  final String? description;
+
   final String? lastMessageId;
   final String? lastMessagePreview;
   final DateTime? lastActivityAt;
@@ -211,6 +216,8 @@ class HomeChannelSummary {
   final bool isArchived;
 
   HomeChannelSummary copyWith({
+    String? description,
+    bool clearDescription = false,
     String? lastMessageId,
     String? lastMessagePreview,
     DateTime? lastActivityAt,
@@ -220,6 +227,7 @@ class HomeChannelSummary {
     return HomeChannelSummary(
       scopeId: scopeId,
       name: name,
+      description: clearDescription ? null : (description ?? this.description),
       lastMessageId: lastMessageId ?? this.lastMessageId,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       lastActivityAt: lastActivityAt ?? this.lastActivityAt,
@@ -235,6 +243,7 @@ class HomeChannelSummary {
             runtimeType == other.runtimeType &&
             scopeId == other.scopeId &&
             name == other.name &&
+            description == other.description &&
             lastMessageId == other.lastMessageId &&
             lastMessagePreview == other.lastMessagePreview &&
             lastActivityAt == other.lastActivityAt &&
@@ -246,6 +255,7 @@ class HomeChannelSummary {
   int get hashCode => Object.hash(
         scopeId,
         name,
+        description,
         lastMessageId,
         lastMessagePreview,
         lastActivityAt,
