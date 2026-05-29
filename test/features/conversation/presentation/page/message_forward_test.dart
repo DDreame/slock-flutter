@@ -101,9 +101,12 @@ void main() {
       await tester.longPressAt(shellTopLeft + const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      // Tap Forward action.
+      // Tap Forward action (ensureVisible needed — "Copy link" action
+      // pushes Forward below default 600px test viewport).
       final forwardAction = find.byKey(const ValueKey('ctx-action-forward'));
       expect(forwardAction, findsOneWidget);
+      await tester.ensureVisible(forwardAction);
+      await tester.pumpAndSettle();
       await tester.tap(forwardAction);
       await tester.pumpAndSettle();
 
@@ -144,7 +147,10 @@ void main() {
       await tester.longPressAt(shellTopLeft + const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('ctx-action-forward')));
+      final forwardAction3 = find.byKey(const ValueKey('ctx-action-forward'));
+      await tester.ensureVisible(forwardAction3);
+      await tester.pumpAndSettle();
+      await tester.tap(forwardAction3);
       await tester.pumpAndSettle();
 
       // ShareTargetPickerPage must be visible.
@@ -191,7 +197,10 @@ void main() {
       await tester.longPressAt(shellTopLeft + const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('ctx-action-forward')));
+      final forwardAction4 = find.byKey(const ValueKey('ctx-action-forward'));
+      await tester.ensureVisible(forwardAction4);
+      await tester.pumpAndSettle();
+      await tester.tap(forwardAction4);
       await tester.pumpAndSettle();
 
       // Select a target from the picker.
