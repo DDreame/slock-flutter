@@ -12,4 +12,5 @@ export 'scope/scope.dart';
 export 'storage/storage.dart';
 export 'telemetry/telemetry.dart';
 export 'utils/request_coordinator.dart';
+export 'utils/strip_markdown.dart';
 export 'utils/time_format.dart';
