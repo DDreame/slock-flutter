@@ -30,6 +30,7 @@ class MessageContentWidget extends ConsumerStatefulWidget {
     this.highlightColor,
     this.onLinkTap,
     this.currentUserName,
+    this.onMentionTap,
   });
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
@@ -48,6 +49,10 @@ class MessageContentWidget extends ConsumerStatefulWidget {
 
   /// The current user's display name for self-mention highlighting.
   final String? currentUserName;
+
+  /// Called when a user taps a @mention in the message body.
+  /// Receives the mention name (without the `@` prefix).
+  final void Function(String name)? onMentionTap;
 
   @override
   ConsumerState<MessageContentWidget> createState() =>
@@ -116,6 +121,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
             currentUserName: widget.currentUserName,
             highlightQuery: widget.highlightQuery,
             highlightColor: colors.primaryLight,
+            onMentionTap: widget.onMentionTap,
           ),
           key: const ValueKey('message-content'),
         );
@@ -129,6 +135,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           selfMentionColor: colors.primaryForeground,
           selfMentionBackground: colors.primary,
           currentUserName: widget.currentUserName,
+          onMentionTap: widget.onMentionTap,
         ),
         key: const ValueKey('message-content'),
       );
@@ -150,6 +157,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           currentUserName: widget.currentUserName,
           highlightQuery: widget.highlightQuery,
           highlightColor: colors.primaryLight,
+          onMentionTap: widget.onMentionTap,
         ),
         key: const ValueKey('message-content'),
       );
@@ -161,6 +169,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
         baseStyle: effectiveBaseStyle,
         onLinkTap: widget.onLinkTap,
         currentUserName: widget.currentUserName,
+        onMentionTap: widget.onMentionTap,
       );
     }
 

@@ -109,6 +109,7 @@ class MarkdownMessageBody extends StatefulWidget {
     this.baseStyle,
     this.onLinkTap,
     this.currentUserName,
+    this.onMentionTap,
   });
 
   /// The raw message content to render as Markdown.
@@ -127,6 +128,10 @@ class MarkdownMessageBody extends StatefulWidget {
   /// When a `@mention` matches this name (case-insensitive), it gets
   /// extra emphasis styling.
   final String? currentUserName;
+
+  /// Called when a user taps a @mention chip. Receives the mention name
+  /// (without the `@` prefix). Used for mention → profile navigation.
+  final void Function(String name)? onMentionTap;
 
   @override
   State<MarkdownMessageBody> createState() => _MarkdownMessageBodyState();
@@ -163,7 +168,8 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.kind != widget.kind ||
         oldWidget.baseStyle != widget.baseStyle ||
-        oldWidget.currentUserName != widget.currentUserName) {
+        oldWidget.currentUserName != widget.currentUserName ||
+        oldWidget.onMentionTap != widget.onMentionTap) {
       _rebuildCache();
     }
   }
@@ -177,7 +183,10 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
         codeStyle: _cachedStyleSheet.code!,
         padding: _cachedStyleSheet.codeblockPadding!,
       ),
-      'mention': MentionBuilder(currentUserName: widget.currentUserName),
+      'mention': MentionBuilder(
+        currentUserName: widget.currentUserName,
+        onMentionTap: widget.onMentionTap,
+      ),
     };
   }
 
