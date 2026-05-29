@@ -15,6 +15,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
@@ -216,6 +217,22 @@ void main() {
     testWidgets(
       'StateError from store.openDirectMessage does not crash (generic catch)',
       (tester) async {
+        // _openDirectMessage calls GoRouter.of(context) before the store call,
+        // so the test tree must include a GoRouter ancestor.
+        final router = GoRouter(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (_, __) => MembersPage(serverId: 'server-1'),
+            ),
+            // Catch-all for push after DM creation.
+            GoRoute(
+              path: '/servers/:sid/dms/:cid',
+              builder: (_, __) => const SizedBox.shrink(),
+            ),
+          ],
+        );
+
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -226,11 +243,11 @@ void main() {
               memberListStoreProvider
                   .overrideWith(() => _ThrowingMemberListStore()),
             ],
-            child: MaterialApp(
+            child: MaterialApp.router(
               theme: AppTheme.light,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: MembersPage(serverId: 'server-1'),
+              routerConfig: router,
             ),
           ),
         );
