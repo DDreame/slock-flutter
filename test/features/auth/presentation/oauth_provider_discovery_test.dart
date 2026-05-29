@@ -10,6 +10,7 @@
 // Removing SocialLoginButtons or the authProvidersProvider → tests RED.
 // =============================================================================
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -232,28 +233,26 @@ void main() {
       expect(result.first.iconUrl, 'https://x.co');
     });
 
-    test('returns empty list on repository error', () async {
-      final repo = _ErrorAuthProviderRepo();
-
+    test('real _ApiAuthProviderRepository returns [] on non-AppFailure error',
+        () async {
+      // Override appDioClientProvider with a client that throws a plain
+      // Exception (not an AppFailure) on GET. This exercises the production
+      // catch block in _ApiAuthProviderRepository.getProviders().
+      // Removing that catch → unhandled exception → test RED.
       final container = ProviderContainer(
         overrides: [
-          authProviderRepositoryProvider.overrideWithValue(repo),
+          appDioClientProvider.overrideWithValue(_ThrowingAppDioClient()),
         ],
       );
       addTearDown(container.dispose);
 
-      // The repository throws but our impl catches and returns [] for
-      // non-AppFailure errors. For AppFailure it rethrows, producing an
-      // AsyncError state — the widget renders SizedBox.shrink() either way.
-      final asyncValue =
-          await container.read(authProvidersProvider.future).then(
-                (v) => AsyncValue.data(v),
-                onError: (e, s) => AsyncValue<List<AuthProvider>>.error(e, s),
-              );
-      // Either empty data or error — both are acceptable (widget handles both).
+      final result = await container.read(authProvidersProvider.future);
       expect(
-        asyncValue.valueOrNull?.isEmpty ?? true,
-        isTrue,
+        result,
+        isEmpty,
+        reason: 'Removing the non-AppFailure catch in '
+            '_ApiAuthProviderRepository.getProviders() → unhandled '
+            'exception → RED.',
       );
     });
   });
@@ -271,10 +270,20 @@ class _FakeAuthProviderRepo implements AuthProviderRepository {
   Future<List<AuthProvider>> getProviders() async => List.of(_providers);
 }
 
-class _ErrorAuthProviderRepo implements AuthProviderRepository {
+class _ThrowingAppDioClient extends AppDioClient {
+  _ThrowingAppDioClient() : super(Dio());
+
   @override
-  Future<List<AuthProvider>> getProviders() async =>
-      throw Exception('Network error');
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    // Throw a plain Exception (not AppFailure) to exercise the production
+    // catch block in _ApiAuthProviderRepository.getProviders().
+    throw Exception('Simulated non-AppFailure error');
+  }
 }
 
 class _FakeAuthRepository implements AuthRepository {
