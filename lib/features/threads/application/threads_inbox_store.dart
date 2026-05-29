@@ -172,6 +172,75 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
     }
   }
 
+  /// Unfollows a thread and optimistically removes it from the inbox list.
+  ///
+  /// Uses the same per-item rollback pattern as [markDone]: snapshots the
+  /// removed item + index, removes immediately, and re-inserts on failure.
+  Future<void> unfollowThread(ThreadInboxItem item) async {
+    final threadChannelId = item.routeTarget.threadChannelId;
+    if (threadChannelId == null || state.isCompleting(threadChannelId)) {
+      return;
+    }
+
+    final removedIndex = state.items.indexWhere(
+      (entry) => entry.routeTarget.threadChannelId == threadChannelId,
+    );
+    final removedItem = removedIndex >= 0 ? state.items[removedIndex] : null;
+
+    // Optimistically remove from inbox — user won't see this thread anymore.
+    state = state.copyWith(
+      items: state.items
+          .where(
+              (entry) => entry.routeTarget.threadChannelId != threadChannelId)
+          .toList(growable: false),
+      completingThreadIds: [
+        ...state.completingThreadIds,
+        threadChannelId,
+      ],
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(threadRepositoryProvider).unfollowThread(
+            state.serverId,
+            threadChannelId: threadChannelId,
+          );
+    } on AppFailure catch (failure) {
+      try {
+        if (removedItem != null) {
+          _reinsertAtPosition(removedItem, removedIndex);
+        }
+        state = state.copyWith(failure: failure);
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — state write guard.
+      }
+    } catch (error) {
+      try {
+        if (removedItem != null) {
+          _reinsertAtPosition(removedItem, removedIndex);
+        }
+        state = state.copyWith(
+          failure: UnknownFailure(
+            message: 'Failed to unfollow thread.',
+            causeType: error.runtimeType.toString(),
+          ),
+        );
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — state write guard.
+      }
+    } finally {
+      try {
+        state = state.copyWith(
+          completingThreadIds: state.completingThreadIds
+              .where((id) => id != threadChannelId)
+              .toList(growable: false),
+        );
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — finally guard.
+      }
+    }
+  }
+
   /// Re-inserts [item] at [originalIndex], clamped to the current list length.
   /// Preserves ordering in the simple case while tolerating concurrent list
   /// mutations (additions/removals) that shift boundaries.

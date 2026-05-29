@@ -507,6 +507,12 @@ class _HangingMarkDoneRepository implements ThreadRepository {
   Future<void> followThread(ThreadRouteTarget target) async {}
 
   @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
   Future<void> markThreadRead(
     ServerScopeId serverId, {
     required String threadChannelId,

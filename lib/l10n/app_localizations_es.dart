@@ -2515,6 +2515,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get threadRepliesFollowTooltip => 'Seguir hilo';
 
   @override
+  String get threadRepliesUnfollowTooltip => 'Dejar de seguir hilo';
+
+  @override
   String get threadRepliesDoneTooltip => 'Marcar hilo como hecho';
 
   @override

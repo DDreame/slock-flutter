@@ -15,6 +15,7 @@ class ThreadRepliesState {
     this.participantIds = const [],
     this.lastReplyAt,
     this.isFollowingInFlight = false,
+    this.isUnfollowingInFlight = false,
     this.isDoneInFlight = false,
     this.isDone = false,
     this.failure,
@@ -27,6 +28,7 @@ class ThreadRepliesState {
   final List<String> participantIds;
   final DateTime? lastReplyAt;
   final bool isFollowingInFlight;
+  final bool isUnfollowingInFlight;
   final bool isDoneInFlight;
   final bool isDone;
   final AppFailure? failure;
@@ -54,6 +56,7 @@ class ThreadRepliesState {
     List<String>? participantIds,
     DateTime? lastReplyAt,
     bool? isFollowingInFlight,
+    bool? isUnfollowingInFlight,
     bool? isDoneInFlight,
     bool? isDone,
     AppFailure? failure,
@@ -68,6 +71,8 @@ class ThreadRepliesState {
       participantIds: participantIds ?? this.participantIds,
       lastReplyAt: lastReplyAt ?? this.lastReplyAt,
       isFollowingInFlight: isFollowingInFlight ?? this.isFollowingInFlight,
+      isUnfollowingInFlight:
+          isUnfollowingInFlight ?? this.isUnfollowingInFlight,
       isDoneInFlight: isDoneInFlight ?? this.isDoneInFlight,
       isDone: isDone ?? this.isDone,
       failure: clearFailure ? null : (failure ?? this.failure),
@@ -86,6 +91,7 @@ class ThreadRepliesState {
             listEquals(participantIds, other.participantIds) &&
             lastReplyAt == other.lastReplyAt &&
             isFollowingInFlight == other.isFollowingInFlight &&
+            isUnfollowingInFlight == other.isUnfollowingInFlight &&
             isDoneInFlight == other.isDoneInFlight &&
             isDone == other.isDone &&
             failure == other.failure;
@@ -100,6 +106,7 @@ class ThreadRepliesState {
         Object.hashAll(participantIds),
         lastReplyAt,
         isFollowingInFlight,
+        isUnfollowingInFlight,
         isDoneInFlight,
         isDone,
         failure,

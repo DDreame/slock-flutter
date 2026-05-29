@@ -186,6 +186,11 @@ class _FakeThreadRepository implements ThreadRepository {
   @override
   Future<void> followThread(ThreadRouteTarget target) async {}
   @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+  @override
   Future<void> markThreadDone(
     ServerScopeId serverId, {
     required String threadChannelId,

@@ -177,6 +177,52 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
     }
   }
 
+  Future<void> unfollow() async {
+    final threadChannelId = state.resolvedThreadChannelId;
+    if (state.status != ThreadRepliesStatus.success ||
+        !state.isFollowing ||
+        state.isUnfollowingInFlight ||
+        threadChannelId == null) {
+      return;
+    }
+
+    final routeTarget = state.routeTarget;
+    state = state.copyWith(isUnfollowingInFlight: true, clearFailure: true);
+
+    try {
+      await ref.read(threadRepositoryProvider).unfollowThread(
+            ServerScopeId(routeTarget.serverId),
+            threadChannelId: threadChannelId,
+          );
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(
+        routeTarget: routeTarget.copyWith(isFollowed: false),
+        clearFailure: true,
+      );
+    } on AppFailure catch (failure) {
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(failure: failure);
+    } catch (error) {
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to unfollow thread.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
+    } finally {
+      if (_isCurrentRoute(routeTarget)) {
+        state = state.copyWith(isUnfollowingInFlight: false);
+      }
+    }
+  }
+
   Future<void> markDone() async {
     final threadChannelId = state.resolvedThreadChannelId;
     if (state.status != ThreadRepliesStatus.success ||

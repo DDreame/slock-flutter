@@ -2483,6 +2483,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get threadRepliesFollowTooltip => 'Follow thread';
 
   @override
+  String get threadRepliesUnfollowTooltip => 'Unfollow thread';
+
+  @override
   String get threadRepliesDoneTooltip => 'Mark thread done';
 
   @override

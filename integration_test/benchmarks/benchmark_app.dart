@@ -266,6 +266,12 @@ class _BenchmarkThreadRepository implements ThreadRepository {
   Future<void> followThread(ThreadRouteTarget target) async {}
 
   @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
   Future<void> markThreadDone(
     ServerScopeId serverId, {
     required String threadChannelId,

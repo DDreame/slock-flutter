@@ -9,6 +9,11 @@ abstract class ThreadRepository {
 
   Future<void> followThread(ThreadRouteTarget target);
 
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  });
+
   Future<void> markThreadDone(
     ServerScopeId serverId, {
     required String threadChannelId,

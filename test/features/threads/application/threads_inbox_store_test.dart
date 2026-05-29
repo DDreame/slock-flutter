@@ -278,6 +278,146 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // B123 PR 4: Optimistic unfollowThread with failure restore
+  // ---------------------------------------------------------------------------
+
+  group('ThreadsInboxStore unfollowThread (B123 PR 4)', () {
+    test(
+      'unfollowThread optimistically removes item, restores on failure',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // Configure unfollowThread to hang on a Completer.
+        final completer = Completer<void>();
+        repo.unfollowCompleter = completer;
+
+        // Fire without awaiting — observe mid-flight optimistic removal.
+        final future = container
+            .read(threadsInboxStoreProvider.notifier)
+            .unfollowThread(sampleItem);
+
+        // Mid-flight: item must already be removed (optimistic).
+        final midState = container.read(threadsInboxStoreProvider);
+        expect(midState.items, isEmpty,
+            reason: 'Item must be optimistically removed before async '
+                'unfollowThread completes');
+        expect(midState.completingThreadIds, ['thread-ch-1']);
+
+        // Complete with failure → triggers rollback.
+        completer.completeError(
+          const ServerFailure(message: 'Unfollow failed', statusCode: 500),
+        );
+        await future;
+
+        // After failure: item must be restored.
+        final endState = container.read(threadsInboxStoreProvider);
+        expect(endState.items, hasLength(1),
+            reason: 'Item must be restored after unfollowThread failure');
+        expect(endState.items.first.routeTarget.threadChannelId, 'thread-ch-1');
+        expect(endState.failure, isNotNull,
+            reason: 'Failure must be surfaced for UI feedback');
+        expect(endState.failure, isA<ServerFailure>());
+        expect(endState.completingThreadIds, isEmpty);
+      },
+    );
+
+    test(
+      'unfollowThread restores item on non-AppFailure',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        )..unfollowThrowable = StateError('raw unfollow failure');
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .unfollowThread(sampleItem);
+
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, hasLength(1));
+        expect(state.items.first.routeTarget.threadChannelId, 'thread-ch-1');
+        expect(state.completingThreadIds, isEmpty);
+        expect(state.failure, isA<UnknownFailure>());
+      },
+    );
+
+    test(
+      'unfollowThread removes item permanently on success',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // unfollowThread succeeds (no failure configured).
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .unfollowThread(sampleItem);
+
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, isEmpty,
+            reason: 'Item must be permanently removed on success');
+        expect(state.failure, isNull);
+        expect(state.completingThreadIds, isEmpty);
+      },
+    );
+
+    test(
+      'unfollowThread is no-op when threadChannelId is null',
+      () async {
+        const itemNoChannel = ThreadInboxItem(
+          routeTarget: ThreadRouteTarget(
+            serverId: 'server-1',
+            parentChannelId: 'channel-1',
+            parentMessageId: 'msg-1',
+            // threadChannelId is null
+          ),
+          replyCount: 1,
+          unreadCount: 0,
+          participantIds: ['user-1'],
+        );
+
+        final repo = _ControllableThreadRepository(
+          initialItems: [itemNoChannel],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        await container.read(threadsInboxStoreProvider.notifier).load();
+
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .unfollowThread(itemNoChannel);
+
+        // Item should still be there — no-op.
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, hasLength(1),
+            reason:
+                'unfollowThread must be no-op when threadChannelId is null');
+      },
+    );
+  });
 }
 // Fakes
 // ---------------------------------------------------------------------------
@@ -304,6 +444,12 @@ class _FailingThreadRepository implements ThreadRepository {
   Future<void> followThread(ThreadRouteTarget target) async {}
 
   @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
   Future<void> markThreadDone(
     ServerScopeId serverId, {
     required String threadChannelId,
@@ -325,10 +471,16 @@ class _ControllableThreadRepository implements ThreadRepository {
   AppFailure? failure;
   AppFailure? markDoneFailure;
   Object? markDoneThrowable;
+  AppFailure? unfollowFailure;
+  Object? unfollowThrowable;
 
   /// When set, `markThreadDone` awaits this completer before returning.
   /// Allows tests to observe mid-flight optimistic state.
   Completer<void>? markDoneCompleter;
+
+  /// When set, `unfollowThread` awaits this completer before returning.
+  /// Allows tests to observe mid-flight optimistic state.
+  Completer<void>? unfollowCompleter;
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
@@ -346,6 +498,19 @@ class _ControllableThreadRepository implements ThreadRepository {
 
   @override
   Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {
+    if (unfollowCompleter != null) {
+      await unfollowCompleter!.future;
+      return;
+    }
+    if (unfollowThrowable != null) throw unfollowThrowable!;
+    if (unfollowFailure != null) throw unfollowFailure!;
+  }
 
   @override
   Future<void> markThreadDone(
