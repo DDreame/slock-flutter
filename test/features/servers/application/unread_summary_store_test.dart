@@ -8,6 +8,8 @@
 // 4. Server switcher badge: dot shown for unread servers, not for active server.
 // =============================================================================
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/servers/data/unread_summary_repository.dart';
@@ -157,7 +159,84 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(container.read(unreadSummaryStoreProvider)['srv-1'], 5);
     });
+
+    test('refresh() is a no-op when unauthenticated', () async {
+      createContainer(authenticated: false);
+      // Store is in unauthenticated state — empty.
+      expect(container.read(unreadSummaryStoreProvider), isEmpty);
+
+      // Calling refresh (simulating lifecycle resume after logout) should
+      // NOT trigger a fetch.
+      container.read(unreadSummaryStoreProvider.notifier).refresh();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fetchCount, 0,
+          reason: 'Removing auth guard in refresh/_fetch → fetches while '
+              'unauthenticated → test RED');
+      expect(container.read(unreadSummaryStoreProvider), isEmpty);
+    });
+
+    test('in-flight fetch after logout does not write stale data', () async {
+      // Use a Completer to control when the fetch resolves, and a mutable
+      // auth flag to simulate logout mid-flight.
+      final completer = Completer<List<UnreadSummaryEntry>>();
+      var isAuthenticated = true;
+
+      container = ProviderContainer(
+        overrides: [
+          unreadSummaryRepositoryProvider.overrideWithValue(
+            BaselineUnreadSummaryRepository(
+              loadUnreadSummary: () => completer.future,
+            ),
+          ),
+          sessionStoreProvider.overrideWith(
+            () => _AuthStateBackedSessionStore(),
+          ),
+          _authStateBackingProvider.overrideWith((ref) => isAuthenticated),
+        ],
+      );
+
+      // Trigger store build (authenticated) — starts _fetch via microtask.
+      container.read(unreadSummaryStoreProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      // Fetch is now in-flight (awaiting completer). Simulate logout.
+      isAuthenticated = false;
+      container.invalidate(_authStateBackingProvider);
+      container.invalidate(sessionStoreProvider);
+      // Allow the invalidation to propagate.
+      await Future<void>.delayed(Duration.zero);
+
+      // Now complete the fetch — data arrives after "logout".
+      completer.complete(mockEntries);
+      await Future<void>.delayed(Duration.zero);
+
+      // State must remain empty — the post-await auth check blocks the write.
+      expect(container.read(unreadSummaryStoreProvider), isEmpty,
+          reason:
+              'Removing post-await auth re-check → stale data written → RED');
+    });
   });
+}
+
+/// Backing provider for [_AuthStateBackedSessionStore].
+/// Override with `overrideWith((ref) => boolValue)` + invalidate to change.
+final _authStateBackingProvider = Provider<bool>((ref) => true);
+
+class _AuthStateBackedSessionStore extends SessionStore {
+  @override
+  SessionState build() {
+    final auth = ref.watch(_authStateBackingProvider);
+    return SessionState(
+      status: auth ? AuthStatus.authenticated : AuthStatus.unauthenticated,
+      userId: auth ? 'user-1' : null,
+      displayName: auth ? 'Test' : null,
+      token: auth ? 'token' : null,
+    );
+  }
+
+  @override
+  Future<void> logout() async {}
 }
 
 class _FakeSessionStore extends SessionStore {

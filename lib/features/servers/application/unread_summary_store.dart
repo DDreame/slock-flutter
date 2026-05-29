@@ -54,12 +54,21 @@ class UnreadSummaryStore extends Notifier<UnreadSummaryState> {
   }
 
   /// Public method to trigger a refresh (e.g. on app resume).
+  /// No-op when unauthenticated.
   void refresh() => _fetch();
 
   Future<void> _fetch() async {
+    // Guard: do not fetch if unauthenticated (e.g. resume after logout,
+    // or in-flight fetch completes after auth state changed).
+    if (!ref.read(sessionStoreProvider).isAuthenticated) return;
+
     try {
       final entries =
           await ref.read(unreadSummaryRepositoryProvider).loadUnreadSummary();
+
+      // Re-check auth after async gap — session may have changed.
+      if (!ref.read(sessionStoreProvider).isAuthenticated) return;
+
       final map = <String, int>{};
       for (final entry in entries) {
         map[entry.serverId] = entry.unreadCount;
