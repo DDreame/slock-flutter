@@ -1345,5 +1345,9 @@
   "mentionSuggestionsSemantics": "Sugerencias de mención",
   "mentionSuggestionItemSemantics": "Mencionar a {name}",
   "oauthDividerLabel": "o continuar con",
-  "oauthProviderButton": "Continuar con {provider}"
+  "oauthProviderButton": "Continuar con {provider}",
+  "oauthCancelledMessage": "Inicio de sesión cancelado.",
+  "oauthProviderDeniedMessage": "El proveedor denegó el acceso. Intenta de nuevo o usa otro método de inicio de sesión.",
+  "oauthConflictMessage": "Este correo ya está registrado. Inicia sesión con tu contraseña.",
+  "oauthNetworkErrorMessage": "No se pudo conectar con el proveedor. Verifica tu conexión e intenta de nuevo."
 }

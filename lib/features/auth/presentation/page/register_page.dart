@@ -172,14 +172,24 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     if (!mounted) return;
     if (state.hasError) {
       final error = state.error;
-      if (error is OAuthCancelledException) {
-        return; // User cancelled — no error.
-      }
       final l10n = context.l10n;
+      if (error is OAuthCancelledException) {
+        setState(() => _errorText = l10n.oauthCancelledMessage);
+        return;
+      }
       setState(() {
-        _errorText =
-            error is AppFailure ? error.userMessage(l10n) : l10n.errorUnknown;
+        _errorText = _oauthErrorMessage(error, l10n);
       });
     }
+  }
+
+  String _oauthErrorMessage(Object? error, AppLocalizations l10n) {
+    if (error is ConflictFailure) return l10n.oauthConflictMessage;
+    if (error is ForbiddenFailure) return l10n.oauthProviderDeniedMessage;
+    if (error is NetworkFailure || error is TimeoutFailure) {
+      return l10n.oauthNetworkErrorMessage;
+    }
+    if (error is AppFailure) return error.userMessage(l10n);
+    return l10n.errorUnknown;
   }
 }

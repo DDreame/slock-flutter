@@ -3519,4 +3519,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String oauthProviderButton(String provider) {
     return 'Continuar con $provider';
   }
+
+  @override
+  String get oauthCancelledMessage => 'Inicio de sesión cancelado.';
+
+  @override
+  String get oauthProviderDeniedMessage =>
+      'El proveedor denegó el acceso. Intenta de nuevo o usa otro método de inicio de sesión.';
+
+  @override
+  String get oauthConflictMessage =>
+      'Este correo ya está registrado. Inicia sesión con tu contraseña.';
+
+  @override
+  String get oauthNetworkErrorMessage =>
+      'No se pudo conectar con el proveedor. Verifica tu conexión e intenta de nuevo.';
 }

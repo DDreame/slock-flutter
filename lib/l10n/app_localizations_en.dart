@@ -3481,4 +3481,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String oauthProviderButton(String provider) {
     return 'Continue with $provider';
   }
+
+  @override
+  String get oauthCancelledMessage => 'Sign-in was cancelled.';
+
+  @override
+  String get oauthProviderDeniedMessage =>
+      'Access was denied by the provider. Please try again or use a different sign-in method.';
+
+  @override
+  String get oauthConflictMessage =>
+      'This email is already registered. Please sign in with your password instead.';
+
+  @override
+  String get oauthNetworkErrorMessage =>
+      'Could not connect to the sign-in provider. Please check your connection and try again.';
 }

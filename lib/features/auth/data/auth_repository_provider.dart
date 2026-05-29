@@ -218,12 +218,14 @@ class _ApiAuthRepository implements AuthRepository {
     final bio = map['bio'] ?? map['description'];
     final avatarUrl = map['avatarUrl'] ?? map['avatar'];
     final emailVerified = map['emailVerified'];
+    final hasPassword = map['hasPassword'];
     return AuthUser(
       id: id,
       name: name is String && name.isNotEmpty ? name : null,
       bio: bio is String ? bio : null,
       avatarUrl: avatarUrl is String && avatarUrl.isNotEmpty ? avatarUrl : null,
       emailVerified: emailVerified is bool ? emailVerified : null,
+      hasPassword: hasPassword is bool ? hasPassword : null,
     );
   }
 }

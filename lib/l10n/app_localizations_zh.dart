@@ -3383,4 +3383,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String oauthProviderButton(String provider) {
     return '通过$provider继续';
   }
+
+  @override
+  String get oauthCancelledMessage => '登录已取消。';
+
+  @override
+  String get oauthProviderDeniedMessage => '登录提供方拒绝了访问。请重试或使用其他登录方式。';
+
+  @override
+  String get oauthConflictMessage => '该邮箱已注册。请使用密码登录。';
+
+  @override
+  String get oauthNetworkErrorMessage => '无法连接到登录提供方。请检查网络连接后重试。';
 }

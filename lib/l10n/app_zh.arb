@@ -1185,5 +1185,9 @@
   "mentionSuggestionsSemantics": "提及建议",
   "mentionSuggestionItemSemantics": "提及{name}",
   "oauthDividerLabel": "或通过以下方式继续",
-  "oauthProviderButton": "通过{provider}继续"
+  "oauthProviderButton": "通过{provider}继续",
+  "oauthCancelledMessage": "登录已取消。",
+  "oauthProviderDeniedMessage": "登录提供方拒绝了访问。请重试或使用其他登录方式。",
+  "oauthConflictMessage": "该邮箱已注册。请使用密码登录。",
+  "oauthNetworkErrorMessage": "无法连接到登录提供方。请检查网络连接后重试。"
 }
