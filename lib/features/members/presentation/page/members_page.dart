@@ -196,6 +196,10 @@ class _MembersBody extends ConsumerStatefulWidget {
 }
 
 class _MembersBodyState extends ConsumerState<_MembersBody> {
+  // Hoisted BorderRadius for search field (Scan #49).
+  static final _kSearchBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusMd);
+
   late final TextEditingController _searchController;
 
   @override
@@ -268,7 +272,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
               filled: true,
               fillColor: colors.surfaceAlt,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderRadius: _kSearchBorderRadius,
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(
@@ -605,6 +609,12 @@ class _InviteHumanSheet extends StatefulWidget {
 }
 
 class _InviteHumanSheetState extends State<_InviteHumanSheet> {
+  // Hoisted BorderRadius for invite sheet elements (Scan #49).
+  static final _kPillBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusFull);
+  static final _kLinkCardBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusMd);
+
   late final TextEditingController _emailController;
   bool _isSendingEmail = false;
   bool _isGeneratingLink = false;
@@ -701,9 +711,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                 ),
                 decoration: BoxDecoration(
                   color: colors.textTertiary,
-                  borderRadius: BorderRadius.circular(
-                    AppSpacing.radiusFull,
-                  ),
+                  borderRadius: _kPillBorderRadius,
                 ),
               ),
             ),
@@ -776,9 +784,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                 ),
                 decoration: BoxDecoration(
                   color: colors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(
-                    AppSpacing.radiusMd,
-                  ),
+                  borderRadius: _kLinkCardBorderRadius,
                 ),
                 child: Row(
                   children: [
