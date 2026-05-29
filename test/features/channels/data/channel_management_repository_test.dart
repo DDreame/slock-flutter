@@ -204,6 +204,77 @@ void main() {
         reason: '#737: requests must include X-Server-Id header',
       );
     });
+
+    test('B123: archiveChannel POSTs to /channels/{id}/archive', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('POST', '/channels/channel-1/archive'): null,
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(channelManagementRepositoryProvider);
+      await repository.archiveChannel(
+        const ServerScopeId('server-1'),
+        channelId: 'channel-1',
+      );
+
+      expect(appDioClient.requests, hasLength(1));
+      expect(appDioClient.requests.single.method, 'POST');
+      expect(appDioClient.requests.single.path, '/channels/channel-1/archive');
+      expect(appDioClient.requests.single.serverIdHeader, 'server-1');
+    });
+
+    test('B123: unarchiveChannel POSTs to /channels/{id}/unarchive', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('POST', '/channels/channel-1/unarchive'): null,
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(channelManagementRepositoryProvider);
+      await repository.unarchiveChannel(
+        const ServerScopeId('server-1'),
+        channelId: 'channel-1',
+      );
+
+      expect(appDioClient.requests, hasLength(1));
+      expect(appDioClient.requests.single.method, 'POST');
+      expect(
+        appDioClient.requests.single.path,
+        '/channels/channel-1/unarchive',
+      );
+      expect(appDioClient.requests.single.serverIdHeader, 'server-1');
+    });
+
+    test('B123: archiveChannel throws AppFailure on server error', () async {
+      final appDioClient = _FakeAppDioClient(
+        failures: {
+          ('POST', '/channels/channel-1/archive'):
+              const ForbiddenFailure(message: 'Not an admin'),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(channelManagementRepositoryProvider);
+      expect(
+        () => repository.archiveChannel(
+          const ServerScopeId('server-1'),
+          channelId: 'channel-1',
+        ),
+        throwsA(isA<ForbiddenFailure>()),
+      );
+    });
   });
 }
 

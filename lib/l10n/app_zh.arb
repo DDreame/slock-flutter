@@ -1189,5 +1189,12 @@
   "oauthCancelledMessage": "登录已取消。",
   "oauthProviderDeniedMessage": "登录提供方拒绝了访问。请重试或使用其他登录方式。",
   "oauthConflictMessage": "该邮箱已注册。请使用密码登录。",
-  "oauthNetworkErrorMessage": "无法连接到登录提供方。请检查网络连接后重试。"
+  "oauthNetworkErrorMessage": "无法连接到登录提供方。请检查网络连接后重试。",
+  "channelActionArchive": "归档频道",
+  "channelActionUnarchive": "取消归档",
+  "channelArchivedBanner": "此频道已归档。",
+  "channelArchiveConfirmTitle": "归档频道？",
+  "channelArchiveConfirmBody": "归档后的频道为只读状态。成员仍可查看消息，但无法发送新消息。",
+  "channelUnarchiveConfirmTitle": "取消归档？",
+  "channelUnarchiveConfirmBody": "这将恢复频道为活跃状态，成员可以重新发送消息。"
 }

@@ -129,6 +129,46 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
   }
 
   @override
+  Future<void> archiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId/archive',
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to archive channel.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> unarchiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId/unarchive',
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to unarchive channel.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<void> stopAllAgents(
     ServerScopeId serverId, {
     required String channelId,

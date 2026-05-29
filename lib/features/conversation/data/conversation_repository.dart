@@ -163,6 +163,7 @@ class ConversationDetailSnapshot {
     this.memberCount,
     this.description,
     this.savedMessageIds,
+    this.isArchived = false,
   });
 
   final ConversationDetailTarget target;
@@ -179,6 +180,9 @@ class ConversationDetailSnapshot {
   /// #861: Saved message IDs included in the initial load response.
   /// When non-null, eliminates the secondary rebuild from refreshSavedMessageIds.
   final Set<String>? savedMessageIds;
+
+  /// Whether the channel is archived (read-only).
+  final bool isArchived;
 }
 
 @immutable

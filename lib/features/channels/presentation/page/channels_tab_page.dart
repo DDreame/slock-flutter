@@ -456,6 +456,9 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         onEdit: () => _showEditChannelDialog(channel),
         onDelete: () => _showDeleteChannelDialog(channel),
         onLeave: () => _showLeaveChannelDialog(channel),
+        onArchive: channel.isArchived ? null : () => _archiveChannel(channel),
+        onUnarchive:
+            channel.isArchived ? () => _unarchiveChannel(channel) : null,
         onTogglePin: () => isPinned
             ? homeStore.unpinChannel(channel.scopeId)
             : homeStore.pinChannel(channel.scopeId),
@@ -634,6 +637,88 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                     Navigator.of(dialogContext).pop();
                   }
                   showAppSnackBar(context, l10n.homeChannelLeft);
+                } on AppFailure catch (failure) {
+                  if (!context.mounted) return;
+                  showAppSnackBar(
+                    context,
+                    failure.userMessage(l10n),
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _archiveChannel(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final state = ref.watch(channelManagementStoreProvider);
+            final store = ref.read(channelManagementStoreProvider.notifier);
+            return ConfirmChannelActionDialog(
+              dialogKey: const ValueKey('archive-channel-dialog'),
+              title: l10n.channelArchiveConfirmTitle,
+              message: l10n.channelArchiveConfirmBody,
+              confirmLabel: l10n.channelActionArchive,
+              isSubmitting: state.isRunning(
+                ChannelManagementAction.archive,
+                channelId: channel.scopeId.value,
+              ),
+              onCancel: () => Navigator.of(dialogContext).pop(),
+              onConfirm: () async {
+                try {
+                  await store.archiveChannel(channel.scopeId);
+                  if (!context.mounted) return;
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                } on AppFailure catch (failure) {
+                  if (!context.mounted) return;
+                  showAppSnackBar(
+                    context,
+                    failure.userMessage(l10n),
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _unarchiveChannel(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final state = ref.watch(channelManagementStoreProvider);
+            final store = ref.read(channelManagementStoreProvider.notifier);
+            return ConfirmChannelActionDialog(
+              dialogKey: const ValueKey('unarchive-channel-dialog'),
+              title: l10n.channelUnarchiveConfirmTitle,
+              message: l10n.channelUnarchiveConfirmBody,
+              confirmLabel: l10n.channelActionUnarchive,
+              isSubmitting: state.isRunning(
+                ChannelManagementAction.unarchive,
+                channelId: channel.scopeId.value,
+              ),
+              onCancel: () => Navigator.of(dialogContext).pop(),
+              onConfirm: () async {
+                try {
+                  await store.unarchiveChannel(channel.scopeId);
+                  if (!context.mounted) return;
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
                 } on AppFailure catch (failure) {
                   if (!context.mounted) return;
                   showAppSnackBar(

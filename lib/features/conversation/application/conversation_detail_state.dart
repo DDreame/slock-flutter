@@ -36,6 +36,7 @@ class ConversationDetailState {
     this.replyToMessage,
     this.isSelectionMode = false,
     this.selectedMessageIds = const {},
+    this.isArchived = false,
   });
 
   final ConversationDetailTarget target;
@@ -82,6 +83,9 @@ class ConversationDetailState {
   /// The set of message IDs currently selected in multi-select mode.
   final Set<String> selectedMessageIds;
 
+  /// Whether this channel has been archived (read-only, composer disabled).
+  final bool isArchived;
+
   bool get isEmpty =>
       status == ConversationDetailStatus.success &&
       messages.isEmpty &&
@@ -125,6 +129,7 @@ class ConversationDetailState {
     bool clearReplyToMessage = false,
     bool? isSelectionMode,
     Set<String>? selectedMessageIds,
+    bool? isArchived,
   }) {
     return ConversationDetailState(
       target: target ?? this.target,
@@ -156,6 +161,7 @@ class ConversationDetailState {
           clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
       isSelectionMode: isSelectionMode ?? this.isSelectionMode,
       selectedMessageIds: selectedMessageIds ?? this.selectedMessageIds,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
@@ -190,7 +196,8 @@ class ConversationDetailState {
             setEquals(savedMessageIds, other.savedMessageIds) &&
             replyToMessage == other.replyToMessage &&
             isSelectionMode == other.isSelectionMode &&
-            setEquals(selectedMessageIds, other.selectedMessageIds);
+            setEquals(selectedMessageIds, other.selectedMessageIds) &&
+            isArchived == other.isArchived;
   }
 
   @override
@@ -223,6 +230,7 @@ class ConversationDetailState {
           replyToMessage,
           isSelectionMode,
           Object.hashAll(selectedMessageIds),
+          isArchived,
         ),
       );
 }

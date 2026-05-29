@@ -1349,5 +1349,12 @@
   "oauthCancelledMessage": "Inicio de sesión cancelado.",
   "oauthProviderDeniedMessage": "El proveedor denegó el acceso. Intenta de nuevo o usa otro método de inicio de sesión.",
   "oauthConflictMessage": "Este correo ya está registrado. Inicia sesión con tu contraseña.",
-  "oauthNetworkErrorMessage": "No se pudo conectar con el proveedor. Verifica tu conexión e intenta de nuevo."
+  "oauthNetworkErrorMessage": "No se pudo conectar con el proveedor. Verifica tu conexión e intenta de nuevo.",
+  "channelActionArchive": "Archivar canal",
+  "channelActionUnarchive": "Desarchivar canal",
+  "channelArchivedBanner": "Este canal está archivado.",
+  "channelArchiveConfirmTitle": "¿Archivar canal?",
+  "channelArchiveConfirmBody": "Los canales archivados son de solo lectura. Los miembros pueden ver los mensajes pero no enviar nuevos.",
+  "channelUnarchiveConfirmTitle": "¿Desarchivar canal?",
+  "channelUnarchiveConfirmBody": "Esto restaurará el canal a estado activo y permitirá a los miembros enviar mensajes nuevamente."
 }

@@ -3534,4 +3534,27 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get oauthNetworkErrorMessage =>
       'No se pudo conectar con el proveedor. Verifica tu conexión e intenta de nuevo.';
+
+  @override
+  String get channelActionArchive => 'Archivar canal';
+
+  @override
+  String get channelActionUnarchive => 'Desarchivar canal';
+
+  @override
+  String get channelArchivedBanner => 'Este canal está archivado.';
+
+  @override
+  String get channelArchiveConfirmTitle => '¿Archivar canal?';
+
+  @override
+  String get channelArchiveConfirmBody =>
+      'Los canales archivados son de solo lectura. Los miembros pueden ver los mensajes pero no enviar nuevos.';
+
+  @override
+  String get channelUnarchiveConfirmTitle => '¿Desarchivar canal?';
+
+  @override
+  String get channelUnarchiveConfirmBody =>
+      'Esto restaurará el canal a estado activo y permitirá a los miembros enviar mensajes nuevamente.';
 }

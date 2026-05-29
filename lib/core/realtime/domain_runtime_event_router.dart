@@ -45,6 +45,8 @@ const _taskDeletedEvent = 'task:deleted';
 const _messageDeletedEvent = 'message:deleted';
 const _channelCreatedEvent = 'channel:created';
 const _channelDeletedEvent = 'channel:deleted';
+const _channelArchivedEvent = 'channel:archived';
+const _channelUnarchivedEvent = 'channel:unarchived';
 const _agentActivityEvent = 'agent:activity';
 const _agentCreatedEvent = 'agent:created';
 const _agentDeletedEvent = 'agent:deleted';
@@ -271,6 +273,16 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         case _channelDeletedEvent:
           if (activeServerId != null && _targetsServer(activeServerId, event)) {
             _refreshHomeList(ref, reason: 'channelDeleted');
+          }
+
+        case _channelArchivedEvent:
+          if (activeServerId != null && _targetsServer(activeServerId, event)) {
+            _refreshHomeList(ref, reason: 'channelArchived');
+          }
+
+        case _channelUnarchivedEvent:
+          if (activeServerId != null && _targetsServer(activeServerId, event)) {
+            _refreshHomeList(ref, reason: 'channelUnarchived');
           }
 
         // — Server membership domain —

@@ -347,8 +347,8 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       threadChannelIds.add(id);
     }
 
-    // Exclude non-top-level and archived channels.
-    if (_filteredChannelTypes.contains(type) || archived) {
+    // Exclude non-top-level channel types (threads, voice, etc.).
+    if (_filteredChannelTypes.contains(type)) {
       continue;
     }
 
@@ -364,6 +364,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,
       isPrivate: item['isPrivate'] == true || item['visibility'] == 'private',
+      isArchived: archived,
     ));
   }
 

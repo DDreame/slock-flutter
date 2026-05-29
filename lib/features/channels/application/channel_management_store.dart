@@ -272,6 +272,106 @@ class ChannelManagementStore
     }
   }
 
+  Future<bool> archiveChannel(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
+    final operationKey = 'archive:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return false;
+    try {
+      await _archiveChannel(scopeId);
+      return true;
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _archiveChannel(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.archive,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).archiveChannel(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      await _refreshHomeList();
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
+    } on AppFailure catch (failure) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  Future<bool> unarchiveChannel(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
+    final operationKey = 'unarchive:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return false;
+    try {
+      await _unarchiveChannel(scopeId);
+      return true;
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _unarchiveChannel(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.unarchive,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).unarchiveChannel(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      await _refreshHomeList();
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
+    } on AppFailure catch (failure) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    }
+  }
+
   Future<void> _refreshHomeList() async {
     try {
       await ref.read(homeListStoreProvider.notifier).load();
