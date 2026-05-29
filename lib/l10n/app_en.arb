@@ -1637,5 +1637,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "outboxQueueFull": "Message queue is full. Please wait for pending messages to send."
 }

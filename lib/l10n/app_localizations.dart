@@ -6634,6 +6634,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name}, has unread messages'**
   String serverSwitcherUnreadBadge(String name);
+
+  /// No description provided for @outboxQueueFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Message queue is full. Please wait for pending messages to send.'**
+  String get outboxQueueFull;
 }
 
 class _AppLocalizationsDelegate

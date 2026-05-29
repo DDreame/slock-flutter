@@ -3445,4 +3445,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String serverSwitcherUnreadBadge(String name) {
     return '$name，有未读消息';
   }
+
+  @override
+  String get outboxQueueFull => '消息队列已满，请等待待发送消息完成。';
 }

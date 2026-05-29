@@ -182,6 +182,13 @@ const _prefsKey = 'outbox_queue';
 const _maxConsecutiveDrainFailures = 3;
 const _drainBackoffDuration = Duration(seconds: 30);
 
+/// Maximum number of outbox messages per conversation target.
+///
+/// Prevents unbounded SharedPreferences growth when the device stays
+/// offline for an extended period. Once a target's queue reaches this
+/// limit, new enqueue attempts are rejected.
+const maxOutboxItemsPerTarget = 50;
+
 /// Callback type for notifying conversation stores about drain results.
 ///
 /// Called after a successful send with the outbox local ID and server message,
@@ -252,13 +259,16 @@ class OutboxStore extends Notifier<OutboxState> {
   /// If [localId] is provided, it is used as the outbox entry's local ID
   /// (allowing the caller to share the same ID with its optimistic message).
   ///
+  /// Returns `true` if the message was enqueued successfully, or `false` if
+  /// the per-target queue has reached [maxOutboxItemsPerTarget] capacity.
+  ///
   /// Deduplicates:
   /// - Primary: if [localId] is provided and an existing entry with the same
   ///   localId exists, the enqueue is a no-op (#708 — prevents false-dedup
   ///   when two messages share content but have different localIds).
   /// - Fallback: if no [localId] is provided, deduplicates on content +
   ///   replyToId (legacy behavior for callers that don't supply an ID).
-  void enqueue(
+  bool enqueue(
     ConversationDetailTarget target,
     String content, {
     String? replyToId,
@@ -268,9 +278,10 @@ class OutboxStore extends Notifier<OutboxState> {
     final existing = state.items[targetKey] ?? [];
 
     // Primary dedup: localId match (handles the race with localId assignment).
+    // Checked before capacity so re-enqueue of an existing item is always safe.
     if (localId != null) {
       final hasLocalId = existing.any((m) => m.localId == localId);
-      if (hasLocalId) return;
+      if (hasLocalId) return true; // already enqueued — not an error
     } else {
       // Fallback dedup: content + replyToId when no localId provided.
       final isDuplicate = existing.any(
@@ -279,8 +290,11 @@ class OutboxStore extends Notifier<OutboxState> {
             m.content == content &&
             m.replyToId == replyToId,
       );
-      if (isDuplicate) return;
+      if (isDuplicate) return true; // already enqueued — not an error
     }
+
+    // Capacity check: reject when the per-target queue is full.
+    if (existing.length >= maxOutboxItemsPerTarget) return false;
 
     localId ??=
         'outbox-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
@@ -295,6 +309,7 @@ class OutboxStore extends Notifier<OutboxState> {
     current[targetKey] = [...(current[targetKey] ?? []), message];
     state = state.copyWith(items: current);
     _persist();
+    return true;
   }
 
   /// Remove a specific outbox item (e.g. user dismissed a failed message).

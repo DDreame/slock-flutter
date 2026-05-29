@@ -3549,4 +3549,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String serverSwitcherUnreadBadge(String name) {
     return '$name, has unread messages';
   }
+
+  @override
+  String get outboxQueueFull =>
+      'Message queue is full. Please wait for pending messages to send.';
 }

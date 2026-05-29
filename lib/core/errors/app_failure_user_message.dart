@@ -19,6 +19,7 @@ extension AppFailureUserMessage on AppFailure {
         ForbiddenFailure() => l10n.errorForbidden,
         NotFoundFailure() => l10n.errorNotFound,
         ConflictFailure() => l10n.errorConflict,
+        ValidationFailure(causeType: 'outboxQueueFull') => l10n.outboxQueueFull,
         ValidationFailure() => l10n.errorValidation,
         RateLimitFailure() => l10n.errorRateLimit,
         ServerFailure() => l10n.errorServer,

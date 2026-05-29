@@ -1365,5 +1365,6 @@
   "channelArchiveConfirmBody": "Los canales archivados son de solo lectura. Los miembros pueden ver los mensajes pero no enviar nuevos.",
   "channelUnarchiveConfirmTitle": "¿Desarchivar canal?",
   "channelUnarchiveConfirmBody": "Esto restaurará el canal a estado activo y permitirá a los miembros enviar mensajes nuevamente.",
-  "serverSwitcherUnreadBadge": "{name}, tiene mensajes no leídos"
+  "serverSwitcherUnreadBadge": "{name}, tiene mensajes no leídos",
+  "outboxQueueFull": "La cola de mensajes está llena. Espere a que se envíen los mensajes pendientes."
 }
