@@ -33,6 +33,20 @@ class ImageGalleryPage extends ConsumerStatefulWidget {
 
   final ImageGalleryArgs args;
 
+  /// Hoisted BorderRadius for the index indicator pill.
+  @visibleForTesting
+  static final indicatorBorderRadius = BorderRadius.circular(AppSpacing.md);
+
+  /// Hoisted TextStyle for the index indicator text.
+  @visibleForTesting
+  static final indicatorTextStyle =
+      AppTypography.label.copyWith(color: Colors.white);
+
+  /// Hoisted TextStyle for error/fallback text.
+  @visibleForTesting
+  static final errorTextStyle =
+      AppTypography.body.copyWith(color: Colors.white54);
+
   @override
   ConsumerState<ImageGalleryPage> createState() => _ImageGalleryPageState();
 }
@@ -223,11 +237,11 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.black54,
-                    borderRadius: BorderRadius.circular(AppSpacing.md),
+                    borderRadius: ImageGalleryPage.indicatorBorderRadius,
                   ),
                   child: Text(
                     '${_currentIndex + 1} / ${images.length}',
-                    style: AppTypography.label.copyWith(color: Colors.white),
+                    style: ImageGalleryPage.indicatorTextStyle,
                   ),
                 ),
               ),
@@ -262,7 +276,7 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
             const SizedBox(height: AppSpacing.md),
             Text(
               context.l10n.filePreviewImageLoadFailed,
-              style: AppTypography.body.copyWith(color: Colors.white54),
+              style: ImageGalleryPage.errorTextStyle,
             ),
           ],
         ),
@@ -304,7 +318,7 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   context.l10n.filePreviewImageLoadFailed,
-                  style: AppTypography.body.copyWith(color: Colors.white54),
+                  style: ImageGalleryPage.errorTextStyle,
                 ),
               ],
             );

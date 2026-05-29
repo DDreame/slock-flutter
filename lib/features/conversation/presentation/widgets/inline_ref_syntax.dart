@@ -206,6 +206,11 @@ class ChannelRefBuilder extends MarkdownElementBuilder {
 
   /// Colors reference — set during visitElementAfterWithContext from context.
   AppColors? _colors;
+  Color? _chipBackground;
+
+  /// Exposes the cached chip background for identity testing.
+  @visibleForTesting
+  Color? get chipBackground => _chipBackground;
 
   @override
   Widget? visitElementAfterWithContext(
@@ -216,13 +221,14 @@ class ChannelRefBuilder extends MarkdownElementBuilder {
   ) {
     _colors ??= Theme.of(context).extension<AppColors>();
     final colors = _colors!;
+    _chipBackground ??= colors.primary.withValues(alpha: 0.1);
     final name = element.attributes['name'] ?? '';
 
     final style =
         (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
       color: colors.primary,
       fontWeight: FontWeight.w600,
-      backgroundColor: colors.primary.withValues(alpha: 0.1),
+      backgroundColor: _chipBackground,
     );
 
     final child = Text.rich(
@@ -253,6 +259,11 @@ class TaskRefBuilder extends MarkdownElementBuilder {
 
   /// Colors reference — set during visitElementAfterWithContext from context.
   AppColors? _colors;
+  Color? _chipBackground;
+
+  /// Exposes the cached chip background for identity testing.
+  @visibleForTesting
+  Color? get chipBackground => _chipBackground;
 
   @override
   Widget? visitElementAfterWithContext(
@@ -263,13 +274,14 @@ class TaskRefBuilder extends MarkdownElementBuilder {
   ) {
     _colors ??= Theme.of(context).extension<AppColors>();
     final colors = _colors!;
+    _chipBackground ??= colors.primary.withValues(alpha: 0.1);
     final number = element.attributes['number'] ?? '';
 
     final style =
         (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
       color: colors.primary,
       fontWeight: FontWeight.w600,
-      backgroundColor: colors.primary.withValues(alpha: 0.1),
+      backgroundColor: _chipBackground,
     );
 
     final child = Text.rich(
@@ -301,6 +313,11 @@ class ThreadRefBuilder extends MarkdownElementBuilder {
 
   /// Colors reference — set during visitElementAfterWithContext from context.
   AppColors? _colors;
+  Color? _chipBackground;
+
+  /// Exposes the cached chip background for identity testing.
+  @visibleForTesting
+  Color? get chipBackground => _chipBackground;
 
   @override
   Widget? visitElementAfterWithContext(
@@ -311,6 +328,7 @@ class ThreadRefBuilder extends MarkdownElementBuilder {
   ) {
     _colors ??= Theme.of(context).extension<AppColors>();
     final colors = _colors!;
+    _chipBackground ??= colors.primary.withValues(alpha: 0.1);
     final target = element.attributes['target'] ?? '';
     final messageId = element.attributes['messageId'] ?? '';
     final isDm = element.attributes['isDm'] == 'true';
@@ -321,7 +339,7 @@ class ThreadRefBuilder extends MarkdownElementBuilder {
         (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
       color: colors.primary,
       fontWeight: FontWeight.w600,
-      backgroundColor: colors.primary.withValues(alpha: 0.1),
+      backgroundColor: _chipBackground,
     );
 
     final child = Text.rich(
