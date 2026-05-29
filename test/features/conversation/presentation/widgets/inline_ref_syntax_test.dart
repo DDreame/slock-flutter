@@ -438,17 +438,19 @@ void main() {
         refColor: refColor,
         refBackground: refBg,
       );
-      // "subtask #3" should NOT match — no task ref styling
-      // But "#3" might match as a channel ref... let's verify
-      // Actually with the combined regex, "subtask" has "task" in it but
-      // preceded by "sub" which is a word char, so it should NOT match.
-      // And bare "#3" preceded by space should match as channel_ref.
-      expect(span.children, isNotNull);
-      // Find spans with task ref style — none should exist
-      final taskRefSpans = span.children!.cast<TextSpan>().where(
-            (s) => s.text != null && s.text!.startsWith('task'),
-          );
-      expect(taskRefSpans, isEmpty);
+      // "subtask #3" should NOT match as task ref (preceded by word char "sub").
+      // "#3" also does NOT match as channel ref (digit-start, letter required).
+      // Result: entire string is plain text — no children, just text.
+      if (span.children != null) {
+        final styledRefSpans = span.children!.cast<TextSpan>().where(
+              (s) => s.style?.color == refColor,
+            );
+        expect(styledRefSpans, isEmpty,
+            reason: '"subtask #3" must produce no styled refs');
+      } else {
+        // Plain text — correct behavior with letter-start channel constraint.
+        expect(span.text, 'Work on subtask #3');
+      }
     });
 
     test('composes with highlight query', () {
