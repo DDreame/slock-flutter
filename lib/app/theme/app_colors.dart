@@ -29,6 +29,9 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.agentLight,
     required this.overlayBarrier,
     required this.overlayForeground,
+    required this.channelBadge,
+    required this.dmBadge,
+    required this.shadowLight,
   });
 
   /// Light-mode token set.
@@ -53,6 +56,9 @@ class AppColors extends ThemeExtension<AppColors> {
     agentLight: Color(0xFFF5F3FF),
     overlayBarrier: Color(0xFF000000),
     overlayForeground: Color(0xFFFFFFFF),
+    channelBadge: Color(0xFF14B8A6),
+    dmBadge: Color(0xFF2196F3),
+    shadowLight: Color(0x0D000000),
   );
 
   /// Dark-mode token set.
@@ -77,6 +83,9 @@ class AppColors extends ThemeExtension<AppColors> {
     agentLight: Color(0xFF1E1533),
     overlayBarrier: Color(0xFF000000),
     overlayForeground: Color(0xFFFFFFFF),
+    channelBadge: Color(0xFF14B8A6),
+    dmBadge: Color(0xFF64B5F6),
+    shadowLight: Color(0x0DFFFFFF),
   );
 
   /// Main page/scaffold background.
@@ -139,6 +148,15 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Overlay foreground text color (text on dark overlay backdrops).
   final Color overlayForeground;
 
+  /// Channel type badge color (teal accent for channel pills).
+  final Color channelBadge;
+
+  /// Direct message type badge color (blue accent for DM pills).
+  final Color dmBadge;
+
+  /// Lightweight shadow color (tab indicators, elevated cards).
+  final Color shadowLight;
+
   @override
   AppColors copyWith({
     Color? background,
@@ -161,6 +179,9 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? agentLight,
     Color? overlayBarrier,
     Color? overlayForeground,
+    Color? channelBadge,
+    Color? dmBadge,
+    Color? shadowLight,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -183,6 +204,9 @@ class AppColors extends ThemeExtension<AppColors> {
       agentLight: agentLight ?? this.agentLight,
       overlayBarrier: overlayBarrier ?? this.overlayBarrier,
       overlayForeground: overlayForeground ?? this.overlayForeground,
+      channelBadge: channelBadge ?? this.channelBadge,
+      dmBadge: dmBadge ?? this.dmBadge,
+      shadowLight: shadowLight ?? this.shadowLight,
     );
   }
 
@@ -213,6 +237,9 @@ class AppColors extends ThemeExtension<AppColors> {
       overlayBarrier: Color.lerp(overlayBarrier, other.overlayBarrier, t)!,
       overlayForeground:
           Color.lerp(overlayForeground, other.overlayForeground, t)!,
+      channelBadge: Color.lerp(channelBadge, other.channelBadge, t)!,
+      dmBadge: Color.lerp(dmBadge, other.dmBadge, t)!,
+      shadowLight: Color.lerp(shadowLight, other.shadowLight, t)!,
     );
   }
 }

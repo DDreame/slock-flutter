@@ -952,9 +952,9 @@ class _UnreadItemRow extends ConsumerWidget {
       case ConversationProjectionKind.thread:
         return ('\u21a9', (c) => c.primary);
       case ConversationProjectionKind.channel:
-        return ('#', (_) => const Color(0xFF14B8A6));
+        return ('#', (c) => c.channelBadge);
       case ConversationProjectionKind.dm:
-        return ('\u2709', (_) => const Color(0xFF2196F3));
+        return ('\u2709', (c) => c.dmBadge);
     }
   }
 
