@@ -3473,4 +3473,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String mentionSuggestionItemSemantics(String name) {
     return 'Mention $name';
   }
+
+  @override
+  String get oauthDividerLabel => 'or continue with';
+
+  @override
+  String oauthProviderButton(String provider) {
+    return 'Continue with $provider';
+  }
 }

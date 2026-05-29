@@ -1183,5 +1183,7 @@
   "agentsRowSemantics": "{name}，{activity}",
   "agentsRowActionsHint": "显示操作",
   "mentionSuggestionsSemantics": "提及建议",
-  "mentionSuggestionItemSemantics": "提及{name}"
+  "mentionSuggestionItemSemantics": "提及{name}",
+  "oauthDividerLabel": "或通过以下方式继续",
+  "oauthProviderButton": "通过{provider}继续"
 }

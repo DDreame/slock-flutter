@@ -1343,5 +1343,7 @@
   "agentsRowSemantics": "{name}, {activity}",
   "agentsRowActionsHint": "Mostrar acciones",
   "mentionSuggestionsSemantics": "Sugerencias de mención",
-  "mentionSuggestionItemSemantics": "Mencionar a {name}"
+  "mentionSuggestionItemSemantics": "Mencionar a {name}",
+  "oauthDividerLabel": "o continuar con",
+  "oauthProviderButton": "Continuar con {provider}"
 }

@@ -3375,4 +3375,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String mentionSuggestionItemSemantics(String name) {
     return '提及$name';
   }
+
+  @override
+  String get oauthDividerLabel => '或通过以下方式继续';
+
+  @override
+  String oauthProviderButton(String provider) {
+    return '通过$provider继续';
+  }
 }
