@@ -493,6 +493,95 @@ void main() {
   });
 
   testWidgets(
+      'ThreadRepliesPage unfollow action renders, fires, and disables mid-flight',
+      (
+    tester,
+  ) async {
+    final threadRepository = _FakeThreadRepository(
+      resolvedThread: const ResolvedThreadChannel(
+        threadChannelId: 'thread-1',
+        replyCount: 2,
+        participantIds: ['u1'],
+      ),
+    );
+    final conversationRepository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'thread-1',
+          ),
+        ),
+        title: 'Thread',
+        messages: [
+          ConversationMessageSummary(
+            id: 'reply-1',
+            content: 'First reply',
+            createdAt: DateTime.parse('2026-04-21T08:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    // Mount with a followed thread so unfollow button appears.
+    await tester.pumpWidget(
+      _buildApp(
+        threadRepository: threadRepository,
+        conversationRepository: conversationRepository,
+        child: const ThreadRepliesPage(
+          routeTarget: ThreadRouteTarget(
+            serverId: 'server-1',
+            parentChannelId: 'general',
+            parentMessageId: 'message-1',
+            isFollowed: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Unfollow action must render when isFollowing=true.
+    final unfollowAction = find.byKey(const ValueKey('thread-unfollow-action'));
+    expect(unfollowAction, findsOneWidget,
+        reason: 'Removing unfollow button from page → no widget found → RED');
+
+    // Follow action should NOT render (only shows when not following).
+    expect(find.byKey(const ValueKey('thread-follow-action')), findsNothing,
+        reason: 'Follow action must not render when already following');
+
+    // Configure repo to hang mid-flight so we can observe in-flight state.
+    final completer = Completer<void>();
+    threadRepository.unfollowCompleter = completer;
+
+    // Tap unfollow — should start in-flight.
+    await tester.tap(unfollowAction);
+    await tester.pump();
+
+    // Mid-flight: button should be disabled (onPressed == null) or show spinner.
+    final iconButtonWidget = tester.widget<IconButton>(
+      find.byKey(const ValueKey('thread-unfollow-action')),
+    );
+    expect(iconButtonWidget.onPressed, isNull,
+        reason:
+            'Removing in-flight disable guard → button stays enabled → RED');
+
+    // Complete the unfollow — should succeed.
+    completer.complete();
+    await tester.pump();
+    await tester.pump();
+
+    // Verify real unfollow path fired.
+    expect(threadRepository.unfollowedThreadIds, ['thread-1'],
+        reason:
+            'Wiring wrong callback or removing store.unfollow() → empty → RED');
+  });
+
+  testWidgets(
       'ThreadRepliesPage shows invalid-route state when channel context is missing',
       (
     tester,
@@ -570,8 +659,12 @@ class _FakeThreadRepository implements ThreadRepository {
   final ResolvedThreadChannel? resolvedThread;
   final List<ThreadRouteTarget> resolvedTargets = [];
   final List<String> doneThreadIds = [];
+  final List<String> unfollowedThreadIds = [];
   final List<String> markReadThreadIds = [];
   int loadFollowedThreadsCalls = 0;
+
+  /// When set, `unfollowThread` awaits this completer before returning.
+  Completer<void>? unfollowCompleter;
 
   @override
   Future<void> followThread(ThreadRouteTarget target) async {}
@@ -580,7 +673,12 @@ class _FakeThreadRepository implements ThreadRepository {
   Future<void> unfollowThread(
     ServerScopeId serverId, {
     required String threadChannelId,
-  }) async {}
+  }) async {
+    if (unfollowCompleter != null) {
+      await unfollowCompleter!.future;
+    }
+    unfollowedThreadIds.add(threadChannelId);
+  }
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(

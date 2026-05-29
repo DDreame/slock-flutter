@@ -136,6 +136,33 @@ void main() {
       isTrue,
     );
   });
+
+  test(
+      'unfollowThread posts to /channels/threads/unfollow with threadChannelId',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/channels/threads/unfollow': const {},
+      },
+    );
+    final container = createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(threadRepositoryProvider);
+    await repository.unfollowThread(
+      const ServerScopeId('server-1'),
+      threadChannelId: 'thread-ch-42',
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.method, 'POST', reason: 'Changing HTTP method → test RED');
+    expect(request.path, '/channels/threads/unfollow',
+        reason: 'Changing _unfollowThreadPath → test RED');
+    expect(request.serverIdHeader, 'server-1',
+        reason: 'Missing X-Server-Id header → test RED');
+    expect(request.data, {'threadChannelId': 'thread-ch-42'},
+        reason: 'Changing request body shape → test RED');
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {
