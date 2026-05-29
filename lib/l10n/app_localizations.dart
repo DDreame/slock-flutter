@@ -6514,6 +6514,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue with {provider}'**
   String oauthProviderButton(String provider);
+
+  /// No description provided for @oauthCancelledMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in was cancelled.'**
+  String get oauthCancelledMessage;
+
+  /// No description provided for @oauthProviderDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Access was denied by the provider. Please try again or use a different sign-in method.'**
+  String get oauthProviderDeniedMessage;
+
+  /// No description provided for @oauthConflictMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This email is already registered. Please sign in with your password instead.'**
+  String get oauthConflictMessage;
+
+  /// No description provided for @oauthNetworkErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the sign-in provider. Please check your connection and try again.'**
+  String get oauthNetworkErrorMessage;
 }
 
 class _AppLocalizationsDelegate

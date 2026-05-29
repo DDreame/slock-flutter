@@ -15,6 +15,7 @@ class AuthUser {
     this.bio,
     this.avatarUrl,
     this.emailVerified,
+    this.hasPassword,
   });
 
   final String id;
@@ -22,6 +23,10 @@ class AuthUser {
   final String? bio;
   final String? avatarUrl;
   final bool? emailVerified;
+
+  /// Whether the user has a password set. OAuth-only accounts have no password.
+  /// Null when the server does not yet return this field (backward-compatible).
+  final bool? hasPassword;
 }
 
 abstract class AuthRepository {

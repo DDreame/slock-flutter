@@ -1610,5 +1610,9 @@
     "placeholders": {
       "provider": { "type": "String" }
     }
-  }
+  },
+  "oauthCancelledMessage": "Sign-in was cancelled.",
+  "oauthProviderDeniedMessage": "Access was denied by the provider. Please try again or use a different sign-in method.",
+  "oauthConflictMessage": "This email is already registered. Please sign in with your password instead.",
+  "oauthNetworkErrorMessage": "Could not connect to the sign-in provider. Please check your connection and try again."
 }
