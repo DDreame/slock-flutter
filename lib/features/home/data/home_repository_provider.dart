@@ -366,6 +366,11 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       continue;
     }
 
+    // Exclude archived channels from the active channel list.
+    if (archived) {
+      continue;
+    }
+
     final lastMessage = _parseLastMessage(item['lastMessage'], l10n: l10n);
 
     channels.add(HomeChannelSummary(
