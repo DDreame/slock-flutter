@@ -58,7 +58,8 @@ class ChannelRefSyntax extends md.InlineSyntax {
 /// Produces an `md.Element` with tag `task_ref` containing the task number
 /// as an attribute.
 class TaskRefSyntax extends md.InlineSyntax {
-  TaskRefSyntax() : super(r'task\s*#(\d+)', caseSensitive: false);
+  TaskRefSyntax()
+      : super(r'task\s*#(\d+)(?![a-zA-Z0-9_\-])', caseSensitive: false);
 
   @override
   bool tryMatch(md.InlineParser parser, [int? startMatchPos]) {
@@ -197,7 +198,8 @@ final channelRefSpanRegex = RegExp(r'(?<![\w.])#([\w][\w.\-]*)');
 ///
 /// Matches `task #N` (case-insensitive) at word boundaries.
 @visibleForTesting
-final taskRefSpanRegex = RegExp(r'(?<!\w)task\s*#(\d+)', caseSensitive: false);
+final taskRefSpanRegex =
+    RegExp(r'(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])', caseSensitive: false);
 
 /// Combined pattern that matches mentions, channel refs, and task refs.
 ///
@@ -207,7 +209,7 @@ final taskRefSpanRegex = RegExp(r'(?<!\w)task\s*#(\d+)', caseSensitive: false);
 /// - Group 3: task number (from `task #N`)
 @visibleForTesting
 final inlineRefCombinedRegex = RegExp(
-  r'(?<![\w.])@([\w][\w.\-]*)|(?<![\w.])#([\w][\w.\-]*)|(?<!\w)task\s*#(\d+)',
+  r'(?<![\w.])@([\w][\w.\-]*)|(?<![\w.])#([\w][\w.\-]*)|(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])',
   caseSensitive: false,
 );
 

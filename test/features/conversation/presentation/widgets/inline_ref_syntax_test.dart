@@ -160,6 +160,38 @@ void main() {
       expect(refs.length, 1);
       expect(refs.first.attributes['number'], '42');
     });
+
+    test('does not match "task #3x" (trailing word char)', () {
+      final nodes = document.parseInline('task #3x');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'task_ref');
+      expect(refs, isEmpty,
+          reason: 'Removing trailing boundary guard → test RED');
+    });
+
+    test('does not match "task #3-foo" (trailing hyphen + word)', () {
+      final nodes = document.parseInline('task #3-foo');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'task_ref');
+      expect(refs, isEmpty,
+          reason: 'Removing trailing boundary guard → test RED');
+    });
+
+    test('matches "task #3." (trailing period is valid boundary)', () {
+      final nodes = document.parseInline('task #3.');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'task_ref');
+      expect(refs.length, 1);
+      expect(refs.first.attributes['number'], '3');
+    });
+
+    test('matches "task #3," (trailing comma is valid boundary)', () {
+      final nodes = document.parseInline('task #3,');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'task_ref');
+      expect(refs.length, 1);
+      expect(refs.first.attributes['number'], '3');
+    });
   });
 
   group('buildInlineRefAwareSpan', () {
@@ -417,6 +449,53 @@ void main() {
       );
       expect(span.children, isNotNull);
       expect(span.children!.length, greaterThan(2));
+    });
+
+    test('does not match "task #3x" as task ref (trailing boundary)', () {
+      final span = buildInlineRefAwareSpan(
+        text: 'See task #3x for details',
+        baseStyle: baseStyle,
+        mentionColor: mentionColor,
+        mentionBackground: mentionBg,
+        selfMentionColor: selfMentionColor,
+        selfMentionBackground: selfMentionBg,
+        refColor: refColor,
+        refBackground: refBg,
+      );
+      // "task #3x" should NOT be styled as task ref
+      if (span.children != null) {
+        final taskRefSpans = span.children!.cast<TextSpan>().where(
+              (s) => s.text != null && s.text!.contains('task #3'),
+            );
+        for (final s in taskRefSpans) {
+          expect(s.style?.color, isNot(refColor),
+              reason:
+                  'Removing trailing boundary from combined regex → test RED');
+        }
+      }
+    });
+
+    test('does not match "task #3-foo" as task ref (trailing boundary)', () {
+      final span = buildInlineRefAwareSpan(
+        text: 'Work on task #3-foo now',
+        baseStyle: baseStyle,
+        mentionColor: mentionColor,
+        mentionBackground: mentionBg,
+        selfMentionColor: selfMentionColor,
+        selfMentionBackground: selfMentionBg,
+        refColor: refColor,
+        refBackground: refBg,
+      );
+      if (span.children != null) {
+        final taskRefSpans = span.children!.cast<TextSpan>().where(
+              (s) => s.text != null && s.text!.contains('task #3'),
+            );
+        for (final s in taskRefSpans) {
+          expect(s.style?.color, isNot(refColor),
+              reason:
+                  'Removing trailing boundary from combined regex → test RED');
+        }
+      }
     });
   });
 
