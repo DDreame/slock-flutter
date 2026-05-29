@@ -7,12 +7,14 @@
 // 3. ForbiddenFailure (403) → oauthProviderDeniedMessage.
 // 4. NetworkFailure → oauthNetworkErrorMessage.
 // 5. TimeoutFailure → oauthNetworkErrorMessage.
-// 6. AuthUser.hasPassword parsed from /auth/me response.
+// 6. AuthUser.hasPassword parsed from real _parseAuthUser path (repository).
 // 7. L10n keys render correctly in ZH locale.
+// 8. RegisterPage exercises same error classification as LoginPage.
 //
 // Reverting the error-specific handling → tests RED.
 // =============================================================================
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +27,7 @@ import 'package:slock_app/features/auth/data/auth_provider_repository_provider.d
 import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/auth/presentation/page/login_page.dart';
+import 'package:slock_app/features/auth/presentation/page/register_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 import '../../../stores/session/session_store_persistence_test.dart'
@@ -51,6 +54,23 @@ void main() {
           GlobalWidgetsLocalizations.delegate,
         ],
         home: const LoginPage(),
+      ),
+    );
+  }
+
+  Widget buildRegisterPage(ProviderContainer container, {Locale? locale}) {
+    return UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        locale: locale ?? const Locale('en'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        home: const RegisterPage(),
       ),
     );
   }
@@ -226,22 +246,156 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // AuthUser.hasPassword parsing
+  // AuthUser.hasPassword — real parse path through _ApiAuthRepository
   // ---------------------------------------------------------------------------
-  group('B122 PR 3 — AuthUser.hasPassword', () {
-    test('hasPassword parsed as true from API response', () {
-      const user = AuthUser(id: 'u1', hasPassword: true);
+  group('B122 PR 3 — AuthUser.hasPassword via real parse path', () {
+    test('hasPassword: true parsed from real repository getMe()', () async {
+      final container = ProviderContainer(
+        overrides: [
+          appDioClientProvider.overrideWithValue(
+            _FakeGetMeDioClient({'id': 'u1', 'name': 'A', 'hasPassword': true}),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(authRepositoryProvider);
+      final user = await repo.getMe();
       expect(user.hasPassword, isTrue);
     });
 
-    test('hasPassword parsed as false for OAuth-only accounts', () {
-      const user = AuthUser(id: 'u1', hasPassword: false);
+    test('hasPassword: false parsed for OAuth-only accounts', () async {
+      final container = ProviderContainer(
+        overrides: [
+          appDioClientProvider.overrideWithValue(
+            _FakeGetMeDioClient(
+              {'id': 'u2', 'name': 'B', 'hasPassword': false},
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(authRepositoryProvider);
+      final user = await repo.getMe();
       expect(user.hasPassword, isFalse);
     });
 
-    test('hasPassword defaults to null when server omits field', () {
-      const user = AuthUser(id: 'u1');
+    test('hasPassword: null when server omits field', () async {
+      final container = ProviderContainer(
+        overrides: [
+          appDioClientProvider.overrideWithValue(
+            _FakeGetMeDioClient({'id': 'u3', 'name': 'C'}),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(authRepositoryProvider);
+      final user = await repo.getMe();
       expect(user.hasPassword, isNull);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // RegisterPage — OAuth error handling (mirrors LoginPage tests)
+  // ---------------------------------------------------------------------------
+  group('B122 PR 3 — RegisterPage OAuth cancel shows friendly message', () {
+    testWidgets('OAuthCancelledException shows oauthCancelledMessage',
+        (tester) async {
+      final container = buildContainer(
+        oauthService: _ThrowingOAuthService(const OAuthCancelledException()),
+      );
+
+      await tester.pumpWidget(buildRegisterPage(container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('oauth-provider-google')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Sign-in was cancelled.'),
+        findsOneWidget,
+        reason:
+            'Reverting RegisterPage cancel handling → no message shown → RED.',
+      );
+    });
+  });
+
+  group('B122 PR 3 — RegisterPage OAuth conflict shows linking message', () {
+    testWidgets('ConflictFailure shows oauthConflictMessage', (tester) async {
+      final container = buildContainer(
+        oauthService: _ThrowingOAuthService(
+          const ConflictFailure(message: 'email already exists'),
+        ),
+      );
+
+      await tester.pumpWidget(buildRegisterPage(container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('oauth-provider-google')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'This email is already registered. Please sign in with your password instead.',
+        ),
+        findsOneWidget,
+        reason:
+            'Reverting RegisterPage conflict handling → generic error → RED.',
+      );
+    });
+  });
+
+  group('B122 PR 3 — RegisterPage OAuth forbidden shows denied message', () {
+    testWidgets('ForbiddenFailure shows oauthProviderDeniedMessage',
+        (tester) async {
+      final container = buildContainer(
+        oauthService: _ThrowingOAuthService(
+          const ForbiddenFailure(message: 'access denied'),
+        ),
+      );
+
+      await tester.pumpWidget(buildRegisterPage(container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('oauth-provider-google')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Access was denied by the provider. Please try again or use a different sign-in method.',
+        ),
+        findsOneWidget,
+        reason:
+            'Reverting RegisterPage forbidden handling → generic error → RED.',
+      );
+    });
+  });
+
+  group('B122 PR 3 — RegisterPage OAuth network shows connection message', () {
+    testWidgets('NetworkFailure shows oauthNetworkErrorMessage',
+        (tester) async {
+      final container = buildContainer(
+        oauthService: _ThrowingOAuthService(
+          const NetworkFailure(message: 'no internet'),
+        ),
+      );
+
+      await tester.pumpWidget(buildRegisterPage(container));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('oauth-provider-google')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Could not connect to the sign-in provider. Please check your connection and try again.',
+        ),
+        findsOneWidget,
+        reason:
+            'Reverting RegisterPage network handling → generic error → RED.',
+      );
     });
   });
 }
@@ -259,6 +413,27 @@ class _ThrowingOAuthService implements OAuthService {
   Future<AuthResult> authenticate({required String providerId}) async {
     // ignore: only_throw_errors
     throw _error;
+  }
+}
+
+/// A fake [AppDioClient] that returns a canned response for GET /auth/me.
+/// Exercises the real [_ApiAuthRepository._parseAuthUser] path.
+class _FakeGetMeDioClient extends AppDioClient {
+  _FakeGetMeDioClient(this._getMePayload) : super(Dio());
+  final Map<String, dynamic> _getMePayload;
+
+  @override
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    return Response<T>(
+      data: _getMePayload as T,
+      requestOptions: RequestOptions(path: path),
+      statusCode: 200,
+    );
   }
 }
 
