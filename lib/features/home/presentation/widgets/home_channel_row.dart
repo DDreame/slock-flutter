@@ -22,6 +22,8 @@ class HomeChannelRow extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onLeave,
+    this.onArchive,
+    this.onUnarchive,
     this.onTogglePin,
     this.onMarkAsUnread,
     this.onMoveUp,
@@ -38,6 +40,8 @@ class HomeChannelRow extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onLeave;
+  final VoidCallback? onArchive;
+  final VoidCallback? onUnarchive;
   final VoidCallback? onTogglePin;
   final VoidCallback? onMarkAsUnread;
   final VoidCallback? onMoveUp;
@@ -68,14 +72,18 @@ class HomeChannelRow extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  channel.isPrivate
-                      ? Icons.lock
-                      : isPinned
-                          ? Icons.push_pin
-                          : Icons.tag,
-                  key: channel.isPrivate
-                      ? const ValueKey('channel-private-badge')
-                      : null,
+                  channel.isArchived
+                      ? Icons.archive_outlined
+                      : channel.isPrivate
+                          ? Icons.lock
+                          : isPinned
+                              ? Icons.push_pin
+                              : Icons.tag,
+                  key: channel.isArchived
+                      ? const ValueKey('channel-archived-badge')
+                      : channel.isPrivate
+                          ? const ValueKey('channel-private-badge')
+                          : null,
                   size: 20,
                   color: hasUnread ? colors.primary : colors.textTertiary,
                 ),
@@ -185,6 +193,8 @@ class HomeChannelRow extends StatelessWidget {
       onEdit != null ||
       onDelete != null ||
       onLeave != null ||
+      onArchive != null ||
+      onUnarchive != null ||
       onTogglePin != null ||
       onMarkAsUnread != null ||
       onMoveUp != null ||
@@ -229,6 +239,18 @@ class HomeChannelRow extends StatelessWidget {
           label: l10n.channelActionLeave,
           icon: Icons.exit_to_app,
         ),
+      if (onArchive != null)
+        ListActionItem(
+          key: 'channel-action-archive',
+          label: l10n.channelActionArchive,
+          icon: Icons.archive_outlined,
+        ),
+      if (onUnarchive != null)
+        ListActionItem(
+          key: 'channel-action-unarchive',
+          label: l10n.channelActionUnarchive,
+          icon: Icons.unarchive_outlined,
+        ),
       if (onDelete != null)
         ListActionItem(
           key: 'channel-action-delete',
@@ -257,6 +279,10 @@ class HomeChannelRow extends StatelessWidget {
         onEdit?.call();
       case 'channel-action-leave':
         onLeave?.call();
+      case 'channel-action-archive':
+        onArchive?.call();
+      case 'channel-action-unarchive':
+        onUnarchive?.call();
       case 'channel-action-delete':
         onDelete?.call();
     }

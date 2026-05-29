@@ -6,6 +6,8 @@ enum ChannelManagementAction {
   edit,
   delete,
   leave,
+  archive,
+  unarchive,
   stopAgents,
   resumeAgents
 }

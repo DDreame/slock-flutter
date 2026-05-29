@@ -572,6 +572,18 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   }) async {
     resumedAllAgentsChannelIds.add(channelId);
   }
+
+  @override
+  Future<void> archiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> unarchiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
 }
 
 class _FakeHomeRepository implements HomeRepository {

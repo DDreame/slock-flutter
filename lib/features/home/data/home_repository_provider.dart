@@ -212,6 +212,13 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       for (final ch in channelSummaries) ch.scopeId.value: ch.isPrivate,
     };
 
+    // Build a lookup for isArchived from the parsed channels so we can
+    // carry the flag through the store round-trip (store schema does
+    // not persist isArchived).
+    final parsedArchivedFlags = <String, bool>{
+      for (final ch in channelSummaries) ch.scopeId.value: ch.isArchived,
+    };
+
     return HomeWorkspaceSnapshot(
       serverId: serverId,
       channels: storedChannels
@@ -225,6 +232,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
                 lastMessagePreview: row.lastMessagePreview,
                 lastActivityAt: row.lastActivityAt,
                 isPrivate: parsedPrivateFlags[row.conversationId] ?? false,
+                isArchived: parsedArchivedFlags[row.conversationId] ?? false,
               ))
           .toList(growable: false),
       directMessages: storedDirectMessages
@@ -278,6 +286,12 @@ Future<HomeWorkspaceSnapshot?> _loadCachedWorkspaceSnapshot({
 
   return HomeWorkspaceSnapshot(
     serverId: serverId,
+    // TODO(B123): isPrivate and isArchived are not persisted in the local
+    // store schema (drift ConversationSummaries table). Cached channels
+    // default to false for both flags on cold boot. These are corrected on
+    // the next successful API load via parsedPrivateFlags /
+    // parsedArchivedFlags lookups. A schema migration (v2) to add boolean
+    // columns would eliminate the brief stale state on offline boot.
     channels: storedChannels
         .map((row) => HomeChannelSummary(
               scopeId: ChannelScopeId(
@@ -347,8 +361,13 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       threadChannelIds.add(id);
     }
 
-    // Exclude non-top-level and archived channels.
-    if (_filteredChannelTypes.contains(type) || archived) {
+    // Exclude non-top-level channel types (threads, voice, etc.).
+    if (_filteredChannelTypes.contains(type)) {
+      continue;
+    }
+
+    // Exclude archived channels from the active channel list.
+    if (archived) {
       continue;
     }
 
@@ -364,6 +383,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,
       isPrivate: item['isPrivate'] == true || item['visibility'] == 'private',
+      isArchived: archived,
     ));
   }
 

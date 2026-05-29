@@ -609,6 +609,9 @@ class _ConversationDetailScreenState
             if (state.status == ConversationDetailStatus.success &&
                 state.isSelectionMode)
               const SelectionActionBar()
+            else if (state.status == ConversationDetailStatus.success &&
+                state.isArchived)
+              const _ArchivedChannelBanner()
             else if (state.status == ConversationDetailStatus.success)
               ConversationComposer(
                 controller: _composerController,
@@ -1464,6 +1467,36 @@ class _DmPresenceSubtitle extends ConsumerWidget {
 /// Banner shown at the top of the conversation when the device is offline.
 ///
 /// #655: Migrated from raw StreamBuilder to [connectivityStatusProvider].
+/// Banner shown in place of the composer when the channel is archived.
+class _ArchivedChannelBanner extends StatelessWidget {
+  const _ArchivedChannelBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Container(
+      key: const ValueKey('archived-channel-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.md,
+      ),
+      color: colors.textTertiary.withValues(alpha: 0.1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.archive_outlined, size: 16, color: colors.textSecondary),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            context.l10n.channelArchivedBanner,
+            style: AppTypography.caption.copyWith(color: colors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Benefits from Riverpod lifecycle management, caching, and .select().
 class _OfflineBanner extends ConsumerWidget {
   const _OfflineBanner();

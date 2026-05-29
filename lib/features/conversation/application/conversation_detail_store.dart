@@ -506,6 +506,7 @@ class ConversationDetailStore
         clearSendFailure: true,
         // #861: Include savedMessageIds from batch load (single state emit).
         savedMessageIds: snapshot.savedMessageIds,
+        isArchived: snapshot.isArchived,
       );
       _persistSession();
       // #861: Only call refreshSavedMessageIds if batch didn't provide them.
@@ -613,6 +614,7 @@ class ConversationDetailStore
           clearFailure: true,
           // #861: Include savedMessageIds from batch load (single state emit).
           savedMessageIds: snapshot.savedMessageIds,
+          isArchived: snapshot.isArchived,
         );
         _persistSession();
         // #861: Only call refreshSavedMessageIds if batch didn't provide them.

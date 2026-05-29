@@ -3496,4 +3496,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get oauthNetworkErrorMessage =>
       'Could not connect to the sign-in provider. Please check your connection and try again.';
+
+  @override
+  String get channelActionArchive => 'Archive channel';
+
+  @override
+  String get channelActionUnarchive => 'Unarchive channel';
+
+  @override
+  String get channelArchivedBanner => 'This channel is archived.';
+
+  @override
+  String get channelArchiveConfirmTitle => 'Archive channel?';
+
+  @override
+  String get channelArchiveConfirmBody =>
+      'Archived channels are read-only. Members can still view messages but cannot send new ones.';
+
+  @override
+  String get channelUnarchiveConfirmTitle => 'Unarchive channel?';
+
+  @override
+  String get channelUnarchiveConfirmBody =>
+      'This will restore the channel to active status and allow members to send messages again.';
 }

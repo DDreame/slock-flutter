@@ -3395,4 +3395,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get oauthNetworkErrorMessage => '无法连接到登录提供方。请检查网络连接后重试。';
+
+  @override
+  String get channelActionArchive => '归档频道';
+
+  @override
+  String get channelActionUnarchive => '取消归档';
+
+  @override
+  String get channelArchivedBanner => '此频道已归档。';
+
+  @override
+  String get channelArchiveConfirmTitle => '归档频道？';
+
+  @override
+  String get channelArchiveConfirmBody => '归档后的频道为只读状态。成员仍可查看消息，但无法发送新消息。';
+
+  @override
+  String get channelUnarchiveConfirmTitle => '取消归档？';
+
+  @override
+  String get channelUnarchiveConfirmBody => '这将恢复频道为活跃状态，成员可以重新发送消息。';
 }

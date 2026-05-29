@@ -167,6 +167,7 @@ class _ApiConversationRepository implements ConversationRepository {
         memberCount: metadata.memberCount,
         description: metadata.description,
         savedMessageIds: savedMessageIds,
+        isArchived: metadata.isArchived,
       );
     } on AppFailure {
       rethrow;
@@ -703,6 +704,7 @@ _ConversationMetadata _resolveMetadataFromSingle(
           summaryTitle: name,
           memberCount: _readOptionalInt(payload['memberCount']),
           description: _readOptionalString(payload['description']),
+          isArchived: payload['archived'] == true,
         );
       }
     case ConversationSurface.directMessage:
@@ -857,6 +859,7 @@ _ConversationMetadata _resolveMetadata(
             summaryTitle: name,
             memberCount: _readOptionalInt(item['memberCount']),
             description: _readOptionalString(item['description']),
+            isArchived: item['archived'] == true,
           );
         }
       case ConversationSurface.directMessage:
@@ -1119,12 +1122,14 @@ class _ConversationMetadata {
     required this.summaryTitle,
     this.memberCount,
     this.description,
+    this.isArchived = false,
   });
 
   final String displayTitle;
   final String summaryTitle;
   final int? memberCount;
   final String? description;
+  final bool isArchived;
 }
 
 class _MessagesPayload {

@@ -26,6 +26,16 @@ abstract class ChannelManagementRepository {
     required String channelId,
   });
 
+  Future<void> archiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  });
+
+  Future<void> unarchiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  });
+
   Future<void> stopAllAgents(
     ServerScopeId serverId, {
     required String channelId,

@@ -6538,6 +6538,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not connect to the sign-in provider. Please check your connection and try again.'**
   String get oauthNetworkErrorMessage;
+
+  /// No description provided for @channelActionArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive channel'**
+  String get channelActionArchive;
+
+  /// No description provided for @channelActionUnarchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive channel'**
+  String get channelActionUnarchive;
+
+  /// No description provided for @channelArchivedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'This channel is archived.'**
+  String get channelArchivedBanner;
+
+  /// No description provided for @channelArchiveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive channel?'**
+  String get channelArchiveConfirmTitle;
+
+  /// No description provided for @channelArchiveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived channels are read-only. Members can still view messages but cannot send new ones.'**
+  String get channelArchiveConfirmBody;
+
+  /// No description provided for @channelUnarchiveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive channel?'**
+  String get channelUnarchiveConfirmTitle;
+
+  /// No description provided for @channelUnarchiveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will restore the channel to active status and allow members to send messages again.'**
+  String get channelUnarchiveConfirmBody;
 }
 
 class _AppLocalizationsDelegate
