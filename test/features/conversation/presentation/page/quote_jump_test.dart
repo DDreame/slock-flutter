@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -381,6 +382,163 @@ void main() {
     expect(find.byKey(const ValueKey('quote-jump-not-found')), findsNothing);
     await tester.pumpAndSettle();
   });
+
+  // -----------------------------------------------------------------------
+  // highlightMessageId outranks session restore: a permalink/search jump
+  // into a conversation that has a cached session still fires loadContext
+  // and shows the highlight on the target message.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'highlightMessageId fires loadContext even with cached session',
+    (tester) async {
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-1',
+        ),
+      );
+
+      // Context page returned by the repo — contains the target message.
+      final contextPage = ConversationMessagePage(
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-1',
+            content: 'Original message here',
+            createdAt: DateTime.utc(2026, 5, 16, 14),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+          ConversationMessageSummary(
+            id: 'msg-2',
+            content: 'Second message',
+            createdAt: DateTime.utc(2026, 5, 16, 14, 10),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 2,
+          ),
+          ConversationMessageSummary(
+            id: 'msg-3',
+            content: 'Third message',
+            createdAt: DateTime.utc(2026, 5, 16, 14, 20),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 3,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+      );
+
+      final repo = _ContextTrackingFakeRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            // Initial load has msg-3..msg-5 but NOT msg-1.
+            ConversationMessageSummary(
+              id: 'msg-3',
+              content: 'Third message',
+              createdAt: DateTime.utc(2026, 5, 16, 14, 20),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 3,
+            ),
+            ConversationMessageSummary(
+              id: 'msg-4',
+              content: 'Fourth message',
+              createdAt: DateTime.utc(2026, 5, 16, 14, 30),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 4,
+            ),
+            ConversationMessageSummary(
+              id: 'msg-5',
+              content: 'Fifth message',
+              createdAt: DateTime.utc(2026, 5, 16, 14, 40),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 5,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: true,
+        ),
+        contextPage: contextPage,
+      );
+
+      // Pre-seed session store so _restoredFromSession = true.
+      final sessionStore = _PreSeededSessionStore(
+        target: target,
+        entry: ConversationDetailSessionEntry(
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-3',
+              content: 'Third message',
+              createdAt: DateTime.utc(2026, 5, 16, 14, 20),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 3,
+            ),
+            ConversationMessageSummary(
+              id: 'msg-4',
+              content: 'Fourth message',
+              createdAt: DateTime.utc(2026, 5, 16, 14, 30),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 4,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: true,
+          scrollOffset: 200,
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            conversationRepositoryProvider.overrideWithValue(repo),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+            conversationDetailSessionStoreProvider
+                .overrideWith(() => sessionStore),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: ConversationDetailPage(
+              target: target,
+              highlightMessageId: 'msg-1',
+            ),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // loadContext must have been called despite cached session.
+      expect(
+        repo.loadContextCallCount,
+        greaterThanOrEqualTo(1),
+        reason: 'highlightMessageId must outrank session restore — '
+            'loadContext should fire for out-of-window target',
+      );
+
+      // The highlight must appear on the target message.
+      expect(
+        find.byKey(const ValueKey('quote-jump-highlight')),
+        findsOneWidget,
+        reason: 'Target message must be highlighted after context load, '
+            'even when a cached session exists',
+      );
+
+      // Drain pending timers (highlight flash + scroll animation).
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -863,4 +1021,41 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   Future<void> logout() async {}
+}
+
+/// Fake repository that tracks loadMessageContext calls and returns a
+/// configurable context page.
+class _ContextTrackingFakeRepository extends _FakeConversationRepository {
+  _ContextTrackingFakeRepository({
+    required super.snapshot,
+    required this.contextPage,
+  });
+
+  final ConversationMessagePage contextPage;
+  int loadContextCallCount = 0;
+
+  @override
+  Future<ConversationMessagePage> loadMessageContext(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    loadContextCallCount += 1;
+    return contextPage;
+  }
+}
+
+/// Pre-seeded session store that starts with a cached entry for [target].
+class _PreSeededSessionStore extends ConversationDetailSessionStore {
+  _PreSeededSessionStore({
+    required this.target,
+    required this.entry,
+  });
+
+  final ConversationDetailTarget target;
+  final ConversationDetailSessionEntry entry;
+
+  @override
+  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() {
+    return {target: entry};
+  }
 }

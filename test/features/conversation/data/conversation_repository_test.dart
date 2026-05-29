@@ -1366,6 +1366,149 @@ void main() {
       throwsA(same(failure)),
     );
   });
+
+  // -------------------------------------------------------------------------
+  // loadMessageContext
+  // -------------------------------------------------------------------------
+
+  test('loadMessageContext sends GET with correct path and X-Server-Id',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/context/target-msg-id': {
+          'messages': [
+            {
+              'id': 'msg-a',
+              'content': 'Before target',
+              'createdAt': '2026-05-16T14:00:00Z',
+              'senderId': 'user-1',
+              'senderName': 'Alice',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 10,
+            },
+            {
+              'id': 'target-msg-id',
+              'content': 'Target message',
+              'createdAt': '2026-05-16T14:05:00Z',
+              'senderId': 'user-2',
+              'senderName': 'Bob',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 11,
+            },
+            {
+              'id': 'msg-c',
+              'content': 'After target',
+              'createdAt': '2026-05-16T14:10:00Z',
+              'senderId': 'user-1',
+              'senderName': 'Alice',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 12,
+            },
+          ],
+          'hasOlder': true,
+          'hasNewer': false,
+        },
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final page = await repository.loadMessageContext(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      messageId: 'target-msg-id',
+    );
+
+    // Verify GET request with correct path and server header.
+    final request = appDioClient.requests.last;
+    expect(request.path, '/messages/context/target-msg-id');
+    expect(request.serverIdHeader, 'server-1');
+
+    // Verify parsed messages.
+    expect(page.messages.length, 3);
+    expect(page.messages[0].id, 'msg-a');
+    expect(page.messages[1].id, 'target-msg-id');
+    expect(page.messages[2].id, 'msg-c');
+    expect(page.messages[1].content, 'Target message');
+
+    // Verify hasOlder/hasNewer flags parsed from response.
+    expect(page.hasOlder, isTrue);
+    expect(page.hasNewer, isFalse);
+  });
+
+  test('loadMessageContext parses hasNewer=true correctly', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/context/mid-msg': {
+          'messages': [
+            {
+              'id': 'mid-msg',
+              'content': 'Middle message',
+              'createdAt': '2026-05-16T14:05:00Z',
+              'senderId': 'user-1',
+              'senderName': 'Alice',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 50,
+            },
+          ],
+          'hasOlder': false,
+          'hasNewer': true,
+        },
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final page = await repository.loadMessageContext(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      messageId: 'mid-msg',
+    );
+
+    expect(page.hasOlder, isFalse);
+    expect(page.hasNewer, isTrue);
+    expect(page.messages.length, 1);
+  });
+
+  test('loadMessageContext rethrows AppFailure from transport', () async {
+    const failure = ServerFailure(
+      message: 'Message not found.',
+      statusCode: 404,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {'/messages/context/missing-id': failure},
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await expectLater(
+      repository.loadMessageContext(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        messageId: 'missing-id',
+      ),
+      throwsA(same(failure)),
+    );
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {

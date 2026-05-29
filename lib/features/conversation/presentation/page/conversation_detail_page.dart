@@ -1080,30 +1080,33 @@ class _ConversationDetailScreenState
     }
 
     if (!_didApplyInitialLanding &&
-        !_restoredFromSession &&
         next.status == ConversationDetailStatus.success &&
         next.messages.isNotEmpty) {
-      _didApplyInitialLanding = true;
+      // highlightMessageId outranks session restore — a permalink/search
+      // jump must always fire even if the conversation has a cached session.
       final targetMsgId = widget.highlightMessageId;
-      // Compute the first unread message ID for auto-scroll.
-      final unreadCount = unreadCountForTarget(ref, next.target);
-      final firstUnreadMsgId =
-          unreadCount > 0 && unreadCount <= next.messages.length
-              ? next.messages[next.messages.length - unreadCount].id
-              : null;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_scrollController.hasClients) {
-          return;
-        }
-        if (targetMsgId != null) {
-          _scrollToMessageId(targetMsgId, next.messages);
-        } else if (firstUnreadMsgId != null) {
-          // Auto-scroll to the first unread message (unread divider area).
-          _scrollToMessageId(firstUnreadMsgId, next.messages);
-        } else {
-          _scrollController.jumpTo(0);
-        }
-      });
+      if (targetMsgId != null || !_restoredFromSession) {
+        _didApplyInitialLanding = true;
+        // Compute the first unread message ID for auto-scroll.
+        final unreadCount = unreadCountForTarget(ref, next.target);
+        final firstUnreadMsgId =
+            unreadCount > 0 && unreadCount <= next.messages.length
+                ? next.messages[next.messages.length - unreadCount].id
+                : null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_scrollController.hasClients) {
+            return;
+          }
+          if (targetMsgId != null) {
+            _scrollToMessageId(targetMsgId, next.messages);
+          } else if (firstUnreadMsgId != null) {
+            // Auto-scroll to the first unread message (unread divider area).
+            _scrollToMessageId(firstUnreadMsgId, next.messages);
+          } else {
+            _scrollController.jumpTo(0);
+          }
+        });
+      }
     }
 
     if (previous?.isLoadingOlder == true &&
