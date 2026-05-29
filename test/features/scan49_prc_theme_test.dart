@@ -28,6 +28,7 @@ import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/presentation/widgets/search_scope_tabs.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
@@ -246,38 +247,51 @@ Widget _buildHomeApp(
 // Fakes
 // =============================================================================
 
-class _FakeHomeListStore extends Notifier<HomeListState>
-    implements HomeListStore {
+class _FakeHomeListStore extends HomeListStore {
   @override
   HomeListState build() => HomeListState(status: HomeListStatus.success);
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<void> load() async {}
+
+  @override
+  Future<void> refresh({String reason = ''}) async {}
 }
 
-class _FakeInboxStore extends Notifier<InboxState> implements InboxStore {
+class _FakeInboxStore extends InboxStore {
   @override
   InboxState build() => const InboxState(status: InboxStatus.success);
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<void> load({InboxFilter? filter}) async {}
 }
 
-class _FakeAgentsStore extends Notifier<AgentsState> implements AgentsStore {
+class _FakeAgentsStore extends AgentsStore {
   @override
   AgentsState build() =>
       const AgentsState(status: AgentsStatus.success, items: []);
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<void> ensureLoaded() async {}
+
+  @override
+  Future<void> load() async {}
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> loadActivityLog(String agentId) async {}
 }
 
-class _FakeServerListStore extends Notifier<ServerListState>
-    implements ServerListStore {
+class _FakeServerListStore extends ServerListStore {
   @override
   ServerListState build() =>
       const ServerListState(status: ServerListStatus.success);
 
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  Future<void> load() async {}
 }
