@@ -251,6 +251,18 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     ServerScopeId serverId, {
     required String channelId,
   }) async {}
+
+  @override
+  Future<void> archiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> unarchiveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
 }
 
 class _FakeHomeRepository implements HomeRepository {
