@@ -316,7 +316,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));
-    }
+    } catch (_) {}
   }
 
   Future<void> _stopAgent(AgentItem agent) async {
@@ -350,7 +350,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));
-    }
+    } catch (_) {}
   }
 
   Future<void> _resetAgent(AgentItem agent) async {
@@ -406,7 +406,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));
-    }
+    } catch (_) {}
   }
 
   void _showRefreshFailedSnackBar() {
