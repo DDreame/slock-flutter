@@ -1141,6 +1141,7 @@
   "threadRepliesMissingContext": "Missing thread route context.",
   "threadRepliesRetry": "Retry",
   "threadRepliesFollowTooltip": "Follow thread",
+  "threadRepliesUnfollowTooltip": "Unfollow thread",
   "threadRepliesDoneTooltip": "Mark thread done",
   "dmsSortAZ": "Sort A-Z",
   "dmsSortRecent": "Sort by recent",

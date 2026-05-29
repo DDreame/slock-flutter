@@ -16,8 +16,12 @@ class FakeThreadRepository implements ThreadRepository {
   int loadFollowedCalls = 0;
   int resolveCalls = 0;
   final List<String> doneThreadIds = [];
+  final List<String> unfollowedThreadIds = [];
   final List<String> markReadThreadIds = [];
   final List<ThreadRouteTarget> followedTargets = [];
+
+  /// When non-null, [unfollowThread] will throw this failure.
+  AppFailure? unfollowFailure;
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
@@ -42,6 +46,17 @@ class FakeThreadRepository implements ThreadRepository {
   @override
   Future<void> followThread(ThreadRouteTarget target) async {
     followedTargets.add(target);
+  }
+
+  @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {
+    if (unfollowFailure != null) {
+      throw unfollowFailure!;
+    }
+    unfollowedThreadIds.add(threadChannelId);
   }
 
   @override

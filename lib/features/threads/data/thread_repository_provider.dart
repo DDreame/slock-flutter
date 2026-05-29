@@ -8,6 +8,7 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 const _serverHeaderName = 'X-Server-Id';
 const _followedThreadsPath = '/channels/threads/followed';
 const _followThreadPath = '/channels/threads/follow';
+const _unfollowThreadPath = '/channels/threads/unfollow';
 const _doneThreadPath = '/channels/threads/done';
 const _threadsPathSuffix = '/threads';
 const _readAllSuffix = '/read-all';
@@ -77,6 +78,27 @@ class _ApiThreadRepository implements ThreadRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to follow thread.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        _unfollowThreadPath,
+        data: {'threadChannelId': threadChannelId},
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to unfollow thread.',
         causeType: error.runtimeType.toString(),
       );
     }

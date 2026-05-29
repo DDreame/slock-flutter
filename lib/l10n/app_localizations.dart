@@ -4703,6 +4703,12 @@ abstract class AppLocalizations {
   /// **'Follow thread'**
   String get threadRepliesFollowTooltip;
 
+  /// No description provided for @threadRepliesUnfollowTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Unfollow thread'**
+  String get threadRepliesUnfollowTooltip;
+
   /// No description provided for @threadRepliesDoneTooltip.
   ///
   /// In en, this message translates to:

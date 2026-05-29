@@ -2414,6 +2414,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get threadRepliesFollowTooltip => '关注话题';
 
   @override
+  String get threadRepliesUnfollowTooltip => '取消关注话题';
+
+  @override
   String get threadRepliesDoneTooltip => '标记话题完成';
 
   @override

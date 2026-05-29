@@ -63,6 +63,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
       :failure,
       :isFollowing,
       :isFollowingInFlight,
+      :isUnfollowingInFlight,
       :isDoneInFlight,
       :storeRouteTarget,
     ) = ref.watch(
@@ -72,6 +73,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
             failure: s.failure,
             isFollowing: s.isFollowing,
             isFollowingInFlight: s.isFollowingInFlight,
+            isUnfollowingInFlight: s.isUnfollowingInFlight,
             isDoneInFlight: s.isDoneInFlight,
             storeRouteTarget: s.routeTarget,
           )),
@@ -125,6 +127,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
         ref,
         isFollowing: isFollowing,
         isFollowingInFlight: isFollowingInFlight,
+        isUnfollowingInFlight: isUnfollowingInFlight,
         isDoneInFlight: isDoneInFlight,
         serverId: storeRouteTarget.serverId,
       ),
@@ -136,6 +139,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
     WidgetRef ref, {
     required bool isFollowing,
     required bool isFollowingInFlight,
+    required bool isUnfollowingInFlight,
     required bool isDoneInFlight,
     required String serverId,
   }) {
@@ -153,6 +157,19 @@ class _ThreadRepliesScreen extends ConsumerWidget {
                 )
               : const Icon(Icons.notifications_outlined),
           tooltip: context.l10n.threadRepliesFollowTooltip,
+        ),
+      if (isFollowing)
+        IconButton(
+          key: const ValueKey('thread-unfollow-action'),
+          onPressed: isUnfollowingInFlight ? null : store.unfollow,
+          icon: isUnfollowingInFlight
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.notifications_off_outlined),
+          tooltip: context.l10n.threadRepliesUnfollowTooltip,
         ),
       IconButton(
         key: const ValueKey('thread-done-action'),

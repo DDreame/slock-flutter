@@ -286,5 +286,8 @@ class _FakeThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState>
   Future<void> markDone(ThreadInboxItem item) async {}
 
   @override
+  Future<void> unfollowThread(ThreadInboxItem item) async {}
+
+  @override
   Future<void> retry() async {}
 }

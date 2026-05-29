@@ -11,6 +11,9 @@
 // INV-THREAD-FOLLOW-1: follow() transitions to isFollowed=true on success
 // INV-THREAD-FOLLOW-2: follow() sets failure on error
 // INV-THREAD-FOLLOW-3: follow() is no-op when guards fail
+// INV-THREAD-UNFOLLOW-1: unfollow() transitions to isFollowed=false on success
+// INV-THREAD-UNFOLLOW-2: unfollow() sets failure on error
+// INV-THREAD-UNFOLLOW-3: unfollow() is no-op when guards fail
 // INV-THREAD-DONE-1: markDone() transitions to isDone=true on success
 // INV-THREAD-DONE-2: markDone() sets failure on error
 // INV-THREAD-DONE-3: markDone() is no-op when guards fail
@@ -619,6 +622,215 @@ void main() {
               '(INV-THREAD-DONE-3)');
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // INV-THREAD-UNFOLLOW-1: unfollow() transitions to isFollowed=false
+  // ---------------------------------------------------------------------------
+  group('INV-THREAD-UNFOLLOW-1: unfollow success', () {
+    test('sets isFollowed=false on routeTarget after unfollowThread', () async {
+      const followedTarget = ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: 'channel-1',
+        parentMessageId: 'msg-parent-1',
+        threadChannelId: 'thread-ch-1',
+        isFollowed: true,
+      );
+
+      final localContainer = ProviderContainer(
+        overrides: [
+          currentThreadRouteTargetProvider.overrideWithValue(followedTarget),
+          threadRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).load();
+
+      expect(
+        localContainer.read(threadRepliesStoreProvider).isFollowing,
+        isTrue,
+      );
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).unfollow();
+
+      final state = localContainer.read(threadRepliesStoreProvider);
+      expect(state.isFollowing, isFalse,
+          reason:
+              'Must transition to isFollowed=false (INV-THREAD-UNFOLLOW-1)');
+      expect(state.isUnfollowingInFlight, isFalse);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // INV-THREAD-UNFOLLOW-2: unfollow() sets failure on error
+  // ---------------------------------------------------------------------------
+  group('INV-THREAD-UNFOLLOW-2: unfollow failure', () {
+    test('sets failure and clears in-flight flag on AppFailure', () async {
+      const followedTarget = ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: 'channel-1',
+        parentMessageId: 'msg-parent-1',
+        threadChannelId: 'thread-ch-1',
+        isFollowed: true,
+      );
+
+      final localContainer = ProviderContainer(
+        overrides: [
+          currentThreadRouteTargetProvider.overrideWithValue(followedTarget),
+          threadRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).load();
+
+      mockRepo.unfollowError = const ServerFailure(
+        message: 'Unfollow failed',
+        statusCode: 500,
+      );
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).unfollow();
+
+      final state = localContainer.read(threadRepliesStoreProvider);
+      expect(state.isFollowing, isTrue,
+          reason: 'isFollowing must remain true on failure');
+      expect(state.isUnfollowingInFlight, isFalse);
+      expect(state.failure, isA<ServerFailure>());
+    });
+
+    test('clears in-flight flag on non-AppFailure', () async {
+      const followedTarget = ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: 'channel-1',
+        parentMessageId: 'msg-parent-1',
+        threadChannelId: 'thread-ch-1',
+        isFollowed: true,
+      );
+
+      final localContainer = ProviderContainer(
+        overrides: [
+          currentThreadRouteTargetProvider.overrideWithValue(followedTarget),
+          threadRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).load();
+      mockRepo.unfollowThrowable = StateError('raw unfollow failure');
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).unfollow();
+
+      final state = localContainer.read(threadRepliesStoreProvider);
+      expect(state.isUnfollowingInFlight, isFalse);
+      expect(state.failure, isA<UnknownFailure>());
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // INV-THREAD-UNFOLLOW-3: unfollow() is no-op when guards fail
+  // ---------------------------------------------------------------------------
+  group('INV-THREAD-UNFOLLOW-3: unfollow guards', () {
+    test('no-op when status is not success', () async {
+      mockRepo.resolveError = const ServerFailure(
+        message: 'Not found',
+        statusCode: 404,
+      );
+
+      final sub = container.listen(threadRepliesStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container.read(threadRepliesStoreProvider).status,
+        ThreadRepliesStatus.failure,
+      );
+
+      mockRepo.unfollowCallCount = 0;
+
+      await container.read(threadRepliesStoreProvider.notifier).unfollow();
+
+      expect(mockRepo.unfollowCallCount, 0);
+    });
+
+    test('no-op when not following', () async {
+      const unfollowedTarget = ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: 'channel-1',
+        parentMessageId: 'msg-parent-1',
+        threadChannelId: 'thread-ch-1',
+        isFollowed: false,
+      );
+
+      final localContainer = ProviderContainer(
+        overrides: [
+          currentThreadRouteTargetProvider.overrideWithValue(unfollowedTarget),
+          threadRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).load();
+
+      mockRepo.unfollowCallCount = 0;
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).unfollow();
+
+      expect(mockRepo.unfollowCallCount, 0,
+          reason: 'unfollow() must be no-op when not following '
+              '(INV-THREAD-UNFOLLOW-3)');
+    });
+
+    test('no-op when resolvedThreadChannelId is null', () async {
+      // routeTarget without threadChannelId, but make resolve fail so
+      // resolvedThreadChannelId stays null (via failure → retry not run).
+      mockRepo.resolveError = const ServerFailure(
+        message: 'Resolve failed',
+        statusCode: 500,
+      );
+
+      const followedTarget = ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: 'channel-1',
+        parentMessageId: 'msg-parent-1',
+        isFollowed: true,
+      );
+
+      final localContainer = ProviderContainer(
+        overrides: [
+          currentThreadRouteTargetProvider.overrideWithValue(followedTarget),
+          threadRepositoryProvider.overrideWithValue(mockRepo),
+        ],
+      );
+      addTearDown(localContainer.dispose);
+
+      final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      mockRepo.unfollowCallCount = 0;
+
+      await localContainer.read(threadRepliesStoreProvider.notifier).unfollow();
+
+      expect(mockRepo.unfollowCallCount, 0,
+          reason: 'unfollow() must be no-op when threadChannelId is null');
+    });
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -632,9 +844,12 @@ class _MockThreadRepository implements ThreadRepository {
   Object? followThrowable;
   AppFailure? markDoneError;
   Object? markDoneThrowable;
+  AppFailure? unfollowError;
+  Object? unfollowThrowable;
   int resolveCallCount = 0;
   int followCallCount = 0;
   int markDoneCallCount = 0;
+  int unfollowCallCount = 0;
 
   @override
   Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) async {
@@ -653,6 +868,16 @@ class _MockThreadRepository implements ThreadRepository {
     followCallCount++;
     if (followThrowable != null) throw followThrowable!;
     if (followError != null) throw followError!;
+  }
+
+  @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {
+    unfollowCallCount++;
+    if (unfollowThrowable != null) throw unfollowThrowable!;
+    if (unfollowError != null) throw unfollowError!;
   }
 
   @override

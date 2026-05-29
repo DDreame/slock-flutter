@@ -863,6 +863,7 @@
   "threadRepliesMissingContext": "缺少话题路由上下文。",
   "threadRepliesRetry": "重试",
   "threadRepliesFollowTooltip": "关注话题",
+  "threadRepliesUnfollowTooltip": "取消关注话题",
   "threadRepliesDoneTooltip": "标记话题完成",
   "dmsSortAZ": "按字母排序",
   "dmsSortRecent": "按最近排序",

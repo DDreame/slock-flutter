@@ -992,6 +992,7 @@
   "threadRepliesMissingContext": "Falta el contexto de ruta del hilo.",
   "threadRepliesRetry": "Reintentar",
   "threadRepliesFollowTooltip": "Seguir hilo",
+  "threadRepliesUnfollowTooltip": "Dejar de seguir hilo",
   "threadRepliesDoneTooltip": "Marcar hilo como hecho",
   "dmsSortAZ": "Ordenar A-Z",
   "dmsSortRecent": "Ordenar por reciente",
