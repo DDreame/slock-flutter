@@ -1229,6 +1229,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationContextCopyText => '复制文本';
 
   @override
+  String get conversationContextCopyLink => '复制链接';
+
+  @override
   String get conversationContextForward => '转发';
 
   @override
@@ -2576,6 +2579,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get conversationCopiedToClipboard => '已复制到剪贴板。';
+
+  @override
+  String get conversationLinkCopied => '链接已复制';
 
   @override
   String get conversationMessageForwarded => '消息已转发';

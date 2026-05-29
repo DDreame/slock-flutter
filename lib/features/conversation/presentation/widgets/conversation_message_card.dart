@@ -958,6 +958,24 @@ class ConversationMessageCardState
       onSelect: () => ref
           .read(conversationDetailStoreProvider.notifier)
           .enterSelectionMode(widget.message.id),
+      onCopyLink: () {
+        final serverId = widget.target.serverId.value;
+        final conversationId = widget.target.conversationId;
+        final messageId = widget.message.id;
+        final segment = isChannel ? 'channels' : 'dms';
+        final permalink = Uri(
+          scheme: 'https',
+          host: 'app.slock.ai',
+          path: '/servers/$serverId/$segment/$conversationId',
+          queryParameters: {'messageId': messageId},
+        ).toString();
+        Clipboard.setData(ClipboardData(text: permalink));
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(context.l10n.conversationLinkCopied)),
+          );
+      },
     );
   }
 

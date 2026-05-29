@@ -2434,6 +2434,12 @@ abstract class AppLocalizations {
   /// **'Copy text'**
   String get conversationContextCopyText;
 
+  /// No description provided for @conversationContextCopyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get conversationContextCopyLink;
+
   /// No description provided for @conversationContextForward.
   ///
   /// In en, this message translates to:
@@ -5014,6 +5020,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied to clipboard.'**
   String get conversationCopiedToClipboard;
+
+  /// No description provided for @conversationLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get conversationLinkCopied;
 
   /// No description provided for @conversationMessageForwarded.
   ///
