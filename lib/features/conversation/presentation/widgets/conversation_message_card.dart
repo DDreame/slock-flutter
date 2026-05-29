@@ -23,6 +23,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_con
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
+import 'package:slock_app/features/conversation/presentation/utils/mention_profile_resolver.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
@@ -253,23 +254,15 @@ class ConversationMessageCardState
   Future<void> _onMentionTap(String mentionName) async {
     final target = widget.target;
     try {
-      final members = await ref
-          .read(channelMemberRepositoryProvider)
-          .listMembers(target.serverId, channelId: target.conversationId);
-      if (!mounted) return;
-
-      final mentionLower = mentionName.toLowerCase();
-      final match = members
-          .where((m) => m.mentionHandle.toLowerCase() == mentionLower)
-          .firstOrNull;
-      if (match == null) return; // Graceful no-op — member not found.
-
-      final entityId = match.memberEntityId;
-      if (entityId == null || !mounted) return;
-
-      context.push(
-        '/servers/${target.serverId.value}/profile/$entityId',
+      final route = await resolveMentionProfileRoute(
+        memberRepo: ref.read(channelMemberRepositoryProvider),
+        serverId: target.serverId,
+        channelId: target.conversationId,
+        mentionName: mentionName,
       );
+      if (route == null || !mounted) return;
+
+      context.push(route);
     } catch (e, st) {
       ref.read(diagnosticsCollectorProvider).error(
         'ConversationDetail',

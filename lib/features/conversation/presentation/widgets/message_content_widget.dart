@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -62,6 +63,23 @@ class MessageContentWidget extends ConsumerStatefulWidget {
 class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
   String? _detectedUrl;
 
+  /// Tracks [TapGestureRecognizer]s created by [buildMentionAwareSpan] so
+  /// they can be disposed on rebuild/unmount to avoid memory leaks.
+  final _mentionRecognizers = <GestureRecognizer>[];
+
+  void _disposeMentionRecognizers() {
+    for (final r in _mentionRecognizers) {
+      r.dispose();
+    }
+    _mentionRecognizers.clear();
+  }
+
+  @override
+  void dispose() {
+    _disposeMentionRecognizers();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -92,6 +110,8 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Dispose recognizers from previous build frame before creating new ones.
+    _disposeMentionRecognizers();
     assert(() {
       MessageContentWidget.debugBuildCount++;
       return true;
@@ -122,6 +142,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
             highlightQuery: widget.highlightQuery,
             highlightColor: colors.primaryLight,
             onMentionTap: widget.onMentionTap,
+            createdRecognizers: _mentionRecognizers,
           ),
           key: const ValueKey('message-content'),
         );
@@ -136,6 +157,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           selfMentionBackground: colors.primary,
           currentUserName: widget.currentUserName,
           onMentionTap: widget.onMentionTap,
+          createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
       );
@@ -158,6 +180,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           highlightQuery: widget.highlightQuery,
           highlightColor: colors.primaryLight,
           onMentionTap: widget.onMentionTap,
+          createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
       );

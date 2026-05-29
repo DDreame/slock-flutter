@@ -130,6 +130,8 @@ final mentionSpanRegex = RegExp(r'(?<![\w.])@([\w][\w.\-]*)');
 ///
 /// When [onMentionTap] is provided, a [TapGestureRecognizer] is attached
 /// to each mention span so taps navigate to the mentioned user's profile.
+/// Created recognizers are appended to [createdRecognizers] when provided,
+/// so the caller can track and dispose them on rebuild/unmount.
 TextSpan buildMentionAwareSpan({
   required String text,
   required TextStyle? baseStyle,
@@ -141,6 +143,7 @@ TextSpan buildMentionAwareSpan({
   String highlightQuery = '',
   Color? highlightColor,
   void Function(String name)? onMentionTap,
+  List<GestureRecognizer>? createdRecognizers,
 }) {
   final matches = mentionSpanRegex.allMatches(text).toList();
 
@@ -188,6 +191,7 @@ TextSpan buildMentionAwareSpan({
     TapGestureRecognizer? recognizer;
     if (onMentionTap != null) {
       recognizer = TapGestureRecognizer()..onTap = () => onMentionTap(name);
+      createdRecognizers?.add(recognizer);
     }
 
     // Apply highlight overlay inside the mention when search query matches.
