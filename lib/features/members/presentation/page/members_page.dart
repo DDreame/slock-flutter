@@ -404,7 +404,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
           ),
         ),
       );
-    }
+    } catch (_) {}
   }
 
   Future<void> _changeMemberRole(
@@ -448,7 +448,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
           ),
         ),
       );
-    }
+    } catch (_) {}
   }
 
   Future<void> _removeMember(MemberProfile member) async {
@@ -503,7 +503,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
           ),
         ),
       );
-    }
+    } catch (_) {}
   }
 }
 
