@@ -286,10 +286,12 @@ Future<HomeWorkspaceSnapshot?> _loadCachedWorkspaceSnapshot({
 
   return HomeWorkspaceSnapshot(
     serverId: serverId,
-    // Note: isPrivate and isArchived are not persisted in the local store
-    // schema, so cached channels default to false for both. These flags are
-    // corrected on the next successful API load via parsedPrivateFlags /
-    // parsedArchivedFlags lookups.
+    // TODO(B123): isPrivate and isArchived are not persisted in the local
+    // store schema (drift ConversationSummaries table). Cached channels
+    // default to false for both flags on cold boot. These are corrected on
+    // the next successful API load via parsedPrivateFlags /
+    // parsedArchivedFlags lookups. A schema migration (v2) to add boolean
+    // columns would eliminate the brief stale state on offline boot.
     channels: storedChannels
         .map((row) => HomeChannelSummary(
               scopeId: ChannelScopeId(
