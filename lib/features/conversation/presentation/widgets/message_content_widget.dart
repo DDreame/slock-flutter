@@ -40,6 +40,13 @@ class MessageContentWidget extends ConsumerStatefulWidget {
   @visibleForTesting
   static int debugBuildCount = 0;
 
+  /// Disposal counter for recognizer-lifecycle tests. Incremented each time
+  /// [_MessageContentWidgetState._disposeMentionRecognizers] is called.
+  /// Debug-only via assert(); zero-cost in release builds.
+  /// Reset manually in test setUp.
+  @visibleForTesting
+  static int debugDisposeCount = 0;
+
   final ConversationMessageSummary message;
   final bool isSystem;
   final MessageBubbleKind kind;
@@ -68,6 +75,10 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
   final _mentionRecognizers = <GestureRecognizer>[];
 
   void _disposeMentionRecognizers() {
+    assert(() {
+      MessageContentWidget.debugDisposeCount++;
+      return true;
+    }());
     for (final r in _mentionRecognizers) {
       r.dispose();
     }

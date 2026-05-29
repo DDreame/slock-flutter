@@ -144,12 +144,51 @@ void main() {
   // ---------------------------------------------------------------------------
   group('B123 PR 3 — MessageContentWidget recognizer disposal', () {
     testWidgets(
-      'disposes recognizers on widget unmount',
+      '_disposeMentionRecognizers fires on rebuild (debugDisposeCount)',
       (tester) async {
-        // Mount a simple MessageContentWidget with onMentionTap to create
-        // recognizers, then dispose the widget and verify no leaks.
-        // We track via the debugBuildCount to confirm widget was mounted.
+        // Reset counters.
         MessageContentWidget.debugBuildCount = 0;
+        MessageContentWidget.debugDisposeCount = 0;
+
+        final controller = _ContentController('Hello @Alice world');
+
+        await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: _RebuildableMessageContent(controller: controller),
+          ),
+        ));
+        await tester.pumpAndSettle();
+
+        // After first build, disposal was called once (at start of build()
+        // to clear any previous frame — on first frame this is a no-op clear).
+        final afterFirstBuild = MessageContentWidget.debugDisposeCount;
+        expect(
+          afterFirstBuild,
+          greaterThan(0),
+          reason:
+              'Reverting _disposeMentionRecognizers() in build() → count stays 0 → RED.',
+        );
+
+        // Trigger rebuild with new content.
+        controller.update('Now mention @Bob instead');
+        await tester.pumpAndSettle();
+
+        // Disposal should fire again on rebuild.
+        expect(
+          MessageContentWidget.debugDisposeCount,
+          greaterThan(afterFirstBuild),
+          reason: 'Removing _disposeMentionRecognizers() from build() → count '
+              'does not increment on rebuild → RED.',
+        );
+      },
+    );
+
+    testWidgets(
+      '_disposeMentionRecognizers fires on widget unmount (dispose)',
+      (tester) async {
+        MessageContentWidget.debugBuildCount = 0;
+        MessageContentWidget.debugDisposeCount = 0;
 
         await tester.pumpWidget(MaterialApp(
           theme: AppTheme.light,
@@ -171,49 +210,22 @@ void main() {
         ));
         await tester.pumpAndSettle();
 
-        // Widget was built at least once.
-        expect(MessageContentWidget.debugBuildCount, greaterThan(0));
+        final beforeUnmount = MessageContentWidget.debugDisposeCount;
 
-        // Now remove the widget entirely (unmount → dispose fires).
+        // Unmount the widget entirely → dispose() fires.
         await tester.pumpWidget(MaterialApp(
           theme: AppTheme.light,
           home: const Scaffold(body: SizedBox.shrink()),
         ));
         await tester.pumpAndSettle();
 
-        // If dispose didn't run, recognizers would leak. Since we can't
-        // directly inspect private _mentionRecognizers, we verify no
-        // exception was thrown during disposal (which would happen if
-        // recognizers were already disposed by something else, or if
-        // the list was corrupted).
-        expect(tester.takeException(), isNull);
-      },
-    );
-
-    testWidgets(
-      'disposes old recognizers on rebuild with new content',
-      (tester) async {
-        // Use a StatefulWidget wrapper to trigger rebuilds.
-        final controller = _ContentController('Hello @Alice world');
-
-        await tester.pumpWidget(MaterialApp(
-          theme: AppTheme.light,
-          home: Scaffold(
-            body: _RebuildableMessageContent(controller: controller),
-          ),
-        ));
-        await tester.pumpAndSettle();
-
-        // Change content to trigger rebuild.
-        controller.update('Now mention @Bob instead');
-        await tester.pumpAndSettle();
-
-        // Change again — old @Bob recognizer should be disposed.
-        controller.update('Final @Charlie mention');
-        await tester.pumpAndSettle();
-
-        // No exceptions = disposal works correctly on each rebuild.
-        expect(tester.takeException(), isNull);
+        expect(
+          MessageContentWidget.debugDisposeCount,
+          greaterThan(beforeUnmount),
+          reason:
+              'Removing _disposeMentionRecognizers() from dispose() → count '
+              'does not increment on unmount → RED.',
+        );
       },
     );
   });
