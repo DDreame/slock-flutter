@@ -48,6 +48,10 @@ class ChannelsTabPage extends ConsumerStatefulWidget {
 }
 
 class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
+  // Hoisted BorderRadius for search field (Scan #49).
+  static final _kSearchBorderRadius =
+      BorderRadius.circular(AppSpacing.radiusMd);
+
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -395,7 +399,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               : null,
           isDense: true,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            borderRadius: _kSearchBorderRadius,
           ),
         ),
         onChanged: (value) {

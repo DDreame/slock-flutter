@@ -19,6 +19,9 @@ class CreateChannelPage extends ConsumerStatefulWidget {
 }
 
 class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
+  // Hoisted BorderRadius for input fields (Scan #49).
+  static final _kInputBorderRadius = BorderRadius.circular(12);
+
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   late final ServerScopeId? _serverId;
@@ -71,7 +74,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
                 ),
                 hintText: context.l10n.channelsCreateNameHint,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: _kInputBorderRadius,
                 ),
               ),
               onChanged: (_) => setState(() {}),
@@ -87,7 +90,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
               decoration: InputDecoration(
                 hintText: context.l10n.channelsCreateDescriptionHint,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: _kInputBorderRadius,
                 ),
               ),
             ),
@@ -223,6 +226,9 @@ class _VisibilitySelector extends StatelessWidget {
 }
 
 class _VisibilityOption extends StatelessWidget {
+  // Hoisted BorderRadius for option card (Scan #49).
+  static final _kCardBorderRadius = BorderRadius.circular(12);
+
   const _VisibilityOption({
     super.key,
     required this.label,
@@ -254,7 +260,7 @@ class _VisibilityOption extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: isSelected ? accent.withAlpha(20) : surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: _kCardBorderRadius,
             border: Border.all(
               color: isSelected ? accent : border,
               width: isSelected ? 1.5 : 1,
