@@ -24,6 +24,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/page/channel_files_page.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/image_gallery_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/home/presentation/page/unread_list_page.dart';
@@ -400,6 +401,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             return const _FilePreviewFallback();
           }
           return FilePreviewPage(attachment: attachment);
+        },
+      ),
+      GoRoute(
+        path: '/image-gallery',
+        builder: (context, state) {
+          final args = state.extra as ImageGalleryArgs?;
+          if (args == null || args.images.isEmpty) {
+            return const _FilePreviewFallback();
+          }
+          return ImageGalleryPage(args: args);
         },
       ),
       GoRoute(
