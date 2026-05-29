@@ -110,6 +110,7 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _loadingStates[index] = true);
 
     try {
@@ -139,7 +140,7 @@ class _ImageGalleryPageState extends ConsumerState<ImageGalleryPage> {
           _loadingStates[index] = false;
         });
       }
-    } on Exception {
+    } catch (_) {
       // Fall back to direct URL.
       if (mounted) {
         setState(() {

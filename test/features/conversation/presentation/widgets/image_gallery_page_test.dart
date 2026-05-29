@@ -210,6 +210,66 @@ void main() {
         reason: 'Negative index must be clamped to 0',
       );
     });
+
+    // -------------------------------------------------------------------------
+    // Scan #48 PR A: Error catch + mounted guard
+    // -------------------------------------------------------------------------
+
+    testWidgets(
+      'resolveUrl catches Error subclasses without permanent spinner',
+      (tester) async {
+        // Repository throws a StateError (Error, not Exception) — verifies
+        // the catch hierarchy handles Error types.
+        await tester.pumpWidget(
+          _buildApp(
+            images: [_image('img-1', 'a.png')],
+            initialIndex: 0,
+            attachmentRepo: _ErrorThrowingAttachmentRepository(),
+          ),
+        );
+        await _pumpFrames(tester);
+
+        // Should NOT crash. Gallery page must still render (fallback to direct URL).
+        expect(
+          find.byKey(const ValueKey('image-gallery-page')),
+          findsOneWidget,
+          reason:
+              'Reverting catch to on Exception → Error propagates → crash → RED',
+        );
+        // No exception should escape.
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'resolveUrl with mounted guard survives rapid unmount',
+      (tester) async {
+        // Use a delayed repo to ensure the async is in flight when we unmount.
+        await tester.pumpWidget(
+          _buildApp(
+            images: [_image('img-1', 'a.png')],
+            initialIndex: 0,
+            attachmentRepo: _DelayedAttachmentRepository(),
+          ),
+        );
+        // Pump once to trigger _resolveUrl.
+        await tester.pump();
+
+        // Immediately replace with a different widget (unmounting gallery).
+        await tester.pumpWidget(
+          const MaterialApp(home: Scaffold(body: Text('replaced'))),
+        );
+        await tester.pumpAndSettle();
+
+        // Advance clock past the 5s delay so the timer completes — the
+        // mounted guard prevents setState on the disposed State.
+        await tester.pump(const Duration(seconds: 5));
+
+        // No crash should occur (mounted guard prevents setState on disposed).
+        expect(tester.takeException(), isNull);
+        expect(find.text('replaced'), findsOneWidget);
+      },
+    );
   });
 }
 
@@ -236,11 +296,12 @@ Future<void> _pumpFrames(WidgetTester tester) async {
 Widget _buildApp({
   required List<MessageAttachment> images,
   required int initialIndex,
+  AttachmentRepository? attachmentRepo,
 }) {
   return ProviderScope(
     overrides: [
       attachmentRepositoryProvider
-          .overrideWithValue(_FakeAttachmentRepository()),
+          .overrideWithValue(attachmentRepo ?? _FakeAttachmentRepository()),
       currentOpenConversationTargetProvider.overrideWith((ref) => null),
     ],
     child: MaterialApp(
@@ -267,6 +328,46 @@ class _FakeAttachmentRepository implements AttachmentRepository {
     ServerScopeId serverId, {
     required String attachmentId,
   }) async {
+    return 'https://signed.example.com/$attachmentId';
+  }
+
+  @override
+  Future<String> getHtmlPreviewUrl(
+    ServerScopeId serverId, {
+    required String attachmentId,
+  }) async {
+    return 'https://preview.example.com/$attachmentId';
+  }
+}
+
+/// Throws a [StateError] (Error subclass, not Exception) to verify
+/// the catch hierarchy handles non-Exception throwables.
+class _ErrorThrowingAttachmentRepository implements AttachmentRepository {
+  @override
+  Future<String> getSignedUrl(
+    ServerScopeId serverId, {
+    required String attachmentId,
+  }) async {
+    throw StateError('Simulated Error subclass in getSignedUrl');
+  }
+
+  @override
+  Future<String> getHtmlPreviewUrl(
+    ServerScopeId serverId, {
+    required String attachmentId,
+  }) async {
+    return 'https://preview.example.com/$attachmentId';
+  }
+}
+
+/// Returns after a delay — allows testing unmount during in-flight async.
+class _DelayedAttachmentRepository implements AttachmentRepository {
+  @override
+  Future<String> getSignedUrl(
+    ServerScopeId serverId, {
+    required String attachmentId,
+  }) async {
+    await Future<void>.delayed(const Duration(seconds: 5));
     return 'https://signed.example.com/$attachmentId';
   }
 
