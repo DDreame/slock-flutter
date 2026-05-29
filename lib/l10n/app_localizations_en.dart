@@ -1657,6 +1657,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelsDialogEditNameLabel => 'Channel name';
 
   @override
+  String get channelsDialogEditDescriptionLabel => 'Description';
+
+  @override
+  String get channelsDialogEditDescriptionHint => 'What is this channel about?';
+
+  @override
+  String get channelsDialogEditPrivateLabel => 'Private channel';
+
+  @override
+  String get channelsDialogEditPrivateDescription =>
+      'Only invited members can access';
+
+  @override
   String get channelsDialogEditCancel => 'Cancel';
 
   @override

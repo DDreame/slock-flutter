@@ -65,17 +65,37 @@ class _CreateChannelDialogState extends State<CreateChannelDialog> {
   }
 }
 
+/// Result returned by [EditChannelDialog] when the user saves.
+class EditChannelResult {
+  const EditChannelResult({
+    required this.name,
+    required this.description,
+    required this.isPrivate,
+  });
+
+  final String name;
+
+  /// The description text. Empty string means "clear description".
+  final String description;
+
+  final bool isPrivate;
+}
+
 class EditChannelDialog extends StatefulWidget {
   const EditChannelDialog({
     super.key,
     required this.currentName,
     required this.onSave,
     required this.onCancel,
+    this.currentDescription,
+    this.currentIsPrivate = false,
     this.isSubmitting = false,
   });
 
   final String currentName;
-  final ValueChanged<String> onSave;
+  final String? currentDescription;
+  final bool currentIsPrivate;
+  final ValueChanged<EditChannelResult> onSave;
   final VoidCallback onCancel;
   final bool isSubmitting;
 
@@ -84,35 +104,81 @@ class EditChannelDialog extends StatefulWidget {
 }
 
 class _EditChannelDialogState extends State<EditChannelDialog> {
-  late final TextEditingController _controller;
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+  late bool _isPrivate;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.currentName);
+    _nameController = TextEditingController(text: widget.currentName);
+    _descriptionController =
+        TextEditingController(text: widget.currentDescription ?? '');
+    _isPrivate = widget.currentIsPrivate;
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _nameController.dispose();
+    _descriptionController.dispose();
     super.dispose();
+  }
+
+  bool get _hasChanges {
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
+    if (name != widget.currentName) return true;
+    if (description != (widget.currentDescription ?? '')) return true;
+    if (_isPrivate != widget.currentIsPrivate) return true;
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final name = _controller.text.trim();
-    final canSave = name.isNotEmpty && name != widget.currentName;
+    final name = _nameController.text.trim();
+    final canSave = name.isNotEmpty && _hasChanges;
     return AlertDialog(
       key: const ValueKey('edit-channel-dialog'),
       title: Text(context.l10n.channelsDialogEditTitle),
-      content: TextField(
-        key: const ValueKey('edit-channel-name'),
-        controller: _controller,
-        enabled: !widget.isSubmitting,
-        autofocus: true,
-        decoration: InputDecoration(
-            labelText: context.l10n.channelsDialogEditNameLabel),
-        onChanged: (_) => setState(() {}),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              key: const ValueKey('edit-channel-name'),
+              controller: _nameController,
+              enabled: !widget.isSubmitting,
+              autofocus: true,
+              decoration: InputDecoration(
+                  labelText: context.l10n.channelsDialogEditNameLabel),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              key: const ValueKey('edit-channel-description'),
+              controller: _descriptionController,
+              enabled: !widget.isSubmitting,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: context.l10n.channelsDialogEditDescriptionLabel,
+                hintText: context.l10n.channelsDialogEditDescriptionHint,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              key: const ValueKey('edit-channel-private-switch'),
+              title: Text(context.l10n.channelsDialogEditPrivateLabel),
+              subtitle: Text(context.l10n.channelsDialogEditPrivateDescription),
+              value: _isPrivate,
+              contentPadding: EdgeInsets.zero,
+              onChanged: widget.isSubmitting
+                  ? null
+                  : (value) => setState(() => _isPrivate = value),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -122,7 +188,11 @@ class _EditChannelDialogState extends State<EditChannelDialog> {
         FilledButton(
           onPressed: widget.isSubmitting || !canSave
               ? null
-              : () => widget.onSave(name),
+              : () => widget.onSave(EditChannelResult(
+                    name: name,
+                    description: _descriptionController.text.trim(),
+                    isPrivate: _isPrivate,
+                  )),
           child: Text(widget.isSubmitting
               ? context.l10n.channelsDialogEditSubmitting
               : context.l10n.channelsDialogEditSubmit),

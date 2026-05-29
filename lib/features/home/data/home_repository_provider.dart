@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
@@ -133,7 +134,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
     ),
   ]);
 
-  final channelParseResult = _parseChannelSummaries(
+  final channelParseResult = parseChannelSummaries(
     responses[0].data,
     serverId: serverId,
     l10n: l10n,
@@ -326,10 +327,11 @@ Options _serverScopedOptions(ServerScopeId serverId) {
 /// Channel types that are excluded from the Channel Tab.
 const _filteredChannelTypes = {'thread', 'inbox', 'system'};
 
+@visibleForTesting
 ({
   List<HomeChannelSummary> channels,
   Set<String> threadChannelIds,
-}) _parseChannelSummaries(
+}) parseChannelSummaries(
   Object? payload, {
   required ServerScopeId serverId,
   required AppLocalizations l10n,
@@ -379,6 +381,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
         value: id,
       ),
       name: name,
+      description: item['description'] as String?,
       lastMessageId: lastMessage?.id,
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,

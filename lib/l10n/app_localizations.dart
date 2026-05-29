@@ -3179,6 +3179,30 @@ abstract class AppLocalizations {
   /// **'Channel name'**
   String get channelsDialogEditNameLabel;
 
+  /// No description provided for @channelsDialogEditDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get channelsDialogEditDescriptionLabel;
+
+  /// No description provided for @channelsDialogEditDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What is this channel about?'**
+  String get channelsDialogEditDescriptionHint;
+
+  /// No description provided for @channelsDialogEditPrivateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Private channel'**
+  String get channelsDialogEditPrivateLabel;
+
+  /// No description provided for @channelsDialogEditPrivateDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only invited members can access'**
+  String get channelsDialogEditPrivateDescription;
+
   /// No description provided for @channelsDialogEditCancel.
   ///
   /// In en, this message translates to:
