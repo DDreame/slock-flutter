@@ -36,6 +36,12 @@ abstract class AuthRepository {
     required String name,
   });
 
+  /// Exchange an OAuth authorization code for tokens.
+  Future<AuthResult> completeOAuth({
+    required String providerId,
+    required String code,
+  });
+
   Future<AuthUser> getMe();
 
   Future<void> requestPasswordReset({required String email});

@@ -188,6 +188,13 @@ class _TrackingAuthRepository implements AuthRepository {
   Future<void> verifyEmail({required String token}) async {
     lastVerifyToken = token;
   }
+
+  @override
+  Future<AuthResult> completeOAuth({
+    required String providerId,
+    required String code,
+  }) async =>
+      const AuthResult(accessToken: 'token', refreshToken: 'refresh');
 }
 
 /// AuthRepository that always throws on resetPassword — used for #720

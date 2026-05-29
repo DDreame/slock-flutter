@@ -28,7 +28,9 @@ const _publicAuthPaths = <String>{
   '/auth/providers',
 };
 
-bool isPublicAuthEndpoint(String path) => _publicAuthPaths.contains(path);
+bool isPublicAuthEndpoint(String path) =>
+    _publicAuthPaths.contains(path) ||
+    (path.startsWith('/auth/') && path.endsWith('/complete'));
 
 class AppDioInterceptor extends Interceptor {
   AppDioInterceptor({

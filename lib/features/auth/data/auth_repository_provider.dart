@@ -10,6 +10,8 @@ const _verifyEmailPath = '/auth/verify-email';
 const _resendVerificationPath = '/auth/resend-verification';
 const _mePath = '/auth/me';
 
+String _oauthCompletePath(String providerId) => '/auth/$providerId/complete';
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final appDioClient = ref.watch(appDioClientProvider);
   return _ApiAuthRepository(appDioClient: appDioClient);
@@ -59,6 +61,27 @@ class _ApiAuthRepository implements AuthRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Registration failed.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<AuthResult> completeOAuth({
+    required String providerId,
+    required String code,
+  }) async {
+    try {
+      final response = await _appDioClient.post<Object?>(
+        _oauthCompletePath(providerId),
+        data: {'code': code},
+      );
+      return _parseAuthResult(response.data);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'OAuth token exchange failed.',
         causeType: error.runtimeType.toString(),
       );
     }
