@@ -24,6 +24,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_con
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
 import 'package:slock_app/features/conversation/presentation/utils/mention_profile_resolver.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
@@ -270,6 +271,49 @@ class ConversationMessageCardState
         metadata: {'stackTrace': st.toString()},
       );
     }
+  }
+
+  /// Handles tapping a #channel reference in message content.
+  /// Resolves the channel name to a channel ID via the home list store,
+  /// then navigates to the channel conversation page.
+  ///
+  /// Degrades gracefully when the channel cannot be resolved.
+  void _onChannelRefTap(String channelName) {
+    final target = widget.target;
+    try {
+      final state = ref.read(homeListStoreProvider);
+      final nameLower = channelName.toLowerCase();
+      final match = state.channels
+          .where((c) => c.name.toLowerCase() == nameLower)
+          .firstOrNull;
+      if (match == null) {
+        // Try pinned channels as well.
+        final pinnedMatch = state.pinnedChannels
+            .where((c) => c.name.toLowerCase() == nameLower)
+            .firstOrNull;
+        if (pinnedMatch == null) return;
+        context.push(
+          '/servers/${target.serverId.value}/channels/${pinnedMatch.scopeId.value}',
+        );
+        return;
+      }
+      context.push(
+        '/servers/${target.serverId.value}/channels/${match.scopeId.value}',
+      );
+    } catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ConversationDetail',
+        'channel ref tap navigation failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
+    }
+  }
+
+  /// Handles tapping a `task #N` reference in message content.
+  /// Navigates to the tasks page for the current server.
+  void _onTaskRefTap(String taskNumber) {
+    final target = widget.target;
+    context.push('/servers/${target.serverId.value}/tasks');
   }
 
   /// Returns `true` when the last pointer-down landed inside the sender
@@ -852,6 +896,8 @@ class ConversationMessageCardState
       onLinkTap: onLinkTap,
       currentUserName: currentUserName,
       onMentionTap: _onMentionTap,
+      onChannelRefTap: _onChannelRefTap,
+      onTaskRefTap: _onTaskRefTap,
     );
 
     // If translation is cached for this message, wrap with overlay.

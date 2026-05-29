@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/inline_ref_syntax.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
-import 'package:slock_app/features/conversation/presentation/widgets/mention_syntax.dart';
 import 'package:slock_app/features/link_preview/application/link_preview_store.dart';
 import 'package:slock_app/features/link_preview/data/link_preview_service.dart';
 import 'package:slock_app/features/link_preview/presentation/widgets/link_preview_card.dart';
@@ -32,6 +32,8 @@ class MessageContentWidget extends ConsumerStatefulWidget {
     this.onLinkTap,
     this.currentUserName,
     this.onMentionTap,
+    this.onChannelRefTap,
+    this.onTaskRefTap,
   });
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
@@ -62,6 +64,14 @@ class MessageContentWidget extends ConsumerStatefulWidget {
   /// Receives the mention name (without the `@` prefix).
   final void Function(String name)? onMentionTap;
 
+  /// Called when a user taps a #channel reference in the message body.
+  /// Receives the channel name (without the `#` prefix).
+  final void Function(String name)? onChannelRefTap;
+
+  /// Called when a user taps a `task #N` reference in the message body.
+  /// Receives the task number as a string.
+  final void Function(String number)? onTaskRefTap;
+
   @override
   ConsumerState<MessageContentWidget> createState() =>
       _MessageContentWidgetState();
@@ -70,7 +80,7 @@ class MessageContentWidget extends ConsumerStatefulWidget {
 class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
   String? _detectedUrl;
 
-  /// Tracks [TapGestureRecognizer]s created by [buildMentionAwareSpan] so
+  /// Tracks [TapGestureRecognizer]s created by [buildInlineRefAwareSpan] so
   /// they can be disposed on rebuild/unmount to avoid memory leaks.
   final _mentionRecognizers = <GestureRecognizer>[];
 
@@ -142,32 +152,40 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
     if (widget.isSystem) {
       if (widget.highlightQuery.isNotEmpty) {
         return Text.rich(
-          buildMentionAwareSpan(
+          buildInlineRefAwareSpan(
             text: widget.message.content,
             baseStyle: effectiveBaseStyle,
             mentionColor: colors.primary,
             mentionBackground: colors.primary.withValues(alpha: 0.1),
             selfMentionColor: colors.primaryForeground,
             selfMentionBackground: colors.primary,
+            refColor: colors.primary,
+            refBackground: colors.primary.withValues(alpha: 0.1),
             currentUserName: widget.currentUserName,
             highlightQuery: widget.highlightQuery,
             highlightColor: colors.primaryLight,
             onMentionTap: widget.onMentionTap,
+            onChannelRefTap: widget.onChannelRefTap,
+            onTaskRefTap: widget.onTaskRefTap,
             createdRecognizers: _mentionRecognizers,
           ),
           key: const ValueKey('message-content'),
         );
       }
       return Text.rich(
-        buildMentionAwareSpan(
+        buildInlineRefAwareSpan(
           text: widget.message.content,
           baseStyle: effectiveBaseStyle,
           mentionColor: colors.primary,
           mentionBackground: colors.primary.withValues(alpha: 0.1),
           selfMentionColor: colors.primaryForeground,
           selfMentionBackground: colors.primary,
+          refColor: colors.primary,
+          refBackground: colors.primary.withValues(alpha: 0.1),
           currentUserName: widget.currentUserName,
           onMentionTap: widget.onMentionTap,
+          onChannelRefTap: widget.onChannelRefTap,
+          onTaskRefTap: widget.onTaskRefTap,
           createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
@@ -180,17 +198,21 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
     Widget textWidget;
     if (widget.highlightQuery.isNotEmpty) {
       textWidget = Text.rich(
-        buildMentionAwareSpan(
+        buildInlineRefAwareSpan(
           text: widget.message.content,
           baseStyle: effectiveBaseStyle,
           mentionColor: colors.primary,
           mentionBackground: colors.primary.withValues(alpha: 0.1),
           selfMentionColor: colors.primaryForeground,
           selfMentionBackground: colors.primary,
+          refColor: colors.primary,
+          refBackground: colors.primary.withValues(alpha: 0.1),
           currentUserName: widget.currentUserName,
           highlightQuery: widget.highlightQuery,
           highlightColor: colors.primaryLight,
           onMentionTap: widget.onMentionTap,
+          onChannelRefTap: widget.onChannelRefTap,
+          onTaskRefTap: widget.onTaskRefTap,
           createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
@@ -204,6 +226,8 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
         onLinkTap: widget.onLinkTap,
         currentUserName: widget.currentUserName,
         onMentionTap: widget.onMentionTap,
+        onChannelRefTap: widget.onChannelRefTap,
+        onTaskRefTap: widget.onTaskRefTap,
       );
     }
 
