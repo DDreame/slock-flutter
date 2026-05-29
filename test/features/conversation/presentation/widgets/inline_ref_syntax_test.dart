@@ -80,6 +80,23 @@ void main() {
       expect(nodes.first, isA<md.Element>());
       expect((nodes.first as md.Element).attributes['name'], 'general');
     });
+
+    test('does not match #3foo (digit-starting name)', () {
+      final nodes = document.parseInline('#3foo');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'channel_ref');
+      expect(refs, isEmpty,
+          reason:
+              'Channel names must start with a letter; digit-start → plain text');
+    });
+
+    test('does not match #3x (digit-starting single char)', () {
+      final nodes = document.parseInline('see #3x here');
+      final refs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'channel_ref');
+      expect(refs, isEmpty,
+          reason: 'Removing letter-start constraint → test RED');
+    });
   });
 
   group('TaskRefSyntax', () {
@@ -451,7 +468,7 @@ void main() {
       expect(span.children!.length, greaterThan(2));
     });
 
-    test('does not match "task #3x" as task ref (trailing boundary)', () {
+    test('does not match "task #3x" as any ref (trailing boundary)', () {
       final span = buildInlineRefAwareSpan(
         text: 'See task #3x for details',
         baseStyle: baseStyle,
@@ -462,20 +479,24 @@ void main() {
         refColor: refColor,
         refBackground: refBg,
       );
-      // "task #3x" should NOT be styled as task ref
+      // "task #3x" should produce NO styled refs (neither task nor channel).
+      // With letter-start constraint, "#3x" is not a valid channel name either.
       if (span.children != null) {
-        final taskRefSpans = span.children!.cast<TextSpan>().where(
-              (s) => s.text != null && s.text!.contains('task #3'),
+        final styledRefSpans = span.children!.cast<TextSpan>().where(
+              (s) => s.style?.color == refColor,
             );
-        for (final s in taskRefSpans) {
-          expect(s.style?.color, isNot(refColor),
-              reason:
-                  'Removing trailing boundary from combined regex → test RED');
-        }
+        expect(styledRefSpans, isEmpty,
+            reason:
+                'task #3x must be plain text — not task_ref (trailing boundary) '
+                'and not channel_ref (digit-start). '
+                'Removing either guard → test RED');
+      } else {
+        // No children means entire text is plain — also correct.
+        expect(span.text, 'See task #3x for details');
       }
     });
 
-    test('does not match "task #3-foo" as task ref (trailing boundary)', () {
+    test('does not match "task #3-foo" as any ref (trailing boundary)', () {
       final span = buildInlineRefAwareSpan(
         text: 'Work on task #3-foo now',
         baseStyle: baseStyle,
@@ -486,15 +507,43 @@ void main() {
         refColor: refColor,
         refBackground: refBg,
       );
+      // "task #3-foo" should produce NO styled refs.
       if (span.children != null) {
-        final taskRefSpans = span.children!.cast<TextSpan>().where(
-              (s) => s.text != null && s.text!.contains('task #3'),
+        final styledRefSpans = span.children!.cast<TextSpan>().where(
+              (s) => s.style?.color == refColor,
             );
-        for (final s in taskRefSpans) {
-          expect(s.style?.color, isNot(refColor),
-              reason:
-                  'Removing trailing boundary from combined regex → test RED');
-        }
+        expect(styledRefSpans, isEmpty,
+            reason:
+                'task #3-foo must be plain text — not task_ref (trailing boundary) '
+                'and not channel_ref (digit-start). '
+                'Removing either guard → test RED');
+      } else {
+        expect(span.text, 'Work on task #3-foo now');
+      }
+    });
+
+    test('does not match "#3foo" as channel ref (digit-starting)', () {
+      final span = buildInlineRefAwareSpan(
+        text: 'Check #3foo for info',
+        baseStyle: baseStyle,
+        mentionColor: mentionColor,
+        mentionBackground: mentionBg,
+        selfMentionColor: selfMentionColor,
+        selfMentionBackground: selfMentionBg,
+        refColor: refColor,
+        refBackground: refBg,
+      );
+      // "#3foo" starts with digit — not a valid channel ref.
+      if (span.children != null) {
+        final styledRefSpans = span.children!.cast<TextSpan>().where(
+              (s) => s.style?.color == refColor,
+            );
+        expect(styledRefSpans, isEmpty,
+            reason:
+                'Channel names must start with letter; "#3foo" → plain text. '
+                'Removing letter-start constraint → test RED');
+      } else {
+        expect(span.text, 'Check #3foo for info');
       }
     });
   });
@@ -530,6 +579,32 @@ void main() {
       expect(channelRefs.length, 1);
       expect(taskRefs.first.attributes['number'], '5');
       expect(channelRefs.first.attributes['name'], 'general');
+    });
+
+    test('"task #3x" produces neither task_ref nor channel_ref', () {
+      final nodes = document.parseInline('task #3x');
+      final taskRefs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'task_ref');
+      final channelRefs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'channel_ref');
+      expect(taskRefs, isEmpty,
+          reason: 'Trailing boundary blocks task_ref on "task #3x"');
+      expect(channelRefs, isEmpty,
+          reason:
+              'Channel names must start with letter; "#3x" starts with digit → no channel_ref');
+    });
+
+    test('"task #3-foo" produces neither task_ref nor channel_ref', () {
+      final nodes = document.parseInline('task #3-foo');
+      final taskRefs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'task_ref');
+      final channelRefs =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'channel_ref');
+      expect(taskRefs, isEmpty,
+          reason: 'Trailing boundary blocks task_ref on "task #3-foo"');
+      expect(channelRefs, isEmpty,
+          reason:
+              'Channel names must start with letter; "#3-foo" starts with digit → no channel_ref');
     });
   });
 }

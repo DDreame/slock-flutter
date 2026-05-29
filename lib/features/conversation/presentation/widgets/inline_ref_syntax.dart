@@ -14,7 +14,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 /// Produces an `md.Element` with tag `channel_ref` containing the channel
 /// name (without the `#` prefix) as an attribute.
 class ChannelRefSyntax extends md.InlineSyntax {
-  ChannelRefSyntax() : super(r'#([\w][\w.\-]*)');
+  ChannelRefSyntax() : super(r'#([a-zA-Z][\w.\-]*)');
 
   @override
   bool tryMatch(md.InlineParser parser, [int? startMatchPos]) {
@@ -192,7 +192,7 @@ class TaskRefBuilder extends MarkdownElementBuilder {
 /// Matches `#channel-name` at word boundaries. Promoted to module-level
 /// constant to avoid per-call [RegExp] allocation on a hot render path.
 @visibleForTesting
-final channelRefSpanRegex = RegExp(r'(?<![\w.])#([\w][\w.\-]*)');
+final channelRefSpanRegex = RegExp(r'(?<![\w.])#([a-zA-Z][\w.\-]*)');
 
 /// Compiled task-ref pattern shared by [buildInlineRefAwareSpan].
 ///
@@ -209,7 +209,7 @@ final taskRefSpanRegex =
 /// - Group 3: task number (from `task #N`)
 @visibleForTesting
 final inlineRefCombinedRegex = RegExp(
-  r'(?<![\w.])@([\w][\w.\-]*)|(?<![\w.])#([\w][\w.\-]*)|(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])',
+  r'(?<![\w.])@([\w][\w.\-]*)|(?<![\w.])#([a-zA-Z][\w.\-]*)|(?<!\w)task\s*#(\d+)(?![a-zA-Z0-9_\-])',
   caseSensitive: false,
 );
 
