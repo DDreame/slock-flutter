@@ -182,6 +182,146 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // Integration: Thread ref tap → thread page navigation
+  // ---------------------------------------------------------------------------
+  group('B125 PR 1 — ConversationMessageCard thread ref tap integration', () {
+    testWidgets(
+      'tapping #general:a1b2c3d4 navigates to thread route with correct channelId',
+      (tester) async {
+        String? navigatedTo;
+
+        await tester.pumpWidget(
+          _buildApp(
+            target: channelTarget,
+            messageContent: 'See the thread #general:a1b2c3d4 for details',
+            channels: [
+              const HomeChannelSummary(
+                scopeId: ChannelScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'channel-general-id',
+                ),
+                name: 'general',
+              ),
+            ],
+            onNavigate: (route) => navigatedTo = route,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Find the thread ref tap target.
+        final threadRefTap =
+            find.byKey(const ValueKey('thread-ref-tap-general-a1b2c3d4'));
+        expect(
+          threadRefTap,
+          findsOneWidget,
+          reason:
+              'Reverting onThreadRefTap wiring or ThreadRefBuilder → no tap target → RED.',
+        );
+
+        await tester.tap(threadRefTap);
+        await tester.pumpAndSettle();
+
+        expect(
+          navigatedTo,
+          '/servers/server-1/threads/a1b2c3d4/replies?channelId=channel-general-id',
+          reason:
+              'Reverting context.push(threadTarget.toLocation()) → no navigation → RED.',
+        );
+      },
+    );
+
+    testWidgets(
+      'tapping dm:@alice:f5e6d7c8 navigates to DM thread route',
+      (tester) async {
+        String? navigatedTo;
+
+        await tester.pumpWidget(
+          _buildApp(
+            target: channelTarget,
+            messageContent: 'Check dm:@alice:f5e6d7c8 for context',
+            channels: const [],
+            directMessages: [
+              const HomeDirectMessageSummary(
+                scopeId: DirectMessageScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'dm-alice-id',
+                ),
+                title: 'alice',
+              ),
+            ],
+            onNavigate: (route) => navigatedTo = route,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Find the DM thread ref tap target.
+        final threadRefTap =
+            find.byKey(const ValueKey('thread-ref-tap-alice-f5e6d7c8'));
+        expect(
+          threadRefTap,
+          findsOneWidget,
+          reason:
+              'Reverting DM thread ref builder or tap wiring → no target → RED.',
+        );
+
+        await tester.tap(threadRefTap);
+        await tester.pumpAndSettle();
+
+        expect(
+          navigatedTo,
+          '/servers/server-1/threads/f5e6d7c8/replies?channelId=dm-alice-id',
+          reason:
+              'Reverting DM resolution in _onThreadRefTap → no navigation → RED.',
+        );
+      },
+    );
+
+    testWidgets(
+      'unresolvable #nonexistent:a1b2c3d4 → no navigation, no crash',
+      (tester) async {
+        String? navigatedTo;
+
+        await tester.pumpWidget(
+          _buildApp(
+            target: channelTarget,
+            messageContent: 'See #nonexistent:a1b2c3d4 thread',
+            channels: [
+              const HomeChannelSummary(
+                scopeId: ChannelScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'channel-general-id',
+                ),
+                name: 'general',
+              ),
+            ],
+            onNavigate: (route) => navigatedTo = route,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Thread ref chip should still render (builder doesn't know it's unresolvable).
+        final threadRefTap =
+            find.byKey(const ValueKey('thread-ref-tap-nonexistent-a1b2c3d4'));
+        expect(threadRefTap, findsOneWidget);
+
+        await tester.tap(threadRefTap);
+        await tester.pumpAndSettle();
+
+        // No navigation — graceful no-op.
+        expect(
+          navigatedTo,
+          isNull,
+          reason:
+              'Unresolvable channel name must produce no navigation (graceful no-op).',
+        );
+
+        // No exceptions thrown.
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
 }
 
 // =============================================================================
@@ -193,6 +333,7 @@ Widget _buildApp({
   required String messageContent,
   required List<HomeChannelSummary> channels,
   required void Function(String route) onNavigate,
+  List<HomeDirectMessageSummary> directMessages = const [],
 }) {
   final conversationRepo = _FakeConversationRepository(
     snapshot: ConversationDetailSnapshot(
@@ -245,6 +386,21 @@ Widget _buildApp({
           );
         },
       ),
+      // Thread route stub — captures navigation for assertion.
+      GoRoute(
+        path: '/servers/:serverId/threads/:messageId/replies',
+        builder: (_, state) {
+          final serverId = state.pathParameters['serverId'];
+          final messageId = state.pathParameters['messageId'];
+          final channelId = state.uri.queryParameters['channelId'];
+          final route =
+              '/servers/$serverId/threads/$messageId/replies?channelId=$channelId';
+          onNavigate(route);
+          return Scaffold(
+            body: Center(child: Text('thread-$route')),
+          );
+        },
+      ),
     ],
   );
 
@@ -257,7 +413,8 @@ Widget _buildApp({
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       profileRepositoryProvider.overrideWithValue(_FakeProfileRepository()),
       memberRepositoryProvider.overrideWithValue(_FakeMemberRepository()),
-      homeListStoreProvider.overrideWith(() => _FakeHomeListStore(channels)),
+      homeListStoreProvider
+          .overrideWith(() => _FakeHomeListStore(channels, directMessages)),
     ],
     child: MaterialApp.router(
       theme: AppTheme.light,
@@ -273,13 +430,15 @@ Widget _buildApp({
 // =============================================================================
 
 class _FakeHomeListStore extends HomeListStore {
-  _FakeHomeListStore(this._channels);
+  _FakeHomeListStore(this._channels, this._directMessages);
   final List<HomeChannelSummary> _channels;
+  final List<HomeDirectMessageSummary> _directMessages;
 
   @override
   HomeListState build() => HomeListState(
         status: HomeListStatus.success,
         channels: _channels,
+        directMessages: _directMessages,
       );
 }
 

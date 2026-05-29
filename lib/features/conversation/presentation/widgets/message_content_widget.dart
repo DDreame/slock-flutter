@@ -34,6 +34,7 @@ class MessageContentWidget extends ConsumerStatefulWidget {
     this.onMentionTap,
     this.onChannelRefTap,
     this.onTaskRefTap,
+    this.onThreadRefTap,
   });
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
@@ -71,6 +72,10 @@ class MessageContentWidget extends ConsumerStatefulWidget {
   /// Called when a user taps a `task #N` reference in the message body.
   /// Receives the task number as a string.
   final void Function(String number)? onTaskRefTap;
+
+  /// Called when a user taps a thread reference chip (`#channel:hexid` or
+  /// `dm:@name:hexid`). Receives structured [ThreadRefData] for navigation.
+  final void Function(ThreadRefData data)? onThreadRefTap;
 
   @override
   ConsumerState<MessageContentWidget> createState() =>
@@ -167,6 +172,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
             onMentionTap: widget.onMentionTap,
             onChannelRefTap: widget.onChannelRefTap,
             onTaskRefTap: widget.onTaskRefTap,
+            onThreadRefTap: widget.onThreadRefTap,
             createdRecognizers: _mentionRecognizers,
           ),
           key: const ValueKey('message-content'),
@@ -186,6 +192,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           onMentionTap: widget.onMentionTap,
           onChannelRefTap: widget.onChannelRefTap,
           onTaskRefTap: widget.onTaskRefTap,
+          onThreadRefTap: widget.onThreadRefTap,
           createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
@@ -213,6 +220,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
           onMentionTap: widget.onMentionTap,
           onChannelRefTap: widget.onChannelRefTap,
           onTaskRefTap: widget.onTaskRefTap,
+          onThreadRefTap: widget.onThreadRefTap,
           createdRecognizers: _mentionRecognizers,
         ),
         key: const ValueKey('message-content'),
@@ -228,6 +236,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
         onMentionTap: widget.onMentionTap,
         onChannelRefTap: widget.onChannelRefTap,
         onTaskRefTap: widget.onTaskRefTap,
+        onThreadRefTap: widget.onThreadRefTap,
       );
     }
 
