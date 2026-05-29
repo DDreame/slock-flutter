@@ -6604,6 +6604,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This will restore the channel to active status and allow members to send messages again.'**
   String get channelUnarchiveConfirmBody;
+
+  /// No description provided for @serverSwitcherUnreadBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, has unread messages'**
+  String serverSwitcherUnreadBadge(String name);
 }
 
 class _AppLocalizationsDelegate

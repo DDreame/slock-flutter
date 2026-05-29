@@ -3428,4 +3428,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get channelUnarchiveConfirmBody => '这将恢复频道为活跃状态，成员可以重新发送消息。';
+
+  @override
+  String serverSwitcherUnreadBadge(String name) {
+    return '$name，有未读消息';
+  }
 }

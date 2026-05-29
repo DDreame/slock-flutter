@@ -237,11 +237,16 @@ class ChannelRefBuilder extends MarkdownElementBuilder {
 
     if (onChannelRefTap == null) return child;
 
-    return GestureDetector(
-      key: ValueKey('channel-ref-tap-$name'),
-      onTap: () => onChannelRefTap!(name),
-      behavior: HitTestBehavior.opaque,
-      child: child,
+    return Semantics(
+      button: true,
+      label: '#$name',
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: ValueKey('channel-ref-tap-$name'),
+        onTap: () => onChannelRefTap!(name),
+        behavior: HitTestBehavior.opaque,
+        child: child,
+      ),
     );
   }
 }
@@ -290,11 +295,16 @@ class TaskRefBuilder extends MarkdownElementBuilder {
 
     if (onTaskRefTap == null) return child;
 
-    return GestureDetector(
-      key: ValueKey('task-ref-tap-$number'),
-      onTap: () => onTaskRefTap!(number),
-      behavior: HitTestBehavior.opaque,
-      child: child,
+    return Semantics(
+      button: true,
+      label: 'task #$number',
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: ValueKey('task-ref-tap-$number'),
+        onTap: () => onTaskRefTap!(number),
+        behavior: HitTestBehavior.opaque,
+        child: child,
+      ),
     );
   }
 }
@@ -354,11 +364,16 @@ class ThreadRefBuilder extends MarkdownElementBuilder {
       isDm: isDm,
     );
 
-    return GestureDetector(
-      key: ValueKey('thread-ref-tap-$target-$messageId'),
-      onTap: () => onThreadRefTap!(data),
-      behavior: HitTestBehavior.opaque,
-      child: child,
+    return Semantics(
+      button: true,
+      label: displayText,
+      excludeSemantics: true,
+      child: GestureDetector(
+        key: ValueKey('thread-ref-tap-$target-$messageId'),
+        onTap: () => onThreadRefTap!(data),
+        behavior: HitTestBehavior.opaque,
+        child: child,
+      ),
     );
   }
 }
