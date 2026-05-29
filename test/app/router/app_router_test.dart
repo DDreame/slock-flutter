@@ -19,6 +19,9 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/auth/data/auth_provider.dart';
+import 'package:slock_app/features/auth/data/auth_provider_repository.dart';
+import 'package:slock_app/features/auth/data/auth_provider_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
@@ -141,6 +144,8 @@ void main() {
       overrides: [
         secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        authProviderRepositoryProvider
+            .overrideWithValue(_EmptyAuthProviderRepo()),
         splashControllerProvider
             .overrideWith(() => _StallingSplashController()),
       ],
@@ -172,6 +177,8 @@ void main() {
       overrides: [
         secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        authProviderRepositoryProvider
+            .overrideWithValue(_EmptyAuthProviderRepo()),
         splashControllerProvider
             .overrideWith(() => _StallingSplashController()),
       ],
@@ -810,6 +817,8 @@ void main() {
             authRepositoryProvider.overrideWithValue(
               const FakeAuthRepository(),
             ),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -2226,6 +2235,8 @@ void main() {
             secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
             authRepositoryProvider
                 .overrideWithValue(const FakeAuthRepository()),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             biometricServiceProvider.overrideWithValue(
               _FakeBiometricService(),
             ),
@@ -2265,6 +2276,8 @@ void main() {
             secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
             authRepositoryProvider
                 .overrideWithValue(const FakeAuthRepository()),
+            authProviderRepositoryProvider
+                .overrideWithValue(_EmptyAuthProviderRepo()),
             splashControllerProvider.overrideWith(
               () => _StallingSplashController(),
             ),
@@ -2387,4 +2400,9 @@ class _TestShareIntentStore extends ShareIntentStore {
 class _TestHomeListStore extends HomeListStore {
   @override
   HomeListState build() => HomeListState();
+}
+
+class _EmptyAuthProviderRepo implements AuthProviderRepository {
+  @override
+  Future<List<AuthProvider>> getProviders() async => const [];
 }
