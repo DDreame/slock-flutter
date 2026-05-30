@@ -32,6 +32,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/translation/data/translation_repository.dart';
+import 'package:slock_app/features/unread/application/read_cursor_service.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
 import 'package:slock_app/features/translation/data/translation_settings.dart';
@@ -1982,6 +1983,7 @@ void main() {
             () => _FixedSessionStore(const SessionState()),
           ),
           homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          readCursorServiceProvider.overrideWithValue(null),
         ],
         child: MaterialApp.router(
           routerConfig: _testGoRouter(
@@ -2051,6 +2053,7 @@ void main() {
             () => _FixedSessionStore(const SessionState()),
           ),
           homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          readCursorServiceProvider.overrideWithValue(null),
         ],
         child: MaterialApp.router(
           routerConfig: _testGoRouter(
