@@ -13,7 +13,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/threads/application/thread_replies_state.dart';
 import 'package:slock_app/features/threads/application/thread_replies_store.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
