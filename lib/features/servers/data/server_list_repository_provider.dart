@@ -28,6 +28,8 @@ final serverListRepositoryProvider = Provider<ServerListRepository>((ref) {
         _leaveServer(appDioClient: appDioClient, serverId: serverId),
     acceptInvite: (token) =>
         _acceptInvite(appDioClient: appDioClient, token: token),
+    getInviteInfo: (token) =>
+        _getInviteInfo(appDioClient: appDioClient, token: token),
   );
 });
 
@@ -88,6 +90,19 @@ Future<AcceptInviteResult> _acceptInvite({
   return _parseAcceptedInviteResult(response.data);
 }
 
+const _inviteInfoPath = '/auth/invite-info';
+
+Future<InviteInfo> _getInviteInfo({
+  required AppDioClient appDioClient,
+  required String token,
+}) async {
+  final response = await appDioClient.get<Object?>(
+    _inviteInfoPath,
+    queryParameters: {'token': token},
+  );
+  return _parseInviteInfo(response.data);
+}
+
 List<ServerSummary> _parseServerSummaries(Object? payload) {
   final servers = _requireServerList(payload, payloadName: 'servers');
   return List<ServerSummary>.generate(servers.length, (index) {
@@ -133,6 +148,24 @@ AcceptInviteResult _parseAcceptedInviteResult(Object? payload) {
   }
   final workspaceName = _readOptionalStringField(nested, field: 'name');
   return AcceptInviteResult(serverId: serverId, workspaceName: workspaceName);
+}
+
+InviteInfo _parseInviteInfo(Object? payload) {
+  final root = _requireMap(payload, payloadName: 'invite info');
+  final workspaceName =
+      _readOptionalStringField(root, field: 'workspaceName') ??
+          _readOptionalStringField(root, field: 'name');
+  if (workspaceName == null) {
+    throw SerializationFailure(
+      message: 'Malformed invite info payload: missing workspace name.',
+      causeType: _describeType(payload),
+    );
+  }
+  final memberCount = root['memberCount'];
+  return InviteInfo(
+    workspaceName: workspaceName,
+    memberCount: memberCount is int ? memberCount : null,
+  );
 }
 
 List<Object?> _requireServerList(

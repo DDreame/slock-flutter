@@ -1742,6 +1742,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serversInviteContinue => 'Continue';
 
   @override
+  String get serversInvitePreviewLoading => 'Loading invite details...';
+
+  @override
+  String get serversInvitePreviewDescription =>
+      'You have been invited to join:';
+
+  @override
+  String serversInvitePreviewMembers(int count) {
+    return '$count members';
+  }
+
+  @override
+  String get serversInvitePreviewExpired =>
+      'This invite link is invalid or has expired.';
+
+  @override
+  String get serversInvitePreviewRateLimit =>
+      'Too many requests. Please try again later.';
+
+  @override
   String get serversDialogCreateTitle => 'Create workspace';
 
   @override

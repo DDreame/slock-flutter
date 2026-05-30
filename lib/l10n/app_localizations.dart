@@ -3341,6 +3341,36 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get serversInviteContinue;
 
+  /// No description provided for @serversInvitePreviewLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading invite details...'**
+  String get serversInvitePreviewLoading;
+
+  /// No description provided for @serversInvitePreviewDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You have been invited to join:'**
+  String get serversInvitePreviewDescription;
+
+  /// No description provided for @serversInvitePreviewMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} members'**
+  String serversInvitePreviewMembers(int count);
+
+  /// No description provided for @serversInvitePreviewExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite link is invalid or has expired.'**
+  String get serversInvitePreviewExpired;
+
+  /// No description provided for @serversInvitePreviewRateLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again later.'**
+  String get serversInvitePreviewRateLimit;
+
   /// No description provided for @serversDialogCreateTitle.
   ///
   /// In en, this message translates to:

@@ -274,6 +274,11 @@ class _FakeServerListRepository
       serverId: inviteServerId ?? 'joined-server',
     );
   }
+
+  @override
+  Future<InviteInfo> getInviteInfo(String token) async {
+    return const InviteInfo(workspaceName: 'Test Workspace');
+  }
 }
 
 class _FakeSecureStorage implements SecureStorage {

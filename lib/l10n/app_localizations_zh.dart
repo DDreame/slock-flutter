@@ -1699,6 +1699,23 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serversInviteContinue => '继续';
 
   @override
+  String get serversInvitePreviewLoading => '加载中...';
+
+  @override
+  String get serversInvitePreviewDescription => '您被邀请加入此工作区';
+
+  @override
+  String serversInvitePreviewMembers(int count) {
+    return '$count 位成员';
+  }
+
+  @override
+  String get serversInvitePreviewExpired => '邀请已过期或无效';
+
+  @override
+  String get serversInvitePreviewRateLimit => '请求过于频繁，请稍后再试';
+
+  @override
   String get serversDialogCreateTitle => '创建工作区';
 
   @override

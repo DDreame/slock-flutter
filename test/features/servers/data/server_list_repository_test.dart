@@ -161,6 +161,55 @@ void main() {
         expect(appDioClient.requests.single.data, {'token': 'token-123'});
       },
     );
+
+    test(
+      'getInviteInfo fetches preview with token query parameter',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('GET', '/auth/invite-info'): {
+              'workspaceName': 'Acme Corp',
+              'memberCount': 12,
+            },
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repo = container.read(serverListRepositoryProvider);
+        final info = await repo.getInviteInfo('invite-token-abc');
+
+        expect(info.workspaceName, 'Acme Corp');
+        expect(info.memberCount, 12);
+        expect(appDioClient.requests.single.method, 'GET');
+        expect(appDioClient.requests.single.path, '/auth/invite-info');
+        expect(appDioClient.requests.single.queryParameters,
+            {'token': 'invite-token-abc'});
+      },
+    );
+
+    test(
+      'getInviteInfo parses response with "name" field fallback',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('GET', '/auth/invite-info'): {'name': 'Fallback Corp'},
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repo = container.read(serverListRepositoryProvider);
+        final info = await repo.getInviteInfo('token-xyz');
+
+        expect(info.workspaceName, 'Fallback Corp');
+        expect(info.memberCount, isNull);
+      },
+    );
   });
 
   test('ServerSummary equality includes optional fields', () {
@@ -235,7 +284,12 @@ class _FakeAppDioClient extends AppDioClient {
     CancelToken? cancelToken,
     void Function(int, int)? onSendProgress,
   }) async {
-    requests.add(_CapturedRequest(method: method, path: path, data: data));
+    requests.add(_CapturedRequest(
+      method: method,
+      path: path,
+      data: data,
+      queryParameters: queryParameters,
+    ));
 
     final key = (method, path);
     if (!_responses.containsKey(key)) {
@@ -254,9 +308,11 @@ class _CapturedRequest {
     required this.method,
     required this.path,
     required this.data,
+    this.queryParameters,
   });
 
   final String method;
   final String path;
   final Object? data;
+  final Map<String, dynamic>? queryParameters;
 }

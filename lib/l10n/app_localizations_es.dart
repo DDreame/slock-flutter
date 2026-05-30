@@ -1764,6 +1764,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get serversInviteContinue => 'Continuar';
 
   @override
+  String get serversInvitePreviewLoading => 'Cargando...';
+
+  @override
+  String get serversInvitePreviewDescription =>
+      'Has sido invitado a unirte a este espacio';
+
+  @override
+  String serversInvitePreviewMembers(int count) {
+    return '$count miembros';
+  }
+
+  @override
+  String get serversInvitePreviewExpired =>
+      'La invitación ha expirado o no es válida';
+
+  @override
+  String get serversInvitePreviewRateLimit =>
+      'Demasiadas solicitudes, inténtalo más tarde';
+
+  @override
   String get serversDialogCreateTitle => 'Crear espacio de trabajo';
 
   @override
