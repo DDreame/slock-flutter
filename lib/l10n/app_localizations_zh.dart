@@ -297,22 +297,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsTabEmpty => '暂无频道。';
 
   @override
-  String get channelsBrowseTooltip => 'Browse channels';
+  String get channelsBrowseTooltip => '浏览频道';
 
   @override
-  String get channelsBrowseTitle => 'Browse Channels';
+  String get channelsBrowseTitle => '浏览频道';
 
   @override
-  String get channelsBrowseEmpty => 'No channels available to join.';
+  String get channelsBrowseEmpty => '没有可加入的频道。';
 
   @override
-  String get channelsBrowseJoin => 'Join';
+  String get channelsBrowseJoin => '加入';
 
   @override
-  String get channelsBrowseJoined => 'Joined!';
+  String get channelsBrowseJoined => '已加入！';
 
   @override
-  String get channelsBrowseJoinFailed => 'Failed to join channel.';
+  String get channelsBrowseJoinFailed => '加入频道失败。';
 
   @override
   String get dmsTabTitle => '消息';

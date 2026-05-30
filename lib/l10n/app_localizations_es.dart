@@ -315,22 +315,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get channelsTabEmpty => 'Aún no hay canales.';
 
   @override
-  String get channelsBrowseTooltip => 'Browse channels';
+  String get channelsBrowseTooltip => 'Explorar canales';
 
   @override
-  String get channelsBrowseTitle => 'Browse Channels';
+  String get channelsBrowseTitle => 'Explorar canales';
 
   @override
-  String get channelsBrowseEmpty => 'No channels available to join.';
+  String get channelsBrowseEmpty => 'No hay canales disponibles para unirse.';
 
   @override
-  String get channelsBrowseJoin => 'Join';
+  String get channelsBrowseJoin => 'Unirse';
 
   @override
-  String get channelsBrowseJoined => 'Joined!';
+  String get channelsBrowseJoined => '¡Unido!';
 
   @override
-  String get channelsBrowseJoinFailed => 'Failed to join channel.';
+  String get channelsBrowseJoinFailed => 'No se pudo unir al canal.';
 
   @override
   String get dmsTabTitle => 'Mensajes';
