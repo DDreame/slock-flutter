@@ -579,11 +579,13 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                           const SizedBox(height: 16),
                           Row(
                             children: [
-                              Text(
-                                context.l10n.agentsFormEnvVarsLabel,
-                                style: Theme.of(context).textTheme.titleSmall,
+                              Flexible(
+                                child: Text(
+                                  context.l10n.agentsFormEnvVarsLabel,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              const Spacer(),
                               IconButton(
                                 key: const ValueKey('agent-form-env-add'),
                                 icon: const Icon(Icons.add, size: 20),
@@ -607,11 +609,18 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                                       labelText:
                                           context.l10n.agentsFormEnvVarsKey,
                                       isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 8,
+                                      ),
                                     ),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
                                     textInputAction: TextInputAction.next,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 4),
                                 Expanded(
                                   child: TextField(
                                     key: ValueKey('agent-form-env-value-$i'),
@@ -621,16 +630,27 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                                       labelText:
                                           context.l10n.agentsFormEnvVarsValue,
                                       isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 8,
+                                      ),
                                     ),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
                                     textInputAction: TextInputAction.next,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
-                                IconButton(
-                                  key: ValueKey('agent-form-env-remove-$i'),
-                                  icon: const Icon(Icons.close, size: 18),
-                                  onPressed: () => _removeEnvVar(i),
-                                  visualDensity: VisualDensity.compact,
+                                SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: IconButton(
+                                    key: ValueKey('agent-form-env-remove-$i'),
+                                    icon: const Icon(Icons.close, size: 16),
+                                    onPressed: () => _removeEnvVar(i),
+                                    padding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
                                 ),
                               ],
                             ),
