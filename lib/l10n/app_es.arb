@@ -685,6 +685,18 @@
   },
   "serversInviteSuccessGeneric": "¡Te uniste al espacio de trabajo!",
   "serversInviteContinue": "Continuar",
+  "serversInvitePreviewLoading": "Cargando...",
+  "serversInvitePreviewDescription": "Has sido invitado a unirte a este espacio",
+  "serversInvitePreviewMembers": "{count} miembros",
+  "@serversInvitePreviewMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "serversInvitePreviewExpired": "La invitación ha expirado o no es válida",
+  "serversInvitePreviewRateLimit": "Demasiadas solicitudes, inténtalo más tarde",
   "serversDialogCreateTitle": "Crear espacio de trabajo",
   "serversDialogCreateNameLabel": "Nombre del espacio de trabajo",
   "serversDialogCreateCancel": "Cancelar",

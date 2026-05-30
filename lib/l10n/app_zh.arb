@@ -608,6 +608,18 @@
   "serversInviteSuccessNamed": "已加入 {name}！",
   "serversInviteSuccessGeneric": "已加入工作区！",
   "serversInviteContinue": "继续",
+  "serversInvitePreviewLoading": "加载中...",
+  "serversInvitePreviewDescription": "您被邀请加入此工作区",
+  "serversInvitePreviewMembers": "{count} 位成员",
+  "@serversInvitePreviewMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "serversInvitePreviewExpired": "邀请已过期或无效",
+  "serversInvitePreviewRateLimit": "请求过于频繁，请稍后再试",
   "serversDialogCreateTitle": "创建工作区",
   "serversDialogCreateNameLabel": "工作区名称",
   "serversDialogCreateCancel": "取消",
