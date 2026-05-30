@@ -34,6 +34,7 @@ import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/unread/application/read_cursor_service.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -77,6 +78,7 @@ void main() {
         homeNowProvider.overrideWith(
           (ref) => Stream.value(DateTime.now()),
         ),
+        readCursorServiceProvider.overrideWithValue(null),
       ],
     );
     return container;
@@ -356,6 +358,13 @@ class _RecordingInboxRepository implements InboxRepository {
     }
     return fetchResponse;
   }
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 
   @override
   Future<void> markItemRead(

@@ -833,6 +833,13 @@ class _FakeInboxRepository implements InboxRepository {
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
 
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
+
   int _calcUnread() => items.fold(0, (sum, item) => sum + item.unreadCount);
 }
 
@@ -871,6 +878,13 @@ class _ConfigurableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 class _EmptyInboxRepository implements InboxRepository {
@@ -905,6 +919,13 @@ class _EmptyInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 class _FakeHomeRepository implements HomeRepository {

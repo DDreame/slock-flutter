@@ -558,4 +558,11 @@ class _NeverCompleteInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) => Future.value();
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }

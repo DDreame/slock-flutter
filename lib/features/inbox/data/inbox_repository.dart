@@ -52,4 +52,15 @@ abstract class InboxRepository {
   /// Mark all inbox items as read via
   /// `POST /channels/inbox/read-all`.
   Future<void> markAllRead(ServerScopeId serverId);
+
+  /// Mark a channel read up to a specific sequence number via
+  /// `POST /channels/{channelId}/read` with body `{seq: int}`.
+  ///
+  /// Unlike [markItemRead] (which marks everything read), this advances the
+  /// read cursor to a specific position. Both endpoints coexist.
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  });
 }

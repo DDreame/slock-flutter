@@ -38,6 +38,7 @@ class FakeInboxRepository implements InboxRepository {
   String? lastMarkReadChannelId;
   String? lastMarkDoneChannelId;
   bool markAllReadCalled = false;
+  final List<({String channelId, int seq})> markReadAtCalls = [];
 
   @override
   Future<InboxResponse> fetchInbox(
@@ -79,5 +80,14 @@ class FakeInboxRepository implements InboxRepository {
   Future<void> markAllRead(ServerScopeId serverId) async {
     markAllReadCalled = true;
     if (markAllReadFailure != null) throw markAllReadFailure!;
+  }
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {
+    markReadAtCalls.add((channelId: channelId, seq: seq));
   }
 }

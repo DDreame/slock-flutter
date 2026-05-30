@@ -67,6 +67,13 @@ class _RecordingInboxRepository implements InboxRepository {
   Future<void> markAllRead(ServerScopeId serverId) async {
     calls.add((method: 'markAllRead', channelId: ''));
   }
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 /// Fake HomeListStore that returns a fixed state.
