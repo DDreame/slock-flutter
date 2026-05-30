@@ -495,8 +495,6 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {
@@ -522,5 +520,4 @@ class _ThrowingPersistedAgentNames extends PersistedAgentNames {
   void update(Set<String> names) {
     throw Exception('SharedPreferences write failed');
   }
-
 }

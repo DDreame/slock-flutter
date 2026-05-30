@@ -1230,8 +1230,6 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {
@@ -1266,7 +1264,6 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     createdNames.add(name);
     return 'new-channel-id';
   }
-
 
   @override
   Future<void> updateChannel(

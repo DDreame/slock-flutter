@@ -697,7 +697,6 @@ class _FakeThreadRepository implements ThreadRepository {
         (item) => item.routeTarget.threadChannelId == threadChannelId);
   }
 
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {

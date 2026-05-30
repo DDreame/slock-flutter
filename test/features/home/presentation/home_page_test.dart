@@ -2896,8 +2896,6 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {
@@ -2924,7 +2922,6 @@ class _FakeSecureStorage implements SecureStorage {
   }) async {
     _store[key] = value;
   }
-
 
   @override
   Future<void> delete({required String key}) async {

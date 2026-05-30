@@ -603,8 +603,6 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {
@@ -635,7 +633,6 @@ class _EmptyInboxRepository implements InboxRepository {
       hasMore: false,
     );
   }
-
 
   @override
   Future<void> markItemRead(

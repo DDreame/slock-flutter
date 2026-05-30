@@ -448,8 +448,6 @@ class _DelayedThreadRepo implements ThreadRepository {
   }) =>
       throw UnimplementedError();
 
-
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {
@@ -475,7 +473,6 @@ class _FakeAgentsRepo implements AgentsRepository {
     onStartCalled?.call();
     if (shouldFail) throw const UnknownFailure(message: 'test failure');
   }
-
 
   @override
   Future<void> stopAgent(String agentId) async {

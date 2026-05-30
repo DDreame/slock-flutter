@@ -384,7 +384,6 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {

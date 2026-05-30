@@ -468,7 +468,6 @@ class _FakeThreadRepository implements ThreadRepository {
         );
   }
 
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {

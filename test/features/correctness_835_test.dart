@@ -86,7 +86,6 @@ class _FakeThreadRepository implements ThreadRepository {
     }
   }
 
-
   @override
   Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) async =>
       throw UnimplementedError();

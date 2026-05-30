@@ -512,7 +512,6 @@ class _HangingMarkDoneRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {

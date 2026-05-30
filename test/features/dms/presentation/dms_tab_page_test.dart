@@ -1175,8 +1175,6 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
-
-
   @override
   Future<void> markThreadUndone(
     ServerScopeId serverId, {
@@ -1203,7 +1201,6 @@ class _FakeMemberRepository implements MemberRepository {
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
     return members;
   }
-
 
   @override
   Future<String> createInvite(ServerScopeId serverId) async {
