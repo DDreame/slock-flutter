@@ -512,6 +512,7 @@ class _ControlledSendRepository extends FakeConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    bool? asTask,
     CancelToken? cancelToken,
   }) {
     sentContents.add(content);

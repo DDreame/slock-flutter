@@ -380,6 +380,7 @@ class _BatchDeleteRepo implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    bool? asTask,
     CancelToken? cancelToken,
   }) async =>
       throw UnimplementedError();

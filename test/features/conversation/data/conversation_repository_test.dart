@@ -1509,6 +1509,113 @@ void main() {
       throwsA(same(failure)),
     );
   });
+
+  test('sendMessage includes asTask=true in POST body when true', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages': {
+          'id': 'message-task-1',
+          'content': 'Task message',
+          'createdAt': '2026-04-19T15:10:00Z',
+          'senderType': 'human',
+          'messageType': 'message',
+          'seq': 10,
+        },
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await repository.sendMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      'Task message',
+      asTask: true,
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.data, {
+      'channelId': 'general',
+      'content': 'Task message',
+      'asTask': true,
+    });
+  });
+
+  test('sendMessage omits asTask from POST body when null', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages': {
+          'id': 'message-no-task',
+          'content': 'Normal message',
+          'createdAt': '2026-04-19T15:11:00Z',
+          'senderType': 'human',
+          'messageType': 'message',
+          'seq': 11,
+        },
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await repository.sendMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      'Normal message',
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.data, {
+      'channelId': 'general',
+      'content': 'Normal message',
+    });
+    expect((request.data as Map).containsKey('asTask'), isFalse);
+  });
+
+  test('sendMessage omits asTask from POST body when false', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages': {
+          'id': 'message-no-task-2',
+          'content': 'Regular message',
+          'createdAt': '2026-04-19T15:12:00Z',
+          'senderType': 'human',
+          'messageType': 'message',
+          'seq': 12,
+        },
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await repository.sendMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      'Regular message',
+      asTask: false,
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.data, {
+      'channelId': 'general',
+      'content': 'Regular message',
+    });
+    expect((request.data as Map).containsKey('asTask'), isFalse);
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {

@@ -1278,6 +1278,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get conversationComposerEmojiTooltip => 'Emoji';
 
   @override
+  String get conversationComposerTaskToggleTooltip => 'Enviar como tarea';
+
+  @override
   String get conversationComposerCameraUnavailable =>
       'Cámara no disponible. Comprueba los permisos.';
 
