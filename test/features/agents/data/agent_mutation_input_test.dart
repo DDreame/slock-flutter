@@ -28,12 +28,12 @@ void main() {
     );
 
     test('toCreateJson includes envVars when non-empty', () {
-      final input = AgentMutationInput(
+      const input = AgentMutationInput(
         name: 'TestBot',
         model: 'sonnet',
         runtime: 'claude',
         machineId: 'machine-1',
-        envVars: const {'API_KEY': 'sk-123', 'DEBUG': 'true'},
+        envVars: {'API_KEY': 'sk-123', 'DEBUG': 'true'},
       );
 
       final json = input.toCreateJson();
@@ -49,12 +49,12 @@ void main() {
     });
 
     test('toCreateJson omits envVars when empty map', () {
-      final input = AgentMutationInput(
+      const input = AgentMutationInput(
         name: 'TestBot',
         model: 'sonnet',
         runtime: 'claude',
         machineId: 'machine-1',
-        envVars: const {},
+        envVars: {},
       );
 
       final json = input.toCreateJson();
@@ -115,12 +115,12 @@ void main() {
     });
 
     test('toUpdateJson includes envVars when non-empty', () {
-      final input = AgentMutationInput(
+      const input = AgentMutationInput(
         name: 'TestBot',
         model: 'sonnet',
         runtime: 'claude',
         machineId: 'machine-1',
-        envVars: const {'SECRET': 'val'},
+        envVars: {'SECRET': 'val'},
       );
 
       final json = input.toUpdateJson();
