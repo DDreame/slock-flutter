@@ -480,4 +480,13 @@ class _FailingTasksRepository implements TasksRepository {
     required String messageId,
   }) async =>
       throw const UnknownFailure();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
 }

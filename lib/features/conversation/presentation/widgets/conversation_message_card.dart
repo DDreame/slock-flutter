@@ -311,10 +311,36 @@ class ConversationMessageCardState
   }
 
   /// Handles tapping a `task #N` reference in message content.
-  /// Navigates to the tasks page for the current server.
+  /// Resolves the task via API and navigates to the message or tasks tab.
   void _onTaskRefTap(String taskNumber) {
     final target = widget.target;
-    context.push('/servers/${target.serverId.value}/tasks');
+    final number = int.tryParse(taskNumber);
+    if (number == null || number <= 0) return;
+
+    final repo = ref.read(tasksRepositoryProvider);
+    repo
+        .getTaskByNumber(
+      target.serverId,
+      channelId: target.conversationId,
+      taskNumber: number,
+    )
+        .then((task) {
+      if (!mounted) return;
+      if (task.isLegacy || task.messageId == null) {
+        // Legacy task or no message — route to tasks tab.
+        context.push('/servers/${target.serverId.value}/tasks');
+      } else {
+        // Route to channel + focus on the task message.
+        context.push(
+          '/servers/${target.serverId.value}/channels/${task.channelId}'
+          '?messageId=${task.messageId}',
+        );
+      }
+    }).catchError((_) {
+      // Fallback: navigate to generic tasks page on error.
+      if (!mounted) return;
+      context.push('/servers/${target.serverId.value}/tasks');
+    });
   }
 
   /// Handles tapping a thread reference (`#channel:hexid` or `dm:@name:hexid`).

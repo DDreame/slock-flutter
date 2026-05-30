@@ -405,6 +405,15 @@ class _DelayedFakeTasksRepository implements TasksRepository {
   }) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
 }
 
 class _FakeSessionStore extends SessionStore {

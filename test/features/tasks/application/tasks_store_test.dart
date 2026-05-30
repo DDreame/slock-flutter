@@ -388,4 +388,13 @@ class _FakeTasksRepository implements TasksRepository {
     }
     return convertResult!;
   }
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
 }

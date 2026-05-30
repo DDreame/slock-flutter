@@ -40,6 +40,28 @@ class _ApiTasksRepository implements TasksRepository {
   }
 
   @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '$_tasksPath/channel/$channelId/number/$taskNumber',
+        options: _serverOptions(serverId),
+      );
+      return _parseSingleTask(response.data);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to resolve task by number.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<List<TaskItem>> createTasks(
     ServerScopeId serverId, {
     required String channelId,
