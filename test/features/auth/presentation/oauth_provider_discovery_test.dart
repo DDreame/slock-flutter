@@ -327,4 +327,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String code,
   }) async =>
       const AuthResult(accessToken: 'token', refreshToken: 'refresh');
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }

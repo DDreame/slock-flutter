@@ -88,6 +88,9 @@ class FakeAuthRepository implements AuthRepository {
         accessToken: 'fake-access-token',
         refreshToken: 'fake-refresh-token',
       );
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 /// A [FakeAuthRepository] whose [getMe] can be configured with a callback,

@@ -183,6 +183,21 @@ class SessionStore extends Notifier<SessionState> {
   }
 
   Future<void> logout() async {
+    // Revoke refresh token server-side (best-effort — don't block local
+    // cleanup on network failure or server error).
+    try {
+      final refreshToken =
+          await _storage.read(key: SessionStorageKeys.refreshToken);
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await ref
+            .read(authRepositoryProvider)
+            .logout(refreshToken: refreshToken);
+      }
+    } on Object {
+      // Fire-and-forget: network errors, 401, timeouts must not prevent
+      // the user from logging out locally.
+    }
+
     // Clear outbox before wiping auth — prevents previous user's queued
     // messages from draining under the next user's session. Awaited so the
     // SharedPreferences key is durably removed before logout completes.

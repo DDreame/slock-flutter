@@ -195,6 +195,9 @@ class _TrackingAuthRepository implements AuthRepository {
     required String code,
   }) async =>
       const AuthResult(accessToken: 'token', refreshToken: 'refresh');
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 /// AuthRepository that always throws on resetPassword — used for #720

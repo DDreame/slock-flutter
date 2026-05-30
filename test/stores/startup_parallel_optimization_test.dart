@@ -137,6 +137,9 @@ class _FakeAuthRepository implements AuthRepository {
         accessToken: 'fake-access-token',
         refreshToken: 'fake-refresh-token',
       );
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 class _FakeNotificationInitializer implements NotificationInitializer {
