@@ -673,6 +673,13 @@ class _SeedableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -719,6 +726,13 @@ class _ControllableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 
   void completeDone(String channelId) {
     _doneCompleters[channelId]!.complete();

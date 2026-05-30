@@ -8,6 +8,7 @@ const _serverHeaderName = 'X-Server-Id';
 const _inboxPath = '/channels/inbox';
 const _channelsPath = '/channels';
 const _readAllSuffix = '/read-all';
+const _readSuffix = '/read';
 const _inboxDonePath = '/channels/inbox/done';
 const _inboxReadAllPath = '/channels/inbox/read-all';
 
@@ -103,6 +104,28 @@ class _ApiInboxRepository implements InboxRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to mark all inbox read.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId$_readSuffix',
+        data: {'seq': seq},
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to mark channel read at seq.',
         causeType: error.runtimeType.toString(),
       );
     }

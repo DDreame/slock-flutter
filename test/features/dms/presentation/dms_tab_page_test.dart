@@ -1281,4 +1281,11 @@ class _FakeInboxRepository implements InboxRepository {
   Future<void> markAllRead(ServerScopeId serverId) async {
     markAllReadCalled = true;
   }
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }

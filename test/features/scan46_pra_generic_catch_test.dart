@@ -1134,6 +1134,13 @@ class _ThrowingInboxRepo implements InboxRepository {
       throw const FormatException('simulated non-AppFailure');
     }
   }
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 class _ThrowingUnreadRepo implements ConversationUnreadRepository {

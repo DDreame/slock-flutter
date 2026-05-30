@@ -38,6 +38,7 @@ import 'package:slock_app/features/translation/application/translation_cache_sto
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/unread/application/read_cursor_service.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
@@ -1022,6 +1023,9 @@ class _ConversationDetailScreenState
       // INV-TRANSLATE-3: auto-translate visible messages on first load
       // when translation mode is auto.
       _autoTranslateIfNeeded(next.messages);
+
+      // Granular read cursor: report highest seq on initial load.
+      _updateReadCursor(next.messages);
     }
 
     // #566: Register attachment downloads only when messages actually change
@@ -1033,6 +1037,9 @@ class _ConversationDetailScreenState
         next.messages.length != _lastRegisteredMessageCount) {
       _lastRegisteredMessageCount = next.messages.length;
       _registerAttachmentDownloads(next.messages);
+
+      // Granular read cursor: update when new messages arrive.
+      _updateReadCursor(next.messages);
     }
 
     // #651: Evict GlobalKeys for messages no longer in the loaded window.
@@ -1078,6 +1085,22 @@ class _ConversationDetailScreenState
           ref.read(markDmReadUseCaseProvider)(scopeId);
         }
     }
+  }
+
+  /// Update the granular read cursor with the highest seq from visible messages.
+  void _updateReadCursor(List<ConversationMessageSummary> messages) {
+    if (messages.isEmpty) return;
+    final t = ref.read(currentConversationDetailTargetProvider);
+    // Find highest seq in the current messages list.
+    int? highestSeq;
+    for (final m in messages) {
+      final seq = m.seq;
+      if (seq != null && (highestSeq == null || seq > highestSeq)) {
+        highestSeq = seq;
+      }
+    }
+    if (highestSeq == null || highestSeq <= 0) return;
+    ref.read(readCursorServiceProvider)?.markSeen(t.conversationId, highestSeq);
   }
 
   void _syncScrollState(

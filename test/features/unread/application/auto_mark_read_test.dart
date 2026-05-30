@@ -592,6 +592,13 @@ class _RecordingInboxRepository implements InboxRepository {
   }
 
   @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
+
+  @override
   Future<void> markItemRead(
     ServerScopeId serverId, {
     required String channelId,

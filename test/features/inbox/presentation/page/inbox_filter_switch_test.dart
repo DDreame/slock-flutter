@@ -316,6 +316,13 @@ class _ControllableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 // ---------------------------------------------------------------------------
@@ -367,6 +374,13 @@ class _FilterAwareInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 
   int _calcUnread() => allItems.fold(0, (sum, item) => sum + item.unreadCount);
 }

@@ -673,6 +673,13 @@ class _NoOpInboxRepository implements InboxRepository {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
+
+  @override
+  Future<void> markItemReadAt(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int seq,
+  }) async {}
 }
 
 class _NoOpServerListRepository implements ServerListRepository {
