@@ -49,6 +49,11 @@ abstract class AuthRepository {
 
   Future<AuthUser> getMe();
 
+  /// Revoke the refresh token server-side.
+  ///
+  /// Best-effort: callers should not block local cleanup on this call.
+  Future<void> logout({required String refreshToken});
+
   Future<void> requestPasswordReset({required String email});
 
   Future<void> resetPassword({

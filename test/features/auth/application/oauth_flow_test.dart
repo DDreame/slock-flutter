@@ -441,6 +441,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> resendVerification() async {}
+
+  @override
+  Future<void> logout({required String refreshToken}) async {}
 }
 
 class _FakeAuthProviderRepo implements AuthProviderRepository {

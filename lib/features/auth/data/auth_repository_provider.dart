@@ -4,6 +4,7 @@ import 'package:slock_app/features/auth/data/auth_repository.dart';
 
 const _loginPath = '/auth/login';
 const _registerPath = '/auth/register';
+const _logoutPath = '/auth/logout';
 const _forgotPasswordPath = '/auth/forgot-password';
 const _resetPasswordPath = '/auth/reset-password';
 const _verifyEmailPath = '/auth/verify-email';
@@ -97,6 +98,23 @@ class _ApiAuthRepository implements AuthRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to fetch user profile.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> logout({required String refreshToken}) async {
+    try {
+      await _appDioClient.post<Object?>(
+        _logoutPath,
+        data: {'refreshToken': refreshToken},
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Logout failed.',
         causeType: error.runtimeType.toString(),
       );
     }
