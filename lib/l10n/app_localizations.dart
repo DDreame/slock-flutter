@@ -3959,6 +3959,30 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get agentsFormRetry;
 
+  /// No description provided for @agentsFormEnvVarsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment Variables'**
+  String get agentsFormEnvVarsLabel;
+
+  /// No description provided for @agentsFormEnvVarsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add variable'**
+  String get agentsFormEnvVarsAdd;
+
+  /// No description provided for @agentsFormEnvVarsKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get agentsFormEnvVarsKey;
+
+  /// No description provided for @agentsFormEnvVarsValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get agentsFormEnvVarsValue;
+
   /// No description provided for @agentsReasoningLow.
   ///
   /// In en, this message translates to:

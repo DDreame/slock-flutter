@@ -154,6 +154,64 @@ void main() {
     });
 
     test(
+      'createAgent sends envVars, avatarUrl, onboarding in POST body',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('POST', '/agents'): {
+              'id': 'agent-3',
+              'name': 'EnvBot',
+              'model': 'sonnet',
+              'runtime': 'claude',
+              'machineId': 'machine-1',
+              'status': 'stopped',
+              'activity': 'offline',
+              'envVars': {'API_KEY': 'sk-test'},
+              'avatarUrl': 'pixel:Z',
+            },
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            appDioClientProvider.overrideWithValue(appDioClient),
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('s1'),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final repo = container.read(agentsRepositoryProvider);
+        final agent = await repo.createAgent(
+          const AgentMutationInput(
+            name: 'EnvBot',
+            model: 'sonnet',
+            runtime: 'claude',
+            machineId: 'machine-1',
+            envVars: {'API_KEY': 'sk-test'},
+            avatarUrl: 'pixel:Z',
+            onboarding: true,
+          ),
+        );
+
+        expect(agent.id, 'agent-3');
+        expect(agent.envVars, {'API_KEY': 'sk-test'});
+        expect(agent.avatarUrl, 'pixel:Z');
+
+        final request = appDioClient.requests.single;
+        expect(request.data, {
+          'name': 'EnvBot',
+          'model': 'sonnet',
+          'runtime': 'claude',
+          'machineId': 'machine-1',
+          'envVars': {'API_KEY': 'sk-test'},
+          'avatarUrl': 'pixel:Z',
+          'onboarding': true,
+        });
+      },
+    );
+
+    test(
       'deleteAgent sends DELETE /agents/:id with active server header',
       () async {
         final appDioClient = _FakeAppDioClient(

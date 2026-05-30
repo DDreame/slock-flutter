@@ -2022,6 +2022,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentsFormRetry => '重试';
 
   @override
+  String get agentsFormEnvVarsLabel => '环境变量';
+
+  @override
+  String get agentsFormEnvVarsAdd => '添加变量';
+
+  @override
+  String get agentsFormEnvVarsKey => '键';
+
+  @override
+  String get agentsFormEnvVarsValue => '值';
+
+  @override
   String get agentsReasoningLow => '低';
 
   @override

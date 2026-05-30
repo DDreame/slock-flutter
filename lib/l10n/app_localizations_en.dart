@@ -2068,6 +2068,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentsFormRetry => 'Retry';
 
   @override
+  String get agentsFormEnvVarsLabel => 'Environment Variables';
+
+  @override
+  String get agentsFormEnvVarsAdd => 'Add variable';
+
+  @override
+  String get agentsFormEnvVarsKey => 'Key';
+
+  @override
+  String get agentsFormEnvVarsValue => 'Value';
+
+  @override
   String get agentsReasoningLow => 'Low';
 
   @override
