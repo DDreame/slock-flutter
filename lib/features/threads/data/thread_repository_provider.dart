@@ -10,6 +10,7 @@ const _followedThreadsPath = '/channels/threads/followed';
 const _followThreadPath = '/channels/threads/follow';
 const _unfollowThreadPath = '/channels/threads/unfollow';
 const _doneThreadPath = '/channels/threads/done';
+const _undoneThreadPath = '/channels/threads/undone';
 const _threadsPathSuffix = '/threads';
 const _readAllSuffix = '/read-all';
 
@@ -120,6 +121,27 @@ class _ApiThreadRepository implements ThreadRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to mark thread done.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        _undoneThreadPath,
+        data: {'threadChannelId': threadChannelId},
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to mark thread undone.',
         causeType: error.runtimeType.toString(),
       );
     }

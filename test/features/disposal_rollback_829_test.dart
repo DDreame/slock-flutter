@@ -449,6 +449,13 @@ class _DelayedThreadRepo implements ThreadRepository {
       throw UnimplementedError();
 
   @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
   Future<void> markThreadRead(
     ServerScopeId serverId, {
     required String threadChannelId,

@@ -16,6 +16,7 @@ class FakeThreadRepository implements ThreadRepository {
   int loadFollowedCalls = 0;
   int resolveCalls = 0;
   final List<String> doneThreadIds = [];
+  final List<String> undoneThreadIds = [];
   final List<String> unfollowedThreadIds = [];
   final List<String> markReadThreadIds = [];
   final List<ThreadRouteTarget> followedTargets = [];
@@ -65,6 +66,14 @@ class FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {
     doneThreadIds.add(threadChannelId);
+  }
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {
+    undoneThreadIds.add(threadChannelId);
   }
 
   @override

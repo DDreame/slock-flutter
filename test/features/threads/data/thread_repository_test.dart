@@ -163,6 +163,33 @@ void main() {
     expect(request.data, {'threadChannelId': 'thread-ch-42'},
         reason: 'Changing request body shape → test RED');
   });
+
+  test(
+      'markThreadUndone posts to /channels/threads/undone with threadChannelId',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/channels/threads/undone': const {},
+      },
+    );
+    final container = createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(threadRepositoryProvider);
+    await repository.markThreadUndone(
+      const ServerScopeId('server-1'),
+      threadChannelId: 'thread-ch-99',
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.method, 'POST', reason: 'Reverting HTTP method → test RED');
+    expect(request.path, '/channels/threads/undone',
+        reason: 'Reverting _undoneThreadPath → test RED');
+    expect(request.serverIdHeader, 'server-1',
+        reason: 'Missing X-Server-Id header → test RED');
+    expect(request.data, {'threadChannelId': 'thread-ch-99'},
+        reason: 'Reverting request body shape → test RED');
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {

@@ -531,6 +531,12 @@ class _FailingThreadRepository implements ThreadRepository {
   }) async {}
 
   @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
   Future<void> markThreadRead(
     ServerScopeId serverId, {
     required String threadChannelId,
@@ -601,6 +607,12 @@ class _ControllableThreadRepository implements ThreadRepository {
     if (markDoneThrowable != null) throw markDoneThrowable!;
     if (markDoneFailure != null) throw markDoneFailure!;
   }
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
 
   @override
   Future<void> markThreadRead(

@@ -269,6 +269,54 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
     }
   }
 
+  /// Reverses a previous [markDone], restoring the thread to "undone" so it
+  /// reappears in the followed threads inbox.
+  Future<void> markUndone() async {
+    final threadChannelId = state.resolvedThreadChannelId;
+    if (state.status != ThreadRepliesStatus.success ||
+        !state.isDone ||
+        state.isDoneInFlight ||
+        threadChannelId == null) {
+      return;
+    }
+
+    final routeTarget = state.routeTarget;
+    state = state.copyWith(isDoneInFlight: true, clearFailure: true);
+
+    try {
+      await ref.read(threadRepositoryProvider).markThreadUndone(
+            ServerScopeId(routeTarget.serverId),
+            threadChannelId: threadChannelId,
+          );
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(
+        isDone: false,
+        clearFailure: true,
+      );
+    } on AppFailure catch (failure) {
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(failure: failure);
+    } catch (error) {
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to mark thread undone.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
+    } finally {
+      if (_isCurrentRoute(routeTarget)) {
+        state = state.copyWith(isDoneInFlight: false);
+      }
+    }
+  }
+
   Future<void> _markRead(
     ThreadRouteTarget routeTarget,
     String threadChannelId,
