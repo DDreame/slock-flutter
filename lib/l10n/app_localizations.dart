@@ -1018,6 +1018,54 @@ abstract class AppLocalizations {
   /// **'Leave'**
   String get workspaceSettingsLeaveConfirmLabel;
 
+  /// No description provided for @workspaceSettingsOnboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding'**
+  String get workspaceSettingsOnboarding;
+
+  /// No description provided for @onboardingSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Onboarding Settings'**
+  String get onboardingSettingsTitle;
+
+  /// No description provided for @onboardingSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure how new members experience the workspace onboarding flow.'**
+  String get onboardingSettingsDescription;
+
+  /// No description provided for @onboardingSettingsSetupModalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Suppress setup reminder'**
+  String get onboardingSettingsSetupModalLabel;
+
+  /// No description provided for @onboardingSettingsSetupModalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, new members will not see the setup modal reminder.'**
+  String get onboardingSettingsSetupModalDescription;
+
+  /// No description provided for @onboardingSettingsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load onboarding settings.'**
+  String get onboardingSettingsLoadError;
+
+  /// No description provided for @onboardingSettingsSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save onboarding settings.'**
+  String get onboardingSettingsSaveError;
+
+  /// No description provided for @onboardingSettingsRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get onboardingSettingsRetry;
+
   /// No description provided for @previewDeleted.
   ///
   /// In en, this message translates to:

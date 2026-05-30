@@ -507,6 +507,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workspaceSettingsLeaveConfirmLabel => 'Leave';
 
   @override
+  String get workspaceSettingsOnboarding => 'Onboarding';
+
+  @override
+  String get onboardingSettingsTitle => 'Onboarding Settings';
+
+  @override
+  String get onboardingSettingsDescription =>
+      'Configure how new members experience the workspace onboarding flow.';
+
+  @override
+  String get onboardingSettingsSetupModalLabel => 'Suppress setup reminder';
+
+  @override
+  String get onboardingSettingsSetupModalDescription =>
+      'When enabled, new members will not see the setup modal reminder.';
+
+  @override
+  String get onboardingSettingsLoadError =>
+      'Failed to load onboarding settings.';
+
+  @override
+  String get onboardingSettingsSaveError =>
+      'Failed to save onboarding settings.';
+
+  @override
+  String get onboardingSettingsRetry => 'Retry';
+
+  @override
   String get previewDeleted => 'Message deleted';
 
   @override

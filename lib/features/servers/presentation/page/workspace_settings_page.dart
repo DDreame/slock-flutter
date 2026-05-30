@@ -81,7 +81,7 @@ class WorkspaceSettingsPage extends ConsumerWidget {
       children: [
         _InfoSection(server: server),
         const Divider(),
-        _NavigationSection(serverId: serverId),
+        _NavigationSection(serverId: serverId, server: server),
         const Divider(),
         _ActionsSection(server: server),
       ],
@@ -176,9 +176,10 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _NavigationSection extends StatelessWidget {
-  const _NavigationSection({required this.serverId});
+  const _NavigationSection({required this.serverId, required this.server});
 
   final String serverId;
+  final ServerSummary server;
 
   @override
   Widget build(BuildContext context) {
@@ -207,6 +208,14 @@ class _NavigationSection extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/billing'),
         ),
+        if (server.isOwner)
+          ListTile(
+            key: const ValueKey('workspace-settings-onboarding'),
+            leading: const Icon(Icons.school_outlined),
+            title: Text(l10n.workspaceSettingsOnboarding),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/servers/$serverId/onboarding-settings'),
+          ),
       ],
     );
   }
