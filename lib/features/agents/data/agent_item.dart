@@ -15,6 +15,7 @@ class AgentItem {
     this.avatarUrl,
     this.activityDetail,
     this.reasoningEffort,
+    this.envVars,
   });
 
   final String id;
@@ -29,6 +30,7 @@ class AgentItem {
   final String status;
   final String activity;
   final String? activityDetail;
+  final Map<String, String>? envVars;
 
   String get label => displayName ?? name;
 
@@ -48,6 +50,7 @@ class AgentItem {
     String? status,
     String? activity,
     String? activityDetail,
+    Map<String, String>? envVars,
   }) {
     return AgentItem(
       id: id,
@@ -62,6 +65,7 @@ class AgentItem {
       status: status ?? this.status,
       activity: activity ?? this.activity,
       activityDetail: activityDetail ?? this.activityDetail,
+      envVars: envVars ?? this.envVars,
     );
   }
 
@@ -81,7 +85,8 @@ class AgentItem {
           avatarUrl == other.avatarUrl &&
           status == other.status &&
           activity == other.activity &&
-          activityDetail == other.activityDetail;
+          activityDetail == other.activityDetail &&
+          mapEquals(envVars, other.envVars);
 
   @override
   int get hashCode => Object.hash(

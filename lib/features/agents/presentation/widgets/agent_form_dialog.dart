@@ -103,6 +103,9 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
   String? _selectedRuntime;
   String _reasoningEffort = 'medium';
 
+  /// Key-value pairs for agent environment variables.
+  final List<_EnvVarEntry> _envVarEntries = [];
+
   @override
   void initState() {
     super.initState();
@@ -115,6 +118,13 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
     _selectedMachineId = agent?.machineId;
     _selectedRuntime = agent?.runtime;
     _reasoningEffort = agent?.reasoningEffort ?? _reasoningEffort;
+    // Seed env var entries from existing agent.
+    final existingEnvVars = agent?.envVars;
+    if (existingEnvVars != null && existingEnvVars.isNotEmpty) {
+      for (final entry in existingEnvVars.entries) {
+        _envVarEntries.add(_EnvVarEntry(key: entry.key, value: entry.value));
+      }
+    }
     _loadMachines();
   }
 
@@ -123,6 +133,9 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
     _nameController.dispose();
     _descriptionController.dispose();
     _modelController.dispose();
+    for (final entry in _envVarEntries) {
+      entry.dispose();
+    }
     super.dispose();
   }
 
@@ -351,8 +364,36 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
         reasoningEffort:
             _reasoningRuntimes.contains(runtime) ? _reasoningEffort : null,
         machineId: machineId,
+        envVars: _buildEnvVars(),
+        avatarUrl: widget.isEditing ? null : generatePixelAvatarUrl(),
       ),
     );
+  }
+
+  /// Collects non-empty env var key-value pairs into a map.
+  /// Returns null when no valid entries exist.
+  Map<String, String>? _buildEnvVars() {
+    final result = <String, String>{};
+    for (final entry in _envVarEntries) {
+      final key = entry.keyController.text.trim();
+      if (key.isNotEmpty) {
+        result[key] = entry.valueController.text;
+      }
+    }
+    return result.isEmpty ? null : result;
+  }
+
+  void _addEnvVar() {
+    setState(() {
+      _envVarEntries.add(_EnvVarEntry());
+    });
+  }
+
+  void _removeEnvVar(int index) {
+    setState(() {
+      _envVarEntries[index].dispose();
+      _envVarEntries.removeAt(index);
+    });
   }
 
   @override
@@ -534,6 +575,86 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                               },
                             ),
                           ],
+                          // --- Environment Variables section ---
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  context.l10n.agentsFormEnvVarsLabel,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              IconButton(
+                                key: const ValueKey('agent-form-env-add'),
+                                icon: const Icon(Icons.add, size: 20),
+                                onPressed: _addEnvVar,
+                                tooltip: context.l10n.agentsFormEnvVarsAdd,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
+                          ),
+                          for (var i = 0; i < _envVarEntries.length; i++) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              key: ValueKey('agent-form-env-row-$i'),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    key: ValueKey('agent-form-env-key-$i'),
+                                    controller: _envVarEntries[i].keyController,
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          context.l10n.agentsFormEnvVarsKey,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                    textInputAction: TextInputAction.next,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: TextField(
+                                    key: ValueKey('agent-form-env-value-$i'),
+                                    controller:
+                                        _envVarEntries[i].valueController,
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          context.l10n.agentsFormEnvVarsValue,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 8,
+                                      ),
+                                    ),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                    textInputAction: TextInputAction.next,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: IconButton(
+                                    key: ValueKey('agent-form-env-remove-$i'),
+                                    icon: const Icon(Icons.close, size: 16),
+                                    onPressed: () => _removeEnvVar(i),
+                                    padding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ],
                     ),
@@ -617,4 +738,19 @@ String? _optionalString(Object? value) {
     return value;
   }
   return null;
+}
+
+/// Mutable controller pair for a single environment variable entry.
+class _EnvVarEntry {
+  _EnvVarEntry({String key = '', String value = ''})
+      : keyController = TextEditingController(text: key),
+        valueController = TextEditingController(text: value);
+
+  final TextEditingController keyController;
+  final TextEditingController valueController;
+
+  void dispose() {
+    keyController.dispose();
+    valueController.dispose();
+  }
 }

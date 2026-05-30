@@ -220,6 +220,7 @@ class _ApiAgentsRepository
       status: status,
       activity: activity,
       activityDetail: _optionalString(map['activityDetail']),
+      envVars: _optionalStringMap(map['envVars']),
     );
   }
 
@@ -275,6 +276,15 @@ class _ApiAgentsRepository
   String? _optionalString(Object? value) {
     if (value is String && value.isNotEmpty) return value;
     return null;
+  }
+
+  Map<String, String>? _optionalStringMap(Object? value) {
+    if (value is! Map || value.isEmpty) return null;
+    return Map<String, String>.fromEntries(
+      value.entries
+          .where((e) => e.key is String && e.value is String)
+          .map((e) => MapEntry(e.key as String, e.value as String)),
+    );
   }
 }
 
