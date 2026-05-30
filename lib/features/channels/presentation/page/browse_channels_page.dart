@@ -59,6 +59,12 @@ class _BrowseChannelsPageState extends ConsumerState<BrowseChannelsPage> {
         _failure = failure;
         _isLoading = false;
       });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _failure = const UnknownFailure();
+        _isLoading = false;
+      });
     }
   }
 
