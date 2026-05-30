@@ -56,18 +56,18 @@ void main() {
 
       await tester.pumpWidget(buildPage(store: store, repoFake: repo));
 
-      expect(find.byKey(const ValueKey('invite-preview-loading')),
-          findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('invite-preview-loading')), findsOneWidget);
       expect(find.text('Loading invite details...'), findsOneWidget);
 
-      previewCompleter
-          .complete(const InviteInfo(workspaceName: 'Acme Corp'));
+      previewCompleter.complete(const InviteInfo(workspaceName: 'Acme Corp'));
       await tester.pumpAndSettle();
     });
 
     testWidgets('shows workspace name from preview', (tester) async {
       final repo = _FakeServerListRepoForPreview(
-        inviteInfo: const InviteInfo(workspaceName: 'Acme Corp', memberCount: 5),
+        inviteInfo:
+            const InviteInfo(workspaceName: 'Acme Corp', memberCount: 5),
       );
       final store = _FakeServerListStore();
 
@@ -214,8 +214,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('shows success with workspace name after join',
-        (tester) async {
+    testWidgets('shows success with workspace name after join', (tester) async {
       final repo = _FakeServerListRepoForPreview(
         inviteInfo: const InviteInfo(workspaceName: 'Acme'),
       );
@@ -280,8 +279,7 @@ void main() {
       expect(find.text('Go home'), findsOneWidget);
     });
 
-    testWidgets('retry after failure calls acceptInvite again',
-        (tester) async {
+    testWidgets('retry after failure calls acceptInvite again', (tester) async {
       final repo = _FakeServerListRepoForPreview(
         inviteInfo: const InviteInfo(workspaceName: 'WS'),
       );
