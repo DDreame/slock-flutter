@@ -247,6 +247,15 @@ class _BenchmarkTasksRepository implements TasksRepository {
     required String messageId,
   }) async =>
       throw UnimplementedError();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
 }
 
 class _BenchmarkThreadRepository implements ThreadRepository {

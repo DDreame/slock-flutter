@@ -550,6 +550,14 @@ class _ThrowingTasksRepo implements TasksRepository {
     required String taskId,
   }) async =>
       throw UnimplementedError();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async =>
+      throw UnimplementedError();
 }
 
 // =============================================================================

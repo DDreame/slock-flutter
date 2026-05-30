@@ -4,6 +4,17 @@ import 'package:slock_app/features/tasks/data/task_item.dart';
 abstract class TasksRepository {
   Future<List<TaskItem>> listServerTasks(ServerScopeId serverId);
 
+  /// Resolves a task by its channel-scoped number.
+  ///
+  /// Endpoint: `GET /tasks/channel/{channelId}/number/{taskNumber}`
+  /// Used by the `task #N` inline reference tap to navigate to the
+  /// correct message or legacy tasks tab.
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  });
+
   Future<List<TaskItem>> createTasks(
     ServerScopeId serverId, {
     required String channelId,

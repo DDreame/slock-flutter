@@ -26,6 +26,7 @@ class FakeTasksRepository implements TasksRepository {
   TaskItem? claimResult;
   TaskItem? unclaimResult;
   TaskItem? convertResult;
+  TaskItem? getByNumberResult;
 
   int listCalls = 0;
   final List<(String, List<String>)> createCalls = [];
@@ -34,6 +35,7 @@ class FakeTasksRepository implements TasksRepository {
   final List<String> claimedTaskIds = [];
   final List<String> unclaimedTaskIds = [];
   final List<String> convertedMessageIds = [];
+  final List<({String channelId, int taskNumber})> getByNumberCalls = [];
 
   @override
   Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
@@ -43,6 +45,32 @@ class FakeTasksRepository implements TasksRepository {
       throw const UnknownFailure(message: 'Failed to load tasks.');
     }
     return listResult;
+  }
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    getByNumberCalls.add((channelId: channelId, taskNumber: taskNumber));
+    if (shouldFail) {
+      throw const UnknownFailure(message: 'Failed to resolve task by number.');
+    }
+    return getByNumberResult ??
+        TaskItem(
+          id: 'task-resolved',
+          taskNumber: taskNumber,
+          title: 'Task #$taskNumber',
+          status: 'todo',
+          channelId: channelId,
+          channelType: 'channel',
+          messageId: 'msg-for-task-$taskNumber',
+          createdById: 'user-1',
+          createdByName: 'Tester',
+          createdByType: 'user',
+          createdAt: DateTime(2026),
+        );
   }
 
   @override

@@ -518,4 +518,13 @@ class _DelayedTasksRepository implements TasksRepository {
   }) {
     return convertCompleter!.future;
   }
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
 }

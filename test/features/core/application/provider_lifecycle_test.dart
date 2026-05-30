@@ -572,6 +572,15 @@ class _FakeTasksRepository implements TasksRepository {
     required String messageId,
   }) =>
       throw UnimplementedError();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
 }
 
 class _FakeThreadRepository implements ThreadRepository {

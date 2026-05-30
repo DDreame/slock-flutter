@@ -1046,6 +1046,14 @@ class _FakeTasksRepository implements TasksRepository {
     required String messageId,
   }) async =>
       throw UnimplementedError();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async =>
+      throw UnimplementedError();
 }
 
 class _FailingTasksRepository implements TasksRepository {
@@ -1100,6 +1108,14 @@ class _FailingTasksRepository implements TasksRepository {
   Future<TaskItem> convertMessageToTask(
     ServerScopeId serverId, {
     required String messageId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
   }) async =>
       throw UnimplementedError();
 }
