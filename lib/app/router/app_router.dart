@@ -53,6 +53,7 @@ import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/page/invite_landing_page.dart';
 import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
+import 'package:slock_app/features/servers/presentation/page/onboarding_settings_page.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/application/share_send_service.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
@@ -497,6 +498,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/servers/:serverId/settings',
         redirect: syncServerSelection,
         builder: (context, state) => WorkspaceSettingsPage(
+          serverId: state.pathParameters['serverId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/onboarding-settings',
+        redirect: syncServerSelection,
+        builder: (context, state) => OnboardingSettingsPage(
           serverId: state.pathParameters['serverId']!,
         ),
       ),
