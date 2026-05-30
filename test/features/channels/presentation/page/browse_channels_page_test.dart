@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/data/available_channel.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
@@ -31,11 +32,12 @@ void main() {
             activeServerScopeIdProvider
                 .overrideWithValue(const ServerScopeId('srv-1')),
           ],
-          child: const MaterialApp(
+          child: MaterialApp(
+            theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            locale: Locale('en'),
-            home: BrowseChannelsPage(),
+            locale: const Locale('en'),
+            home: const BrowseChannelsPage(),
           ),
         ),
       );
@@ -61,11 +63,12 @@ void main() {
             activeServerScopeIdProvider
                 .overrideWithValue(const ServerScopeId('srv-1')),
           ],
-          child: const MaterialApp(
+          child: MaterialApp(
+            theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            locale: Locale('en'),
-            home: BrowseChannelsPage(),
+            locale: const Locale('en'),
+            home: const BrowseChannelsPage(),
           ),
         ),
       );
