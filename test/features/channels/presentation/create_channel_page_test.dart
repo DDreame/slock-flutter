@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/data/available_channel.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/create_channel_page.dart';
@@ -198,6 +199,12 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   String? lastCreateDescription;
   bool? lastCreateIsPrivate;
   bool shouldFail = false;
+
+  @override
+  Future<List<AvailableChannel>> loadAvailableChannels(
+    ServerScopeId serverId,
+  ) async =>
+      [];
 
   @override
   Future<String> createChannel(

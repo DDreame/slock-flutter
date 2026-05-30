@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/data/available_channel.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -109,6 +110,12 @@ class _TrackingChannelManagementRepository
     implements ChannelManagementRepository {
   final List<(String serverId, String channelId)> joinCalls = [];
   bool shouldFail = false;
+
+  @override
+  Future<List<AvailableChannel>> loadAvailableChannels(
+    ServerScopeId serverId,
+  ) async =>
+      [];
 
   @override
   Future<void> joinChannel(

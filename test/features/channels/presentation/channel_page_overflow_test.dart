@@ -11,6 +11,7 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/data/available_channel.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
@@ -534,6 +535,12 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   final Completer<void>? stopAllCompleter;
   final List<String> stoppedAllAgentsChannelIds = [];
   final List<String> resumedAllAgentsChannelIds = [];
+
+  @override
+  Future<List<AvailableChannel>> loadAvailableChannels(
+    ServerScopeId serverId,
+  ) async =>
+      [];
 
   @override
   Future<String> createChannel(
