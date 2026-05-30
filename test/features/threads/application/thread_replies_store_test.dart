@@ -929,6 +929,13 @@ class _MockThreadRepository implements ThreadRepository {
     if (markDoneError != null) throw markDoneError!;
   }
 
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
   @override
   Future<void> markThreadRead(
     ServerScopeId serverId, {

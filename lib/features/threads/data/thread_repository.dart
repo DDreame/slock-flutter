@@ -19,6 +19,11 @@ abstract class ThreadRepository {
     required String threadChannelId,
   });
 
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  });
+
   Future<void> markThreadRead(
     ServerScopeId serverId, {
     required String threadChannelId,

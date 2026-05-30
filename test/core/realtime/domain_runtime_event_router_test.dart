@@ -1471,6 +1471,14 @@ class _FakeThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {}
 
+
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
   @override
   Future<void> markThreadRead(
     ServerScopeId serverId, {
@@ -1500,6 +1508,7 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   void emit(String eventName, Object? payload) {
     emittedEvents.add((eventName, payload));
   }
+
 
   @override
   Future<void> dispose() async {

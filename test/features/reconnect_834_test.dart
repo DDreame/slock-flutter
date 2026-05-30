@@ -195,6 +195,14 @@ class _FakeThreadRepository implements ThreadRepository {
     ServerScopeId serverId, {
     required String threadChannelId,
   }) async {}
+
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
   @override
   Future<void> markThreadRead(
     ServerScopeId serverId, {
@@ -216,6 +224,7 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
     listCalls++;
     return listResult;
   }
+
 
   @override
   Future<void> saveMessage(ServerScopeId serverId, String messageId) async {}
