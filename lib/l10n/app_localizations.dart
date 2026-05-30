@@ -2428,6 +2428,12 @@ abstract class AppLocalizations {
   /// **'Emoji'**
   String get conversationComposerEmojiTooltip;
 
+  /// No description provided for @conversationComposerTaskToggleTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Send as task'**
+  String get conversationComposerTaskToggleTooltip;
+
   /// No description provided for @conversationComposerCameraUnavailable.
   ///
   /// In en, this message translates to:

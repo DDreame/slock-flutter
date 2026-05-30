@@ -573,6 +573,7 @@
   "conversationComposerAttachTooltip": "Attach file",
   "conversationComposerFormattingTooltip": "Formatting",
   "conversationComposerEmojiTooltip": "Emoji",
+  "conversationComposerTaskToggleTooltip": "Send as task",
   "conversationComposerCameraUnavailable": "Camera unavailable. Please check permissions.",
   "conversationContextEditMessage": "Edit message",
   "conversationContextReply": "Reply",

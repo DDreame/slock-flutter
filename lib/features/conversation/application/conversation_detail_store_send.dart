@@ -53,7 +53,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     }
   }
 
-  Future<void> send() async {
+  Future<void> send({bool asTask = false}) async {
     final target = ref.read(currentConversationDetailTargetProvider);
     final content = state.draft.trim();
     final replyToId = state.replyToMessage?.id;
@@ -316,6 +316,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         content,
         attachmentIds: attachmentIds,
         replyToId: replyToId,
+        asTask: asTask ? true : null,
         cancelToken: sendCancelToken,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {

@@ -227,6 +227,7 @@ class _ConversationDetailScreenState
   bool _isFormattingToolbarVisible = false;
   bool _isEmojiPickerVisible = false;
   bool _showScrollToBottom = false;
+  bool _asTask = false;
   Timer? _scrollThrottleTimer;
 
   // Quote-jump highlight state.
@@ -658,6 +659,8 @@ class _ConversationDetailScreenState
                 onMicTap: _startRecording,
                 onSendRecording: _stopRecordingAndSend,
                 onCancelRecording: _cancelRecording,
+                asTask: _asTask,
+                onToggleAsTask: () => setState(() => _asTask = !_asTask),
               ),
           ],
         ),
@@ -666,13 +669,19 @@ class _ConversationDetailScreenState
   }
 
   Future<void> _handleSend() async {
-    await ref.read(conversationDetailStoreProvider.notifier).send();
+    final sendAsTask = _asTask;
+    await ref
+        .read(conversationDetailStoreProvider.notifier)
+        .send(asTask: sendAsTask);
     final state = ref.read(conversationDetailStoreProvider);
     if (state.sendFailure == null &&
         state.draft.isEmpty &&
         state.pendingAttachments.isEmpty) {
       _composerController.clear();
       _composerFocusNode.unfocus();
+      if (sendAsTask) {
+        setState(() => _asTask = false);
+      }
     }
   }
 

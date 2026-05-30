@@ -393,6 +393,7 @@ class _ApiConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    bool? asTask,
     CancelToken? cancelToken,
   }) async {
     try {
@@ -410,6 +411,9 @@ class _ApiConversationRepository implements ConversationRepository {
       }
       if (replyToId != null) {
         data['replyToId'] = replyToId;
+      }
+      if (asTask == true) {
+        data['asTask'] = true;
       }
       final response = await _appDioClient.post<Object?>(
         _sendMessagePath,

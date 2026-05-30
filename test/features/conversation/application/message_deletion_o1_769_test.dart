@@ -440,6 +440,7 @@ class _FakeRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    bool? asTask,
     dynamic cancelToken,
   }) async {
     throw UnimplementedError();

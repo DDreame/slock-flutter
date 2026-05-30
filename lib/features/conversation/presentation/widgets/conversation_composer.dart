@@ -43,6 +43,8 @@ class ConversationComposer extends ConsumerWidget {
     required this.onSendRecording,
     required this.onCancelRecording,
     this.enterToSend = false,
+    this.asTask = false,
+    this.onToggleAsTask,
   });
 
   final TextEditingController controller;
@@ -63,6 +65,12 @@ class ConversationComposer extends ConsumerWidget {
   final VoidCallback onSendRecording;
   final VoidCallback onCancelRecording;
   final bool enterToSend;
+
+  /// Whether the next message will be created as a task.
+  final bool asTask;
+
+  /// Callback to toggle the [asTask] state.
+  final VoidCallback? onToggleAsTask;
 
   /// Hoisted border radius to avoid per-build allocation (#851).
   @visibleForTesting
@@ -211,6 +219,28 @@ class ConversationComposer extends ConsumerWidget {
                       onPressed: onToggleEmojiPicker,
                     ),
                   ),
+                  if (onToggleAsTask != null) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    Container(
+                      key: const ValueKey('composer-task-toggle'),
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: asTask ? colors.primaryLight : colors.surfaceAlt,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.task_alt,
+                          size: 20,
+                          color: asTask ? colors.primary : null,
+                        ),
+                        padding: EdgeInsets.zero,
+                        tooltip: l10n.conversationComposerTaskToggleTooltip,
+                        onPressed: state.isSending ? null : onToggleAsTask,
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Focus(
