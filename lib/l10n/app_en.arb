@@ -793,6 +793,18 @@
   },
   "serversInviteSuccessGeneric": "Joined workspace!",
   "serversInviteContinue": "Continue",
+  "serversInvitePreviewLoading": "Loading invite details...",
+  "serversInvitePreviewDescription": "You have been invited to join:",
+  "serversInvitePreviewMembers": "{count} members",
+  "@serversInvitePreviewMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "serversInvitePreviewExpired": "This invite link is invalid or has expired.",
+  "serversInvitePreviewRateLimit": "Too many requests. Please try again later.",
   "serversDialogCreateTitle": "Create workspace",
   "serversDialogCreateNameLabel": "Workspace name",
   "serversDialogCreateCancel": "Cancel",

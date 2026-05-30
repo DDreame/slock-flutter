@@ -541,6 +541,14 @@ class _FakeServerListRepository
   }
 
   @override
+  Future<InviteInfo> getInviteInfo(String token) async {
+    if (throwNonAppFailure) {
+      throw StateError('Simulated non-AppFailure in getInviteInfo');
+    }
+    return const InviteInfo(workspaceName: 'Test Workspace');
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 

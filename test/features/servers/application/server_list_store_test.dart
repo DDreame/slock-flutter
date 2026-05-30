@@ -426,6 +426,11 @@ class _FakeServerListRepository
       workspaceName: 'Workspace C',
     );
   }
+
+  @override
+  Future<InviteInfo> getInviteInfo(String token) async {
+    return const InviteInfo(workspaceName: 'Test Workspace');
+  }
 }
 
 class _FakeSecureStorage implements SecureStorage {

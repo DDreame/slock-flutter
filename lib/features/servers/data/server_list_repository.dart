@@ -17,6 +17,8 @@ abstract class ServerListMutationRepository {
   Future<void> leaveServer(String serverId);
 
   Future<AcceptInviteResult> acceptInvite(String token);
+
+  Future<InviteInfo> getInviteInfo(String token);
 }
 
 extension ServerListRepositoryMutationX on ServerListRepository {
@@ -52,6 +54,10 @@ extension ServerListRepositoryMutationX on ServerListRepository {
   Future<AcceptInviteResult> acceptInvite(String token) {
     return _mutationRepository.acceptInvite(token);
   }
+
+  Future<InviteInfo> getInviteInfo(String token) {
+    return _mutationRepository.getInviteInfo(token);
+  }
 }
 
 typedef ServerListLoader = Future<List<ServerSummary>> Function();
@@ -64,6 +70,7 @@ typedef ServerRenamer = Future<String> Function(String serverId,
 typedef ServerRemover = Future<void> Function(String serverId);
 typedef ServerInviteAcceptor = Future<AcceptInviteResult> Function(
     String token);
+typedef InviteInfoFetcher = Future<InviteInfo> Function(String token);
 
 class BaselineServerListRepository
     implements ServerListRepository, ServerListMutationRepository {
@@ -74,12 +81,14 @@ class BaselineServerListRepository
     ServerRemover? deleteServer,
     ServerRemover? leaveServer,
     ServerInviteAcceptor? acceptInvite,
+    InviteInfoFetcher? getInviteInfo,
   })  : _loadServers = loadServers,
         _createServer = createServer,
         _renameServer = renameServer,
         _deleteServer = deleteServer,
         _leaveServer = leaveServer,
-        _acceptInvite = acceptInvite;
+        _acceptInvite = acceptInvite,
+        _getInviteInfo = getInviteInfo;
 
   final ServerListLoader _loadServers;
   final ServerCreator? _createServer;
@@ -87,6 +96,7 @@ class BaselineServerListRepository
   final ServerRemover? _deleteServer;
   final ServerRemover? _leaveServer;
   final ServerInviteAcceptor? _acceptInvite;
+  final InviteInfoFetcher? _getInviteInfo;
 
   @override
   Future<List<ServerSummary>> loadServers() async {
@@ -204,6 +214,26 @@ class BaselineServerListRepository
       );
     }
   }
+
+  @override
+  Future<InviteInfo> getInviteInfo(String token) async {
+    final getInviteInfo = _getInviteInfo;
+    if (getInviteInfo == null) {
+      throw const UnknownFailure(
+        message: 'Invite info operation is not available.',
+      );
+    }
+    try {
+      return await getInviteInfo(token);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load invite info.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
 }
 
 class ServerSummary {
@@ -263,4 +293,15 @@ class AcceptInviteResult {
 
   final String serverId;
   final String? workspaceName;
+}
+
+/// Preview information about an invite, fetched before the user accepts.
+class InviteInfo {
+  const InviteInfo({
+    required this.workspaceName,
+    this.memberCount,
+  });
+
+  final String workspaceName;
+  final int? memberCount;
 }
