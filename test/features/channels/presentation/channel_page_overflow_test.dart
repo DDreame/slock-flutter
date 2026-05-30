@@ -561,6 +561,12 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   }) async {}
 
   @override
+  Future<void> joinChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
   Future<void> leaveChannel(
     ServerScopeId serverId, {
     required String channelId,

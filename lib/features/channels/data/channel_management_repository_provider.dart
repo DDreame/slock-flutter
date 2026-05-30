@@ -109,6 +109,26 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
   }
 
   @override
+  Future<void> joinChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId/join',
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to join channel.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<void> leaveChannel(
     ServerScopeId serverId, {
     required String channelId,

@@ -5,6 +5,7 @@ enum ChannelManagementAction {
   create,
   edit,
   delete,
+  join,
   leave,
   archive,
   unarchive,

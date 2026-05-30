@@ -21,6 +21,11 @@ abstract class ChannelManagementRepository {
     required String channelId,
   });
 
+  Future<void> joinChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  });
+
   Future<void> leaveChannel(
     ServerScopeId serverId, {
     required String channelId,
