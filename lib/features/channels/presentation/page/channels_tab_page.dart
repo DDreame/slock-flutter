@@ -11,6 +11,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/presentation/page/create_channel_page.dart';
+import 'package:slock_app/features/channels/presentation/page/browse_channels_page.dart';
 import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/channel_sort_preference.dart';
@@ -146,6 +147,12 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                 ref.read(inboxStoreProvider.notifier).markAllRead();
               },
             ),
+          IconButton(
+            key: const ValueKey('channels-tab-browse-button'),
+            icon: const Icon(Icons.explore),
+            tooltip: l10n.channelsBrowseTooltip,
+            onPressed: _showBrowseChannelsPage,
+          ),
           IconButton(
             key: const ValueKey('channels-tab-create-button'),
             icon: const Icon(Icons.add),
@@ -500,6 +507,14 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         failure.userMessage(context.l10n),
       );
     }
+  }
+
+  Future<void> _showBrowseChannelsPage() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => const BrowseChannelsPage(),
+      ),
+    );
   }
 
   Future<void> _showCreateChannelDialog() async {

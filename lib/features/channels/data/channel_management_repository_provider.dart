@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/data/available_channel.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 
 const _serverHeaderName = 'X-Server-Id';
 const _channelsPath = '/channels';
+const _availableChannelsPath = '/channels/available';
 
 final channelManagementRepositoryProvider =
     Provider<ChannelManagementRepository>((ref) {
@@ -17,6 +19,26 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
       : _appDioClient = appDioClient;
 
   final AppDioClient _appDioClient;
+
+  @override
+  Future<List<AvailableChannel>> loadAvailableChannels(
+    ServerScopeId serverId,
+  ) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        _availableChannelsPath,
+        options: _serverScopedOptions(serverId),
+      );
+      return _parseAvailableChannels(response.data);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load available channels.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
 
   @override
   Future<String> createChannel(
@@ -103,6 +125,26 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to delete channel.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> joinChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId/join',
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to join channel.',
         causeType: error.runtimeType.toString(),
       );
     }
@@ -228,4 +270,26 @@ String? _readStringField(Object? value) {
     return value;
   }
   return null;
+}
+
+List<AvailableChannel> _parseAvailableChannels(Object? payload) {
+  final list = switch (payload) {
+    List() => payload,
+    Map(keys: _) => (payload['channels'] as List?) ?? const [],
+    _ => const [],
+  };
+
+  return [
+    for (final item in list)
+      if (item is Map<String, dynamic> &&
+          item['id'] is String &&
+          item['name'] is String)
+        AvailableChannel(
+          id: item['id'] as String,
+          name: item['name'] as String,
+          description: item['description'] as String?,
+          memberCount:
+              item['memberCount'] is int ? item['memberCount'] as int : null,
+        ),
+  ];
 }

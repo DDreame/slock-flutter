@@ -640,6 +640,42 @@ abstract class AppLocalizations {
   /// **'No channels yet.'**
   String get channelsTabEmpty;
 
+  /// No description provided for @channelsBrowseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse channels'**
+  String get channelsBrowseTooltip;
+
+  /// No description provided for @channelsBrowseTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse Channels'**
+  String get channelsBrowseTitle;
+
+  /// No description provided for @channelsBrowseEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels available to join.'**
+  String get channelsBrowseEmpty;
+
+  /// No description provided for @channelsBrowseJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get channelsBrowseJoin;
+
+  /// No description provided for @channelsBrowseJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined!'**
+  String get channelsBrowseJoined;
+
+  /// No description provided for @channelsBrowseJoinFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to join channel.'**
+  String get channelsBrowseJoinFailed;
+
   /// No description provided for @dmsTabTitle.
   ///
   /// In en, this message translates to:

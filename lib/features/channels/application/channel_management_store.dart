@@ -222,6 +222,60 @@ class ChannelManagementStore
     }
   }
 
+  Future<bool> joinChannel(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
+    final operationKey = 'join:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return false;
+    try {
+      await _joinChannel(scopeId);
+      return true;
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _joinChannel(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.join,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).joinChannel(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      // Emit socket event so the server starts routing messages to us.
+      ref
+          .read(realtimeSocketClientProvider)
+          .emit('join:channel', scopeId.value);
+      await _refreshHomeList();
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
+    } on AppFailure catch (failure) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    }
+  }
+
   Future<bool> leaveChannel(ChannelScopeId scopeId) async {
     if (state.isBusy) return false;
     final operationKey = 'leave:${scopeId.value}';
