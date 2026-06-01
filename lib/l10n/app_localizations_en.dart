@@ -2712,6 +2712,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'You are offline. Messages will be sent when you reconnect.';
 
   @override
+  String get conversationOfflineAttachmentSnackbar =>
+      'You\'re offline. Your draft and attachments are preserved — tap Send again when you\'re back online.';
+
+  @override
+  String outboxFailedBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count messages failed to send',
+      one: '1 message failed to send',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get conversationInfoMute => 'Mute Notifications';
 
   @override

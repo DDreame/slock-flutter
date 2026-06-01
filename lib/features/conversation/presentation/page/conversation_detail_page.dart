@@ -19,6 +19,7 @@ import 'package:slock_app/features/conversation/application/current_open_convers
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -601,6 +602,8 @@ class _ConversationDetailScreenState
             ),
             if (state.status == ConversationDetailStatus.success)
               const TypingIndicatorWidget(),
+            if (state.status == ConversationDetailStatus.success)
+              const _OutboxFailedBanner(),
             if (state.status == ConversationDetailStatus.success &&
                 _showMentionOverlay &&
                 _filteredMentionMembers.isNotEmpty)
@@ -676,6 +679,20 @@ class _ConversationDetailScreenState
         .read(conversationDetailStoreProvider.notifier)
         .send(asTask: sendAsTask);
     final state = ref.read(conversationDetailStoreProvider);
+
+    // B131: Show snackbar when user tries to send attachment while offline.
+    if (state.sendFailure?.causeType == 'offlineAttachment' && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('offline-attachment-snackbar'),
+          content: Text(
+            context.l10n.conversationOfflineAttachmentSnackbar,
+          ),
+        ),
+      );
+      return;
+    }
+
     if (state.sendFailure == null &&
         state.draft.isEmpty &&
         state.pendingAttachments.isEmpty) {
@@ -1557,6 +1574,67 @@ class _OfflineBanner extends ConsumerWidget {
             child: Text(
               context.l10n.conversationOfflineBanner,
               style: AppTypography.caption.copyWith(color: colors.warning),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// B131: Banner shown above the composer when the outbox has failed messages
+/// for the current conversation.
+///
+/// Shows "N message(s) failed to send" with a "Retry" button that invokes
+/// [OutboxStore.retryAllFailed].
+class _OutboxFailedBanner extends ConsumerWidget {
+  const _OutboxFailedBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final target = ref.watch(currentConversationDetailTargetProvider);
+    final targetKey = outboxTargetKey(target);
+    final failedCount = ref.watch(
+      outboxStoreProvider.select((s) => s.failedCountForTarget(targetKey)),
+    );
+    if (failedCount == 0) return const SizedBox.shrink();
+
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+    return Container(
+      key: const ValueKey('outbox-failed-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      color: colors.error.withValues(alpha: 0.1),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 16, color: colors.error),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              l10n.outboxFailedBanner(failedCount),
+              style: AppTypography.caption.copyWith(color: colors.error),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('outbox-failed-retry-button'),
+            onPressed: () {
+              ref.read(outboxStoreProvider.notifier).retryAllFailed(target);
+            },
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            child: Text(
+              l10n.pendingRetry,
+              style: AppTypography.caption.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

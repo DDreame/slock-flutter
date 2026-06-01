@@ -1237,6 +1237,15 @@
   "conversationPresenceIdle": "Idle",
   "conversationPresenceOffline": "Offline",
   "conversationOfflineBanner": "You are offline. Messages will be sent when you reconnect.",
+  "conversationOfflineAttachmentSnackbar": "You're offline. Your draft and attachments are preserved — tap Send again when you're back online.",
+  "outboxFailedBanner": "{count, plural, =1{1 message failed to send} other{{count} messages failed to send}}",
+  "@outboxFailedBanner": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationInfoMute": "Mute Notifications",
   "conversationInfoMuted": "Notifications are silenced",
   "conversationInfoUnmuted": "Receiving all notifications",
