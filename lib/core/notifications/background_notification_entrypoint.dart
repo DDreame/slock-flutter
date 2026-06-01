@@ -54,12 +54,13 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
   final socket = SocketIoBackgroundConnection();
   final sink = _MethodChannelNotificationSink(methodChannel);
 
+  final diagnostics = DiagnosticsCollector();
   final worker = BackgroundNotificationWorker(
     socket: socket,
     notificationSink: sink,
     authProvider: authProvider,
     authRefresher: () => persistence.load(),
-    diagnostics: DiagnosticsCollector(),
+    diagnostics: diagnostics,
   );
 
   await worker.start();
@@ -97,7 +98,10 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
             (key, value) => MapEntry(key.toString(), value),
           );
           final currentAuth = await persistence.load();
-          final actionHandler = _buildActionHandler(currentAuth);
+          final actionHandler = buildBackgroundNotificationActionHandler(
+            currentAuth,
+            diagnostics: diagnostics,
+          );
           return actionHandler.handlePayload(payload);
         }
         return false;
@@ -107,9 +111,11 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
   await methodChannel.invokeMethod<void>('workerReady');
 }
 
-NotificationActionHandler _buildActionHandler(
-  BackgroundAuthProvider authProvider,
-) {
+@visibleForTesting
+NotificationActionHandler buildBackgroundNotificationActionHandler(
+  BackgroundAuthProvider authProvider, {
+  DiagnosticsCollector? diagnostics,
+}) {
   final dio = Dio(
     BaseOptions(
       baseUrl: authProvider.apiBaseUrl,
@@ -122,6 +128,7 @@ NotificationActionHandler _buildActionHandler(
   );
   return NotificationActionHandler(
     api: DioNotificationActionApi(client: AppDioClient(dio)),
+    diagnostics: diagnostics,
   );
 }
 
