@@ -51,7 +51,7 @@ void main() {
     testWidgets('pending deep link navigates to channel conversation page',
         (tester) async {
       SharedPreferences.setMockInitialValues({
-        'onboarding_complete': true,
+        'onboardingComplete': true,
       });
       final prefs = await SharedPreferences.getInstance();
 
@@ -114,7 +114,7 @@ void main() {
     testWidgets('deep link to non-member server is cleared without crash',
         (tester) async {
       SharedPreferences.setMockInitialValues({
-        'onboarding_complete': true,
+        'onboardingComplete': true,
       });
       final prefs = await SharedPreferences.getInstance();
 
