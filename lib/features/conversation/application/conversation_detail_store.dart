@@ -56,7 +56,7 @@ const _realtimeReactionRemovedEventType = 'message:reaction_removed';
 mixin _ConversationDetailCoreMixin
     on AutoDisposeNotifier<ConversationDetailState> {
   void _persistSession() {
-    ref.read(conversationDetailSessionStoreProvider.notifier).saveSuccessState(
+    ref.read(conversationDetailSessionStoreProvider).saveSuccessState(
           state,
           scrollOffset: ref
                   .read(conversationDetailSessionStoreProvider)[state.target]
@@ -326,10 +326,10 @@ class ConversationDetailStore
 
     // Register outbox drain callback so drain results reconcile pending
     // messages back into the conversation state.
-    // Capture the notifier reference now — reading providers inside
-    // ref.onDispose is unsafe (container may already be disposed).
+    // Capture references now — reading providers inside ref.onDispose is unsafe.
     final outbox = ref.read(outboxStoreProvider.notifier);
     final targetKey = outboxTargetKey(target);
+    final sessionCache = ref.read(conversationDetailSessionStoreProvider);
     outbox.registerDrainCallback(targetKey, _onOutboxDrain);
 
     // Listen for realtime reconnection to trigger conversation refresh.
@@ -341,6 +341,19 @@ class ConversationDetailStore
         if (state.status == ConversationDetailStatus.success) {
           load();
         }
+      }
+    });
+
+    // Persist session on every state change so draft/attachments survive
+    // conversation switches. Using listenSelf (not onDispose) avoids
+    // mutating anything during the dispose phase — by the time dispose runs,
+    // the session is already up-to-date from the last state change.
+    listenSelf((_, next) {
+      if (next.status == ConversationDetailStatus.success) {
+        sessionCache.saveSuccessState(
+          next,
+          scrollOffset: sessionCache[next.target]?.scrollOffset ?? 0,
+        );
       }
     });
 
@@ -868,7 +881,7 @@ class ConversationDetailStore
 
   void updateViewportOffset(double offset) {
     ref
-        .read(conversationDetailSessionStoreProvider.notifier)
+        .read(conversationDetailSessionStoreProvider)
         .saveScrollOffset(state.target, offset);
   }
 

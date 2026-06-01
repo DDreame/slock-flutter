@@ -293,7 +293,7 @@ Widget _buildApp({
       conversationDetailStoreProvider
           .overrideWith(() => _FakeConversationDetailStore()),
       conversationDetailSessionStoreProvider
-          .overrideWith(() => _FakeSessionDetailStore()),
+          .overrideWithValue(ConversationDetailSessionCache()),
       voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
@@ -324,7 +324,7 @@ Widget _buildAppWithAgentMessage({
       conversationDetailStoreProvider
           .overrideWith(() => _FakeConversationDetailStoreWithAgent()),
       conversationDetailSessionStoreProvider
-          .overrideWith(() => _FakeSessionDetailStore()),
+          .overrideWithValue(ConversationDetailSessionCache()),
       voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
@@ -368,12 +368,6 @@ class _FakeConversationDetailStore extends ConversationDetailStore {
 
   @override
   Future<void> loadNewer() async {}
-}
-
-class _FakeSessionDetailStore extends ConversationDetailSessionStore {
-  @override
-  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
-      const {};
 }
 
 class _FakeVoiceMessageStore extends VoiceMessageStore {

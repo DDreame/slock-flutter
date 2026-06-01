@@ -637,7 +637,7 @@ void main() {
       overrides = [
         conversationDetailStoreProvider.overrideWith(() => store),
         conversationDetailSessionStoreProvider
-            .overrideWith(() => _FakeConversationDetailSessionStore()),
+            .overrideWithValue(ConversationDetailSessionCache()),
         voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
@@ -699,13 +699,6 @@ class _FakeServerListStore extends ServerListStore {
 
   @override
   Future<void> load() async {}
-}
-
-class _FakeConversationDetailSessionStore
-    extends ConversationDetailSessionStore {
-  @override
-  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
-      const {};
 }
 
 class _FakeVoiceMessageStore extends VoiceMessageStore {

@@ -522,7 +522,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
           sessionStoreProvider
               .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],

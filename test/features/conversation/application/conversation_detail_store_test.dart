@@ -632,7 +632,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -696,7 +696,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -750,7 +750,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -834,7 +834,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -924,7 +924,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -997,7 +997,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
           crashReporterProvider.overrideWithValue(crashReporter),
         ],
       );
@@ -1075,7 +1075,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
           crashReporterProvider.overrideWithValue(crashReporter),
         ],
       );

@@ -749,7 +749,7 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
     await tester.pump(
-      ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+      ConversationDetailSessionCache.scrollOffsetDebounceDuration,
     );
 
     final cachedSession =
@@ -865,7 +865,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.pump(
-      ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+      ConversationDetailSessionCache.scrollOffsetDebounceDuration,
     );
 
     final beforeDisposeOffset = tester
@@ -902,7 +902,7 @@ void main() {
     expect(restoredSession?.messages, hasLength(15));
     expect(restoredOffset, closeTo(beforeDisposeOffset, 1));
     await tester.pump(
-      ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+      ConversationDetailSessionCache.scrollOffsetDebounceDuration,
     );
   });
 

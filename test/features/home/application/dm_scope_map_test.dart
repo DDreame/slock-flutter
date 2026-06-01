@@ -233,7 +233,7 @@ void main() {
               overrides: [
                 conversationDetailStoreProvider.overrideWith(() => convStore),
                 conversationDetailSessionStoreProvider
-                    .overrideWith(() => _FakeSessionDetailStore()),
+                    .overrideWithValue(ConversationDetailSessionCache()),
                 voiceMessageStoreProvider
                     .overrideWith(() => _FakeVoiceMessageStore()),
                 sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
@@ -300,7 +300,7 @@ void main() {
               overrides: [
                 conversationDetailStoreProvider.overrideWith(() => convStore),
                 conversationDetailSessionStoreProvider
-                    .overrideWith(() => _FakeSessionDetailStore()),
+                    .overrideWithValue(ConversationDetailSessionCache()),
                 voiceMessageStoreProvider
                     .overrideWith(() => _FakeVoiceMessageStore()),
                 sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
@@ -381,12 +381,6 @@ class _FakeConversationDetailStore extends ConversationDetailStore {
 
   @override
   Future<void> loadNewer() async {}
-}
-
-class _FakeSessionDetailStore extends ConversationDetailSessionStore {
-  @override
-  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
-      const {};
 }
 
 class _FakeVoiceMessageStore extends VoiceMessageStore {

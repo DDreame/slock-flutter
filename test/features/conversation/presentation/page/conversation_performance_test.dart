@@ -76,7 +76,7 @@ void main() {
     'Conversation: updateViewportOffset throttled during rapid scroll '
     '(INV-PERF-1)',
     (tester) async {
-      final sessionSpy = _CountingSessionStore();
+      final sessionSpy = _CountingSessionCache();
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: ConversationDetailTarget.channel(
@@ -255,7 +255,7 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
 
 Widget _buildConversationAppWithSessionSpy(
   _FakeConversationRepository repo,
-  _CountingSessionStore sessionSpy,
+  _CountingSessionCache sessionSpy,
 ) {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
@@ -268,7 +268,7 @@ Widget _buildConversationAppWithSessionSpy(
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
-      conversationDetailSessionStoreProvider.overrideWith(() => sessionSpy),
+      conversationDetailSessionStoreProvider.overrideWithValue(sessionSpy),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -450,9 +450,9 @@ class _FakeSessionStore extends SessionStore {
   Future<void> logout() async {}
 }
 
-/// Spy on [ConversationDetailSessionStore] that counts `saveScrollOffset`
+/// Spy on [ConversationDetailSessionCache] that counts `saveScrollOffset`
 /// calls to verify throttle behavior (INV-PERF-1).
-class _CountingSessionStore extends ConversationDetailSessionStore {
+class _CountingSessionCache extends ConversationDetailSessionCache {
   int saveScrollOffsetCount = 0;
 
   @override
@@ -461,6 +461,7 @@ class _CountingSessionStore extends ConversationDetailSessionStore {
     double scrollOffset,
   ) {
     saveScrollOffsetCount++;
-    super.saveScrollOffset(target, scrollOffset);
+    // Don't call super — skip the debounce timer entirely.
+    // This test verifies throttle behavior, not persistence timing.
   }
 }
