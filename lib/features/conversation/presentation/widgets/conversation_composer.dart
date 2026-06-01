@@ -290,24 +290,27 @@ class ConversationComposer extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  if (canSend)
+                  if (state.canSend)
                     Container(
                       key: const ValueKey('composer-send'),
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: colors.primary,
+                        color: isOverLimit ? colors.surfaceAlt : colors.primary,
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
                         icon: Icon(
                           state.isSending ? Icons.hourglass_top : Icons.send,
                           size: 20,
-                          color: colors.primaryForeground,
+                          color: isOverLimit
+                              ? colors.textTertiary
+                              : colors.primaryForeground,
                         ),
                         padding: EdgeInsets.zero,
                         tooltip: l10n.composerSendTooltip,
-                        onPressed: state.isSending ? null : onSend,
+                        onPressed:
+                            state.isSending || isOverLimit ? null : onSend,
                       ),
                     )
                   else
