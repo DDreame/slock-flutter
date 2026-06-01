@@ -21,6 +21,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -146,6 +147,66 @@ void main() {
         controller.text,
         '',
         reason: 'Draft must be empty after successful send',
+      );
+    });
+
+    testWidgets('pending attachment survives conversation switch',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final router = GoRouter(
+        initialLocation: '/conversation/ch-1',
+        routes: [
+          GoRoute(
+            path: '/conversation/ch-1',
+            builder: (_, __) => ConversationDetailPage(target: target1),
+          ),
+          GoRoute(
+            path: '/conversation/ch-2',
+            builder: (_, __) => ConversationDetailPage(target: target2),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildApp(router: router, prefs: prefs),
+      );
+      await tester.pumpAndSettle();
+
+      // Inject a pending attachment into the store (mimics file picker).
+      final composerElement =
+          tester.element(find.byKey(const ValueKey('composer-input')));
+      final container = ProviderScope.containerOf(composerElement);
+      final store = container.read(conversationDetailStoreProvider.notifier);
+      store.addPendingAttachment(const PendingAttachment(
+        path: '/tmp/test-photo.jpg',
+        name: 'test-photo.jpg',
+        mimeType: 'image/jpeg',
+      ));
+      await tester.pumpAndSettle();
+
+      // Verify attachment chip is visible.
+      expect(
+        find.byKey(const ValueKey('pending-attachment-0')),
+        findsOneWidget,
+        reason: 'Pending attachment chip must be visible after add',
+      );
+
+      // Navigate to ch-2 (disposes ch-1 store).
+      router.go('/conversation/ch-2');
+      await tester.pumpAndSettle();
+
+      // Navigate back to ch-1 (restores from session).
+      router.go('/conversation/ch-1');
+      await tester.pumpAndSettle();
+
+      // Assert: pending attachment is restored.
+      expect(
+        find.byKey(const ValueKey('pending-attachment-0')),
+        findsOneWidget,
+        reason: 'Pending attachment must survive conversation switch '
+            '(reverting session entry attachment persistence breaks this)',
       );
     });
   });

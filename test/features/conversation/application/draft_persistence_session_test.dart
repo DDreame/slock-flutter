@@ -13,11 +13,19 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
+
+import '../../../../test/stores/session/session_store_persistence_test.dart'
+    show FakeAuthRepository, FakeSecureStorage;
 
 /// Channel scope IDs for test targets.
 const _channelScopeId1 = ChannelScopeId(
@@ -240,6 +248,56 @@ void main() {
       expect(restored.pendingAttachments[0].name, 'a.jpg');
       expect(restored.pendingAttachments[1].name, 'b.pdf');
       expect(restored.pendingAttachments[2].name, 'c.mp4');
+    });
+
+    test('real SessionStore.logout() clears all session entries', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Authenticate first (logout requires authenticated state).
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@test.com', password: 'password');
+
+      // Save a draft to the session store.
+      container
+          .read(conversationDetailSessionStoreProvider.notifier)
+          .saveSuccessState(
+            ConversationDetailState(
+              target: _target1,
+              status: ConversationDetailStatus.success,
+              title: '#general',
+              messages: [_makeMessage('msg-1', 'hello')],
+              draft: 'unsent draft',
+            ),
+            scrollOffset: 0,
+          );
+
+      // Verify draft is saved.
+      expect(
+        container.read(conversationDetailSessionStoreProvider)[_target1]?.draft,
+        'unsent draft',
+      );
+
+      // Call real logout.
+      await container.read(sessionStoreProvider.notifier).logout();
+
+      // Assert: session entries are cleared by logout.
+      expect(
+        container.read(conversationDetailSessionStoreProvider),
+        isEmpty,
+        reason: 'Logout must clear all session entries (reverting clearAll in '
+            'logout must break this test)',
+      );
     });
   });
 }
