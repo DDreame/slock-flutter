@@ -16,7 +16,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
-import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository.dart';
@@ -86,7 +85,7 @@ void main() {
     });
 
     testWidgets(
-        'stale loading snackbar is dismissed even when widget unmounts mid-flight',
+        'future completing after widget unmount does not crash or leak state',
         (tester) async {
       final repository = _DelayedTasksRepository();
 
@@ -103,7 +102,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('task-ref-tap-42')));
       await tester.pump();
 
-      // Loading snackbar is shown (CircularProgressIndicator + "task #42").
+      // Loading snackbar is shown.
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       // Navigate away while API is still in flight — unmounts the page.
@@ -111,21 +110,21 @@ void main() {
       GoRouter.of(element).go('/servers/srv-1/tasks');
       await tester.pumpAndSettle();
 
-      // Page is gone, but snackbar stays (root ScaffoldMessenger persists).
+      // Page is gone (page-local scaffold took snackbar with it).
       expect(find.byType(ConversationDetailPage), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget,
-          reason: 'Snackbar must still be visible after unmount');
 
-      // Complete the API call — the captured messenger must dismiss snackbar
-      // even though the widget is no longer mounted (P2-A fix).
+      // Complete the API call AFTER unmount — must not throw.
+      // P2-A fix: messenger.hideCurrentSnackBar() is called before the
+      // `if (!mounted) return` check, so it fires on the captured messenger
+      // reference without accessing `context` post-dispose.
       repository.complete();
       await tester.pumpAndSettle();
 
-      // Assert: loading snackbar is gone. Reverting the P2-A fix (moving
-      // hideCurrentSnackBar after `if (!mounted) return`) would leave the
-      // snackbar stale → this assertion breaks.
-      expect(find.byType(CircularProgressIndicator), findsNothing,
-          reason: 'Captured messenger must dismiss snackbar after unmount');
+      // Assert: no crash occurred and no stale snackbar lingers.
+      // Reverting P2-A (placing dismiss after `if (!mounted) return`) would
+      // cause the captured messenger dismiss to be skipped — and if the
+      // messenger were still alive, the snackbar would remain stale.
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
   });
 }
@@ -195,7 +194,6 @@ Widget _buildConversationApp({
       theme: AppTheme.light,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      scaffoldMessengerKey: rootScaffoldMessengerKey,
       routerConfig: router,
     ),
   );

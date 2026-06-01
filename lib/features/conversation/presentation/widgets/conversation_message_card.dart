@@ -11,7 +11,6 @@ import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/app/widgets/relative_time_text.dart';
-import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -323,9 +322,9 @@ class ConversationMessageCardState
 
     _isLoadingTask = true;
 
-    // Use the root scaffold messenger so the snackbar survives route
-    // transitions (P2-A: stale snackbar fix).
-    final messenger = rootScaffoldMessengerKey.currentState!;
+    // Capture messenger before async gap so we can dismiss the snackbar
+    // even if the widget is unmounted (P2-A: stale snackbar fix).
+    final messenger = ScaffoldMessenger.of(context);
 
     // Show brief loading indicator.
     messenger
