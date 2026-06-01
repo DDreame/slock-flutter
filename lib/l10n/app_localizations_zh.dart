@@ -2309,6 +2309,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsThemeDarkDescription => '始终使用深色主题。';
 
   @override
+  String get settingsHapticTitle => '触觉反馈';
+
+  @override
+  String get settingsHapticOff => '关闭';
+
+  @override
+  String get settingsHapticLight => '轻度';
+
+  @override
+  String get settingsHapticMedium => '中度';
+
+  @override
   String get settingsDiagnosticsPageTitle => '诊断';
 
   @override

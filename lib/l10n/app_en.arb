@@ -1081,6 +1081,10 @@
   "settingsThemeLightDescription": "Always use the light theme.",
   "settingsThemeDarkTitle": "Dark",
   "settingsThemeDarkDescription": "Always use the dark theme.",
+  "settingsHapticTitle": "Haptic Feedback",
+  "settingsHapticOff": "Off",
+  "settingsHapticLight": "Light",
+  "settingsHapticMedium": "Medium",
   "settingsDiagnosticsPageTitle": "Diagnostics",
   "settingsDiagnosticsEntryCount": "{count} {count, plural, =1{entry} other{entries}}",
   "@settingsDiagnosticsEntryCount": {

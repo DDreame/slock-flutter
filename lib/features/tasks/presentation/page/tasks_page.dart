@@ -12,6 +12,7 @@ import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -277,6 +278,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   Future<void> _claimTask(TaskItem task) async {
     try {
       await ref.read(tasksStoreProvider.notifier).claimTask(task.id);
+      ref.read(hapticServiceProvider).mediumImpact();
     } on ConflictFailure {
       if (!mounted) return;
       showAppSnackBar(context, context.l10n.taskClaimConflict);
@@ -289,6 +291,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   Future<void> _unclaimTask(TaskItem task) async {
     try {
       await ref.read(tasksStoreProvider.notifier).unclaimTask(task.id);
+      ref.read(hapticServiceProvider).mediumImpact();
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));

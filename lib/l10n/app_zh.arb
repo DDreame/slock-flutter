@@ -831,6 +831,10 @@
   "settingsThemeLightDescription": "始终使用浅色主题。",
   "settingsThemeDarkTitle": "深色",
   "settingsThemeDarkDescription": "始终使用深色主题。",
+  "settingsHapticTitle": "触觉反馈",
+  "settingsHapticOff": "关闭",
+  "settingsHapticLight": "轻度",
+  "settingsHapticMedium": "中度",
   "settingsDiagnosticsPageTitle": "诊断",
   "settingsDiagnosticsEntryCount": "{count} 条记录",
   "@settingsDiagnosticsEntryCount": {

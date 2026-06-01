@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/app/widgets/skeleton_card.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
@@ -127,7 +128,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               Expanded(
                 child: RefreshIndicator(
                   key: const ValueKey('home-refresh-indicator'),
-                  onRefresh: homeStore.refresh,
+                  onRefresh: () async {
+                    ref.read(hapticServiceProvider).mediumImpact();
+                    await homeStore.refresh();
+                  },
                   child: Semantics(
                     label: l10n.homeOverviewSemantics,
                     child: ListView.separated(

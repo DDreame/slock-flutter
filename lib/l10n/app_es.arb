@@ -960,6 +960,10 @@
   "settingsThemeLightDescription": "Siempre usar el tema claro.",
   "settingsThemeDarkTitle": "Oscuro",
   "settingsThemeDarkDescription": "Siempre usar el tema oscuro.",
+  "settingsHapticTitle": "Retroalimentación háptica",
+  "settingsHapticOff": "Desactivada",
+  "settingsHapticLight": "Ligera",
+  "settingsHapticMedium": "Media",
   "settingsDiagnosticsPageTitle": "Diagnósticos",
   "settingsDiagnosticsEntryCount": "{count} {count, plural, =1{entrada} other{entradas}}",
   "@settingsDiagnosticsEntryCount": {
