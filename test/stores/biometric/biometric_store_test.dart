@@ -89,6 +89,30 @@ void main() {
       expect(state.lockStatus, BiometricLockStatus.unlocked);
       expect(state.isLocked, isFalse);
     });
+
+    test('corrupted storage defaults to disabled and unlocked', () async {
+      // Simulate a corrupted keystore by overriding the preference
+      // repository with one that throws on load.
+      final throwingContainer = ProviderContainer(
+        overrides: [
+          biometricServiceProvider.overrideWithValue(fakeService),
+          secureStorageProvider.overrideWithValue(_ThrowingSecureStorage()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(throwingContainer.dispose);
+
+      final store =
+          throwingContainer.read(biometricStoreProvider.notifier);
+
+      // Should not throw — the error is caught internally.
+      await store.initialize();
+
+      final state = throwingContainer.read(biometricStoreProvider);
+      expect(state.enabled, isFalse);
+      expect(state.lockStatus, BiometricLockStatus.unlocked);
+      expect(state.isLocked, isFalse);
+    });
   });
 
   group('checkAvailability', () {
@@ -312,4 +336,18 @@ class _FakeBiometricService implements BiometricService {
   }) async {
     return authResult;
   }
+}
+
+/// SecureStorage that throws on read — simulates corrupted keystore.
+class _ThrowingSecureStorage implements SecureStorage {
+  @override
+  Future<String?> read({required String key}) async {
+    throw Exception('SecureStorage corrupted: keystore decryption failed');
+  }
+
+  @override
+  Future<void> write({required String key, required String value}) async {}
+
+  @override
+  Future<void> delete({required String key}) async {}
 }

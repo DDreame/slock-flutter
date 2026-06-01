@@ -555,7 +555,6 @@ class HomeListStore extends Notifier<HomeListState> {
             );
           }
         }
-        _emitPersonalizedState();
       }),
       _loadTaskCountSafe(serverScopeId).then((taskItems) {
         if (_disposed) return;
@@ -563,14 +562,12 @@ class HomeListStore extends Notifier<HomeListState> {
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _taskCount = taskItems.length;
         _taskItems = List.of(taskItems);
-        _emitPersonalizedState();
       }),
       _loadMachineCountSafe(serverScopeId).then((count) {
         if (_disposed) return;
         if (gen != _supplementalGeneration) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _machineCount = count;
-        _emitPersonalizedState();
       }),
       _loadThreadItemsSafe(serverScopeId).then((threadItems) {
         if (_disposed) return;
@@ -578,9 +575,17 @@ class HomeListStore extends Notifier<HomeListState> {
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _threadCount = threadItems.length;
         _threadItems = List.of(threadItems);
-        _emitPersonalizedState();
       }),
     ]);
+
+    // Emit once after all supplemental data is merged — avoids 4 separate
+    // state updates (each triggering a full re-sort and widget rebuild) when
+    // the parallel fetches resolve in rapid succession.
+    if (!_disposed &&
+        gen == _supplementalGeneration &&
+        ref.read(activeServerScopeIdProvider) == serverScopeId) {
+      _emitPersonalizedState();
+    }
   }
 
   /// Stale-while-revalidate refresh: keeps existing Home data visible
