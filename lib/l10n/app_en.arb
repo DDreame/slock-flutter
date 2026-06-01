@@ -1674,5 +1674,21 @@
       }
     }
   },
-  "outboxQueueFull": "Message queue is full. Please wait for pending messages to send."
+  "outboxQueueFull": "Message queue is full. Please wait for pending messages to send.",
+  "taskRefNotFound": "Task not found",
+  "taskRefLoadFailed": "Failed to load task",
+  "notificationNoAccess": "You don't have access to this channel",
+  "taskClaimConflict": "This task was already claimed by someone else",
+  "composerMessageTooLong": "Message too long",
+  "composerCharacterCount": "{current}/{max}",
+  "@composerCharacterCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  }
 }

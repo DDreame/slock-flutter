@@ -3688,4 +3688,25 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get outboxQueueFull =>
       'La cola de mensajes está llena. Espere a que se envíen los mensajes pendientes.';
+
+  @override
+  String get taskRefNotFound => 'Tarea no encontrada';
+
+  @override
+  String get taskRefLoadFailed => 'Error al cargar la tarea';
+
+  @override
+  String get notificationNoAccess => 'No tienes acceso a este canal';
+
+  @override
+  String get taskClaimConflict =>
+      'Esta tarea ya fue reclamada por otra persona';
+
+  @override
+  String get composerMessageTooLong => 'Mensaje demasiado largo';
+
+  @override
+  String composerCharacterCount(int current, int max) {
+    return '$current/$max';
+  }
 }

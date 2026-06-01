@@ -1402,5 +1402,21 @@
   "channelUnarchiveConfirmTitle": "¿Desarchivar canal?",
   "channelUnarchiveConfirmBody": "Esto restaurará el canal a estado activo y permitirá a los miembros enviar mensajes nuevamente.",
   "serverSwitcherUnreadBadge": "{name}, tiene mensajes no leídos",
-  "outboxQueueFull": "La cola de mensajes está llena. Espere a que se envíen los mensajes pendientes."
+  "outboxQueueFull": "La cola de mensajes está llena. Espere a que se envíen los mensajes pendientes.",
+  "taskRefNotFound": "Tarea no encontrada",
+  "taskRefLoadFailed": "Error al cargar la tarea",
+  "notificationNoAccess": "No tienes acceso a este canal",
+  "taskClaimConflict": "Esta tarea ya fue reclamada por otra persona",
+  "composerMessageTooLong": "Mensaje demasiado largo",
+  "composerCharacterCount": "{current}/{max}",
+  "@composerCharacterCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  }
 }

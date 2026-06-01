@@ -6814,6 +6814,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Message queue is full. Please wait for pending messages to send.'**
   String get outboxQueueFull;
+
+  /// No description provided for @taskRefNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Task not found'**
+  String get taskRefNotFound;
+
+  /// No description provided for @taskRefLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load task'**
+  String get taskRefLoadFailed;
+
+  /// No description provided for @notificationNoAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access to this channel'**
+  String get notificationNoAccess;
+
+  /// No description provided for @taskClaimConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'This task was already claimed by someone else'**
+  String get taskClaimConflict;
+
+  /// No description provided for @composerMessageTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Message too long'**
+  String get composerMessageTooLong;
+
+  /// No description provided for @composerCharacterCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{current}/{max}'**
+  String composerCharacterCount(int current, int max);
 }
 
 class _AppLocalizationsDelegate
