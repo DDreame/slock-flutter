@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository.dart';
@@ -194,6 +195,7 @@ Widget _buildConversationApp({
       theme: AppTheme.light,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       routerConfig: router,
     ),
   );
