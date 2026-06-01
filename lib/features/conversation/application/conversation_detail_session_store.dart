@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 final conversationDetailSessionStoreProvider = NotifierProvider<
     ConversationDetailSessionStore,
@@ -23,6 +24,7 @@ class ConversationDetailSessionEntry {
     this.failedPendingMessages = const [],
     this.draft = '',
     this.replyToMessage,
+    this.pendingAttachments = const [],
   });
 
   final String? title;
@@ -40,6 +42,9 @@ class ConversationDetailSessionEntry {
   /// Reply-to context preserved alongside the draft.
   final ConversationMessageSummary? replyToMessage;
 
+  /// Pending attachment references preserved across conversation switches.
+  final List<PendingAttachment> pendingAttachments;
+
   ConversationDetailState toState(ConversationDetailTarget target) {
     return ConversationDetailState(
       target: target,
@@ -51,6 +56,7 @@ class ConversationDetailSessionEntry {
       hasOlder: hasOlder,
       draft: draft,
       replyToMessage: replyToMessage,
+      pendingAttachments: pendingAttachments,
     );
   }
 
@@ -64,6 +70,7 @@ class ConversationDetailSessionEntry {
     String? draft,
     ConversationMessageSummary? replyToMessage,
     bool clearReplyToMessage = false,
+    List<PendingAttachment>? pendingAttachments,
   }) {
     return ConversationDetailSessionEntry(
       title: title ?? this.title,
@@ -76,6 +83,7 @@ class ConversationDetailSessionEntry {
       draft: draft ?? this.draft,
       replyToMessage:
           clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
+      pendingAttachments: pendingAttachments ?? this.pendingAttachments,
     );
   }
 
@@ -100,6 +108,7 @@ class ConversationDetailSessionEntry {
           .toList(growable: false),
       draft: state.draft,
       replyToMessage: state.replyToMessage,
+      pendingAttachments: state.pendingAttachments,
     );
   }
 }
@@ -171,5 +180,13 @@ class ConversationDetailSessionStore extends Notifier<
     }
     _pendingScrollOffsets.clear();
     state = updated;
+  }
+
+  /// Clears all session entries. Called on logout to prevent previous user's
+  /// drafts from leaking into the next session.
+  void clearAll() {
+    _scrollOffsetDebounce?.cancel();
+    _pendingScrollOffsets.clear();
+    state = const {};
   }
 }

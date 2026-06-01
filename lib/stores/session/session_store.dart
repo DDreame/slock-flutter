@@ -6,6 +6,7 @@ import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/features/auth/application/oauth_service.dart';
 import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -206,6 +207,14 @@ class SessionStore extends Notifier<SessionState> {
     } on Object {
       // OutboxStore may not be initialized (e.g. minimal test env without
       // SharedPreferences). In production, outbox is always available.
+    }
+
+    // Clear conversation session store (drafts, pending attachments, cached
+    // scroll positions) to prevent previous user's data from leaking.
+    try {
+      ref.read(conversationDetailSessionStoreProvider.notifier).clearAll();
+    } on Object {
+      // Best-effort — session store may not be initialized in test env.
     }
     await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
     await SessionStorageKeys.clear(_storage);

@@ -345,6 +345,11 @@ class ConversationDetailStore
     });
 
     ref.onDispose(() {
+      // Persist current state (including draft + pending attachments) so it
+      // survives conversation switches.
+      if (state.status == ConversationDetailStatus.success) {
+        _persistSession();
+      }
       _disposed = true;
       _sendMixinDisposed = true;
       unawaited(subscription.cancel());
