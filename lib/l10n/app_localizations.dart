@@ -5114,7 +5114,7 @@ abstract class AppLocalizations {
   /// No description provided for @conversationOfflineAttachmentSnackbar.
   ///
   /// In en, this message translates to:
-  /// **'You\'re offline. Message will be sent when connection is restored.'**
+  /// **'You\'re offline. Your draft and attachments are preserved — tap Send again when you\'re back online.'**
   String get conversationOfflineAttachmentSnackbar;
 
   /// No description provided for @outboxFailedBanner.

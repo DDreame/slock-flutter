@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -430,6 +431,13 @@ class OutboxStore extends Notifier<OutboxState> {
           final newRetryCount = item.retryCount + 1;
           if (newRetryCount >= maxOutboxRetryAttempts) {
             // Max retries exceeded — mark as permanently failed.
+            developer.log(
+              'Outbox item permanently failed after $newRetryCount attempts: '
+              '${e.message}',
+              name: 'OutboxStore',
+              error: e,
+              level: 900, // WARNING
+            );
             _updateItemStatus(
               targetKey,
               item.localId,

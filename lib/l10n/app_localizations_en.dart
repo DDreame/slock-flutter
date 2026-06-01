@@ -2713,7 +2713,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get conversationOfflineAttachmentSnackbar =>
-      'You\'re offline. Message will be sent when connection is restored.';
+      'You\'re offline. Your draft and attachments are preserved — tap Send again when you\'re back online.';
 
   @override
   String outboxFailedBanner(int count) {

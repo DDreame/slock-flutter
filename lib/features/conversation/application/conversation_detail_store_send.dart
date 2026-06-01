@@ -75,8 +75,8 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         pendingFiles.isNotEmpty) {
       state = state.copyWith(
         sendFailure: const ValidationFailure(
-          message: 'You are offline. Message will be sent when '
-              'connection is restored.',
+          message: 'You are offline. Attachments cannot be queued — '
+              'retry when back online.',
           causeType: 'offlineAttachment',
         ),
       );

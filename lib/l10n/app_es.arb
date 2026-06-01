@@ -1067,7 +1067,7 @@
   "conversationPresenceIdle": "Inactivo",
   "conversationPresenceOffline": "Desconectado",
   "conversationOfflineBanner": "Estás sin conexión. Los mensajes se enviarán cuando te reconectes.",
-  "conversationOfflineAttachmentSnackbar": "Estás sin conexión. El mensaje se enviará cuando se restablezca la conexión.",
+  "conversationOfflineAttachmentSnackbar": "Estás sin conexión. Tu borrador y archivos adjuntos se conservan — toca Enviar de nuevo cuando estés en línea.",
   "outboxFailedBanner": "{count, plural, =1{1 mensaje no se pudo enviar} other{{count} mensajes no se pudieron enviar}}",
   "@outboxFailedBanner": {
     "placeholders": {

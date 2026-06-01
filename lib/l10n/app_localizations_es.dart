@@ -2744,7 +2744,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get conversationOfflineAttachmentSnackbar =>
-      'Estás sin conexión. El mensaje se enviará cuando se restablezca la conexión.';
+      'Estás sin conexión. Tu borrador y archivos adjuntos se conservan — toca Enviar de nuevo cuando estés en línea.';
 
   @override
   String outboxFailedBanner(int count) {

@@ -90,75 +90,46 @@ void main() {
           causeType: 'timeout',
         );
 
-        notifier.enqueue(target, 'msg-1', localId: 'id-1');
+        // Enqueue 3 items so the drain has enough items to accumulate
+        // consecutive failures even after individual items hit maxRetries.
+        // With maxRetryAttempts=5 and 3 items, we can get up to
+        // 3*5 = 15 consecutive failures, enough for the full backoff sequence.
+        for (var i = 0; i < 3; i++) {
+          notifier.enqueue(target, 'msg-$i', localId: 'id-$i');
+        }
 
-        // Drain multiple times to simulate consecutive failures.
-        // Each drain failure increments _consecutiveDrainFailures.
-        // After _maxConsecutiveDrainFailures (3), backoff kicks in.
-
-        // Failures 1-3: trigger backoff
+        // Drive 3 drain failures by calling drainAll directly (no elapse
+        // between calls — avoids timer-triggered ghost drains).
+        // Each call fails on the first pending item and calls
+        // _recordDrainFailure, incrementing _consecutiveDrainFailures.
         for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          // Elapse reschedule timer to allow next drain.
-          async.elapse(const Duration(milliseconds: 150));
         }
 
-        // After 3 consecutive failures, computeBackoffDuration should yield
-        // the correct sequence. Since _consecutiveDrainFailures is managed
-        // internally, we verify via the visibleForTesting method.
-        // At this point _consecutiveDrainFailures == 3:
-        // exponent = 3 - 3 = 0 → 5s * 2^0 = 5s
+        // After 3 consecutive failures, backoff is active.
+        // _consecutiveDrainFailures == 3: exponent = 0 → 5s
         expect(notifier.computeBackoffDuration(), const Duration(seconds: 5));
 
-        // Simulate failure #4 by advancing past backoff and draining again.
-        async.elapse(const Duration(seconds: 6));
-        async.flushMicrotasks(); // timer fires → scheduleDrainIfNeeded → drain
-        async.flushMicrotasks(); // drain completes with failure
+        // Each subsequent drain failure increases backoff exponentially.
+        // Advance past the current backoff to trigger the next drain cycle.
+        final expectedSequence = <Duration>[
+          const Duration(seconds: 10), // consecutiveFailures=4
+          const Duration(seconds: 20), // consecutiveFailures=5
+          const Duration(seconds: 40), // consecutiveFailures=6
+          const Duration(seconds: 80), // consecutiveFailures=7
+          const Duration(seconds: 160), // consecutiveFailures=8
+          const Duration(seconds: 300), // consecutiveFailures=9 (cap)
+        ];
 
-        // Now _consecutiveDrainFailures == 4:
-        // exponent = 4 - 3 = 1 → 5s * 2^1 = 10s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 10));
-
-        // Failure #5
-        async.elapse(const Duration(seconds: 11));
-        async.flushMicrotasks();
-        async.flushMicrotasks();
-
-        // _consecutiveDrainFailures == 5: exponent = 2 → 5s * 4 = 20s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 20));
-
-        // Failure #6
-        async.elapse(const Duration(seconds: 21));
-        async.flushMicrotasks();
-        async.flushMicrotasks();
-
-        // _consecutiveDrainFailures == 6: exponent = 3 → 5s * 8 = 40s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 40));
-
-        // Failure #7
-        async.elapse(const Duration(seconds: 41));
-        async.flushMicrotasks();
-        async.flushMicrotasks();
-
-        // _consecutiveDrainFailures == 7: exponent = 4 → 5s * 16 = 80s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 80));
-
-        // Failure #8
-        async.elapse(const Duration(seconds: 81));
-        async.flushMicrotasks();
-        async.flushMicrotasks();
-
-        // _consecutiveDrainFailures == 8: exponent = 5 → 5s * 32 = 160s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 160));
-
-        // Failure #9
-        async.elapse(const Duration(seconds: 161));
-        async.flushMicrotasks();
-        async.flushMicrotasks();
-
-        // _consecutiveDrainFailures == 9: exponent = 6 → 5s * 64 = 320s → capped at 300s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 300));
+        var currentBackoff = const Duration(seconds: 5);
+        for (final expected in expectedSequence) {
+          // Advance past the current backoff + 100ms reschedule timer.
+          async.elapse(currentBackoff + const Duration(milliseconds: 200));
+          async.flushMicrotasks();
+          expect(notifier.computeBackoffDuration(), expected);
+          currentBackoff = expected;
+        }
 
         sub.close();
       });
@@ -178,11 +149,10 @@ void main() {
 
         notifier.enqueue(target, 'msg-1', localId: 'id-1');
 
-        // Trigger 3 failures to activate backoff.
+        // Trigger 3 failures to activate backoff (direct calls, no elapse).
         for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          async.elapse(const Duration(milliseconds: 150));
         }
 
         // Backoff should be 5s now (consecutiveFailures == 3).
@@ -190,14 +160,12 @@ void main() {
 
         // Now make sends succeed and advance past backoff.
         repository.sendFailure = null;
-        async.elapse(const Duration(seconds: 6));
+        async.elapse(
+            const Duration(seconds: 5) + const Duration(milliseconds: 200));
         async.flushMicrotasks();
 
         // After success, backoff should be cleared.
-        // Reset: computeBackoffDuration at failures=0 → exponent = 0-3 = -3 → clamped to 0 → 5s.
-        // But the key indicator is that _drainBackoffActive is false and
-        // _consecutiveDrainFailures is 0. We test by enqueueing a new message
-        // and verifying it drains immediately (no backoff delay).
+        // Test by enqueueing a new message and verifying it drains immediately.
         notifier.enqueue(target, 'msg-after-recovery', localId: 'id-2');
         notifier.drainAll();
         async.flushMicrotasks();
@@ -222,11 +190,10 @@ void main() {
 
         notifier.enqueue(target, 'msg-1', localId: 'id-1');
 
-        // Trigger backoff.
+        // Trigger backoff (direct calls, no elapse).
         for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          async.elapse(const Duration(milliseconds: 150));
         }
 
         // Now simulate connectivity restored — should clear backoff and drain.
@@ -262,13 +229,20 @@ void main() {
 
         notifier.enqueue(target, 'retry-me', localId: 'retry-id');
 
-        // Each drain attempt increments retry count. After maxOutboxRetryAttempts,
-        // the item should be marked failed.
-        for (var i = 0; i < maxOutboxRetryAttempts; i++) {
+        // Drive drain failures. After each cycle, advance past any backoff
+        // timer to allow the next drain. Use direct calls for the first 3
+        // (before backoff activates), then timer-driven for the rest.
+        for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          // Advance past backoff to allow next drain attempt.
-          async.elapse(const Duration(seconds: 310));
+        }
+        // After 3 failures, backoff is active (5s). Advance to trigger
+        // remaining drain cycles.
+        for (var i = 3; i < maxOutboxRetryAttempts; i++) {
+          // Advance past current backoff + 100ms reschedule.
+          async.elapse(notifier.computeBackoffDuration() +
+              const Duration(milliseconds: 200));
+          async.flushMicrotasks();
         }
 
         final targetKey = outboxTargetKey(target);
@@ -299,11 +273,20 @@ void main() {
         notifier.enqueue(target, 'msg-1', localId: 'id-1');
         notifier.enqueue(target, 'msg-2', localId: 'id-2');
 
-        // Drain until both hit max retries.
-        for (var i = 0; i < maxOutboxRetryAttempts; i++) {
+        // Drive drain failures. The drain processes items FIFO. Each failure
+        // on an item stops the drain. After maxRetries, item is marked failed
+        // and drain continues to next item.
+        // With 2 items, we need enough cycles for both to fail.
+        for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          async.elapse(const Duration(seconds: 310));
+        }
+        // After 3 direct failures, continue via timer-driven cycles.
+        // Need 2*maxRetryAttempts total failures for both items.
+        for (var i = 3; i < 2 * maxOutboxRetryAttempts; i++) {
+          async.elapse(notifier.computeBackoffDuration() +
+              const Duration(milliseconds: 200));
+          async.flushMicrotasks();
         }
 
         final targetKey = outboxTargetKey(target);
@@ -329,10 +312,14 @@ void main() {
         notifier.enqueue(target, 'msg-1', localId: 'id-1');
 
         // Exhaust retries to mark failed.
-        for (var i = 0; i < maxOutboxRetryAttempts; i++) {
+        for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          async.elapse(const Duration(seconds: 310));
+        }
+        for (var i = 3; i < maxOutboxRetryAttempts; i++) {
+          async.elapse(notifier.computeBackoffDuration() +
+              const Duration(milliseconds: 200));
+          async.flushMicrotasks();
         }
 
         final targetKey = outboxTargetKey(target);
@@ -377,11 +364,15 @@ void main() {
 
         notifier.enqueue(target, 'cb-msg', localId: 'cb-id');
 
-        // Drain until max retries.
-        for (var i = 0; i < maxOutboxRetryAttempts; i++) {
+        // Drain until max retries — same pattern as above.
+        for (var i = 0; i < 3; i++) {
           notifier.drainAll();
           async.flushMicrotasks();
-          async.elapse(const Duration(seconds: 310));
+        }
+        for (var i = 3; i < maxOutboxRetryAttempts; i++) {
+          async.elapse(notifier.computeBackoffDuration() +
+              const Duration(milliseconds: 200));
+          async.flushMicrotasks();
         }
 
         expect(callbackLocalId, 'cb-id');
@@ -422,7 +413,8 @@ void main() {
 
         notifier.enqueue(target, 'msg', localId: 'id-1');
 
-        // First drain attempt.
+        // First drain attempt — call directly without elapse to avoid
+        // timer-triggered ghost drains.
         notifier.drainAll();
         async.flushMicrotasks();
 
@@ -434,8 +426,9 @@ void main() {
         expect(item.retryCount, 1);
         expect(item.status, OutboxMessageStatus.pending);
 
-        // Second drain attempt (after backoff timer not yet — wait for it).
-        async.elapse(const Duration(seconds: 310));
+        // Second drain attempt — call directly (consecutive failures < 3,
+        // so backoff is not active yet).
+        notifier.drainAll();
         async.flushMicrotasks();
 
         item = c
