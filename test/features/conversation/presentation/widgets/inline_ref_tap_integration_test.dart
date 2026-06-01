@@ -35,6 +35,9 @@ import 'package:slock_app/features/members/data/member_repository_provider.dart'
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -147,7 +150,7 @@ void main() {
   // ---------------------------------------------------------------------------
   group('B123 PR 5 — ConversationMessageCard task ref tap integration', () {
     testWidgets(
-      'tapping task #5 navigates to /servers/{serverId}/tasks',
+      'tapping task #5 navigates to /servers/{serverId}/tasks on success',
       (tester) async {
         String? navigatedTo;
 
@@ -157,6 +160,7 @@ void main() {
             messageContent: 'Please review task #5 ASAP',
             channels: const [],
             onNavigate: (route) => navigatedTo = route,
+            tasksRepositoryOverride: const _LegacyTaskRepository(),
           ),
         );
         await tester.pumpAndSettle();
@@ -334,6 +338,7 @@ Widget _buildApp({
   required List<HomeChannelSummary> channels,
   required void Function(String route) onNavigate,
   List<HomeDirectMessageSummary> directMessages = const [],
+  TasksRepository? tasksRepositoryOverride,
 }) {
   final conversationRepo = _FakeConversationRepository(
     snapshot: ConversationDetailSnapshot(
@@ -415,6 +420,8 @@ Widget _buildApp({
       memberRepositoryProvider.overrideWithValue(_FakeMemberRepository()),
       homeListStoreProvider
           .overrideWith(() => _FakeHomeListStore(channels, directMessages)),
+      if (tasksRepositoryOverride != null)
+        tasksRepositoryProvider.overrideWithValue(tasksRepositoryOverride),
     ],
     child: MaterialApp.router(
       theme: AppTheme.light,
@@ -681,4 +688,56 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {}
+}
+
+/// Returns a legacy TaskItem on getTaskByNumber — causes navigation to tasks page.
+class _LegacyTaskRepository implements TasksRepository {
+  const _LegacyTaskRepository();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    return TaskItem(
+      id: 'task-legacy',
+      taskNumber: taskNumber,
+      title: 'Legacy task',
+      status: 'todo',
+      channelId: channelId,
+      channelType: 'channel',
+      isLegacy: true,
+      createdById: 'user-1',
+      createdByName: 'Alice',
+      createdByType: 'human',
+      createdAt: DateTime(2026, 6, 1),
+    );
+  }
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async => [];
+  @override
+  Future<List<TaskItem>> createTasks(ServerScopeId serverId,
+          {required String channelId, required List<String> titles}) async =>
+      [];
+  @override
+  Future<TaskItem> updateTaskStatus(ServerScopeId serverId,
+          {required String taskId, required String status}) async =>
+      throw UnimplementedError();
+  @override
+  Future<void> deleteTask(ServerScopeId serverId,
+      {required String taskId}) async {}
+  @override
+  Future<TaskItem> claimTask(ServerScopeId serverId,
+          {required String taskId}) async =>
+      throw UnimplementedError();
+  @override
+  Future<TaskItem> unclaimTask(ServerScopeId serverId,
+          {required String taskId}) async =>
+      throw UnimplementedError();
+  @override
+  Future<TaskItem> convertMessageToTask(ServerScopeId serverId,
+          {required String messageId}) async =>
+      throw UnimplementedError();
 }
