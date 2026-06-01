@@ -77,7 +77,6 @@ void main() {
     '(INV-PERF-1)',
     (tester) async {
       final sessionSpy = _CountingSessionCache();
-      addTearDown(sessionSpy.dispose);
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: ConversationDetailTarget.channel(
@@ -462,6 +461,7 @@ class _CountingSessionCache extends ConversationDetailSessionCache {
     double scrollOffset,
   ) {
     saveScrollOffsetCount++;
-    super.saveScrollOffset(target, scrollOffset);
+    // Don't call super — skip the debounce timer entirely.
+    // This test verifies throttle behavior, not persistence timing.
   }
 }
