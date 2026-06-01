@@ -1520,6 +1520,11 @@
   "filePreviewFallbackBody": "File preview unavailable",
   "filePreviewFallbackBack": "Go back",
 
+  "deepLinkAccessDeniedTitle": "You don't have access",
+  "deepLinkAccessDeniedMessage": "You don't have access to this resource. It may be private, deleted, or outside your current workspace.",
+  "deepLinkNotFoundTitle": "Resource not found",
+  "deepLinkNotFoundMessage": "This resource could not be found. It may have been deleted or the link may be out of date.",
+  "deepLinkBackButton": "Back to Slock",
   "errorRetry": "Retry",
   "errorShareDiagnostics": "Share diagnostics",
 

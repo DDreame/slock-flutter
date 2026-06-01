@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/widgets/deep_link_resource_error_view.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
@@ -94,26 +95,28 @@ class _ThreadRepliesScreen extends ConsumerWidget {
     if (status == ThreadRepliesStatus.failure || conversationTarget == null) {
       return Scaffold(
         appBar: AppBar(title: Text(context.l10n.threadRepliesTitle)),
-        body: Center(
-          key: const ValueKey('thread-replies-error'),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  failure?.userMessage(context.l10n) ??
-                      context.l10n.errorUnknown,
-                  textAlign: TextAlign.center,
+        body: DeepLinkResourceErrorView.handles(failure)
+            ? DeepLinkResourceErrorView(failure: failure!)
+            : Center(
+                key: const ValueKey('thread-replies-error'),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        failure?.userMessage(context.l10n) ??
+                            context.l10n.errorUnknown,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                          onPressed: store.retry,
+                          child: Text(context.l10n.threadRepliesRetry)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton(
-                    onPressed: store.retry,
-                    child: Text(context.l10n.threadRepliesRetry)),
-              ],
-            ),
-          ),
-        ),
+              ),
       );
     }
 

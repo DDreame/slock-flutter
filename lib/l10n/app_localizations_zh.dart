@@ -495,32 +495,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get workspaceSettingsLeaveConfirmLabel => '退出';
 
   @override
-  String get workspaceSettingsOnboarding => 'Onboarding';
+  String get workspaceSettingsOnboarding => '入门设置';
 
   @override
-  String get onboardingSettingsTitle => 'Onboarding Settings';
+  String get onboardingSettingsTitle => '入门设置';
 
   @override
-  String get onboardingSettingsDescription =>
-      'Configure how new members experience the workspace onboarding flow.';
+  String get onboardingSettingsDescription => '管理新成员的入门体验';
 
   @override
-  String get onboardingSettingsSetupModalLabel => 'Suppress setup reminder';
+  String get onboardingSettingsSetupModalLabel => '显示设置提醒';
 
   @override
-  String get onboardingSettingsSetupModalDescription =>
-      'When enabled, new members will not see the setup modal reminder.';
+  String get onboardingSettingsSetupModalDescription => '新成员加入时显示设置向导提醒';
 
   @override
-  String get onboardingSettingsLoadError =>
-      'Failed to load onboarding settings.';
+  String get onboardingSettingsLoadError => '加载设置失败';
 
   @override
-  String get onboardingSettingsSaveError =>
-      'Failed to save onboarding settings.';
+  String get onboardingSettingsSaveError => '保存设置失败';
 
   @override
-  String get onboardingSettingsRetry => 'Retry';
+  String get onboardingSettingsRetry => '重试';
 
   @override
   String get previewDeleted => '消息已删除';
@@ -3230,6 +3226,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get filePreviewFallbackBack => '返回';
+
+  @override
+  String get deepLinkAccessDeniedTitle => '你没有访问权限';
+
+  @override
+  String get deepLinkAccessDeniedMessage =>
+      '你没有权限访问此资源。它可能是私有的、已被删除，或不属于当前工作区。';
+
+  @override
+  String get deepLinkNotFoundTitle => '资源未找到';
+
+  @override
+  String get deepLinkNotFoundMessage => '找不到此资源。它可能已被删除，或链接已过期。';
+
+  @override
+  String get deepLinkBackButton => '返回 Slock';
 
   @override
   String get errorRetry => '重试';

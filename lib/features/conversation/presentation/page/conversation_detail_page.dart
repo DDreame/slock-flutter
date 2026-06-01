@@ -8,6 +8,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/connection_status_banner.dart';
+import 'package:slock_app/app/widgets/deep_link_resource_error_view.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -1290,6 +1291,11 @@ class _ConversationFailureView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final failure = state.failure;
+    if (DeepLinkResourceErrorView.handles(failure)) {
+      return DeepLinkResourceErrorView(failure: failure!);
+    }
+
     return Center(
       key: const ValueKey('conversation-error'),
       child: Padding(
