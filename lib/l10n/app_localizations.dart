@@ -5111,6 +5111,18 @@ abstract class AppLocalizations {
   /// **'You are offline. Messages will be sent when you reconnect.'**
   String get conversationOfflineBanner;
 
+  /// No description provided for @conversationOfflineAttachmentSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline. Message will be sent when connection is restored.'**
+  String get conversationOfflineAttachmentSnackbar;
+
+  /// No description provided for @outboxFailedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 message failed to send} other{{count} messages failed to send}}'**
+  String outboxFailedBanner(int count);
+
   /// No description provided for @conversationInfoMute.
   ///
   /// In en, this message translates to:

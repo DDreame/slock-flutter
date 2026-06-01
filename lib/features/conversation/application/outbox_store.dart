@@ -23,6 +23,7 @@ class OutboxMessage {
     this.replyToId,
     this.status = OutboxMessageStatus.pending,
     this.failureMessage,
+    this.retryCount = 0,
   });
 
   final String localId;
@@ -31,10 +32,12 @@ class OutboxMessage {
   final String? replyToId;
   final OutboxMessageStatus status;
   final String? failureMessage;
+  final int retryCount;
 
   OutboxMessage copyWith({
     OutboxMessageStatus? status,
     String? failureMessage,
+    int? retryCount,
   }) {
     return OutboxMessage(
       localId: localId,
@@ -43,6 +46,7 @@ class OutboxMessage {
       replyToId: replyToId,
       status: status ?? this.status,
       failureMessage: failureMessage ?? this.failureMessage,
+      retryCount: retryCount ?? this.retryCount,
     );
   }
 
@@ -53,6 +57,7 @@ class OutboxMessage {
         if (replyToId != null) 'replyToId': replyToId,
         'status': status.name,
         if (failureMessage != null) 'failureMessage': failureMessage,
+        if (retryCount > 0) 'retryCount': retryCount,
       };
 
   factory OutboxMessage.fromJson(Map<String, dynamic> json) => OutboxMessage(
@@ -62,6 +67,7 @@ class OutboxMessage {
         replyToId: json['replyToId'] as String?,
         status: _parseStatus(json['status'] as String?),
         failureMessage: json['failureMessage'] as String?,
+        retryCount: (json['retryCount'] as int?) ?? 0,
       );
 
   /// Parse status string with graceful fallback to [OutboxMessageStatus.pending]
@@ -86,7 +92,8 @@ class OutboxMessage {
           createdAt == other.createdAt &&
           replyToId == other.replyToId &&
           status == other.status &&
-          failureMessage == other.failureMessage;
+          failureMessage == other.failureMessage &&
+          retryCount == other.retryCount;
 
   @override
   int get hashCode => Object.hash(
@@ -96,6 +103,7 @@ class OutboxMessage {
         replyToId,
         status,
         failureMessage,
+        retryCount,
       );
 }
 
@@ -141,6 +149,22 @@ class OutboxState {
             .toList() ??
         [];
   }
+
+  /// All failed items for a specific conversation.
+  List<OutboxMessage> failedForTarget(String targetKey) {
+    return items[targetKey]
+            ?.where((m) => m.status == OutboxMessageStatus.failed)
+            .toList() ??
+        [];
+  }
+
+  /// Count of failed items for a specific conversation.
+  int failedCountForTarget(String targetKey) {
+    return items[targetKey]
+            ?.where((m) => m.status == OutboxMessageStatus.failed)
+            .length ??
+        0;
+  }
 }
 
 /// Generate a stable key for a [ConversationDetailTarget].
@@ -180,7 +204,19 @@ ConversationDetailTarget? _targetFromKey(String key) {
 
 const _prefsKey = 'outbox_queue';
 const _maxConsecutiveDrainFailures = 3;
-const _drainBackoffDuration = Duration(seconds: 30);
+
+/// Initial backoff duration after consecutive drain failures.
+/// Doubles on each subsequent failure, capped at [_maxDrainBackoffDuration].
+@visibleForTesting
+const initialDrainBackoffDuration = Duration(seconds: 5);
+
+/// Maximum backoff duration — the cap for exponential growth.
+@visibleForTesting
+const maxDrainBackoffDuration = Duration(seconds: 300);
+
+/// Maximum number of retry attempts per outbox item before marking it failed.
+@visibleForTesting
+const maxOutboxRetryAttempts = 5;
 
 /// Maximum number of outbox messages per conversation target.
 ///
@@ -324,11 +360,53 @@ class OutboxStore extends Notifier<OutboxState> {
     _persist();
   }
 
+  /// Retry a failed outbox item — reset its status to pending and retry count
+  /// to 0, then trigger a drain.
+  void retryItem(ConversationDetailTarget target, String localId) {
+    final targetKey = outboxTargetKey(target);
+    final current = Map<String, List<OutboxMessage>>.from(state.items);
+    final list = current[targetKey];
+    if (list == null) return;
+    current[targetKey] = list.map((m) {
+      if (m.localId == localId && m.status == OutboxMessageStatus.failed) {
+        return m.copyWith(
+          status: OutboxMessageStatus.pending,
+          retryCount: 0,
+        );
+      }
+      return m;
+    }).toList();
+    state = state.copyWith(items: current);
+    _persist();
+    _scheduleDrainIfNeeded();
+  }
+
+  /// Retry all failed outbox items for a specific conversation.
+  void retryAllFailed(ConversationDetailTarget target) {
+    final targetKey = outboxTargetKey(target);
+    final current = Map<String, List<OutboxMessage>>.from(state.items);
+    final list = current[targetKey];
+    if (list == null) return;
+    current[targetKey] = list.map((m) {
+      if (m.status == OutboxMessageStatus.failed) {
+        return m.copyWith(
+          status: OutboxMessageStatus.pending,
+          retryCount: 0,
+        );
+      }
+      return m;
+    }).toList();
+    state = state.copyWith(items: current);
+    _persist();
+    _scheduleDrainIfNeeded();
+  }
+
   /// Drain pending messages for a specific conversation.
   ///
-  /// Sends messages FIFO. On retryable failure, stops draining (will retry
-  /// on next connectivity event). On non-retryable failure, marks the item
-  /// as failed, notifies the callback, and continues.
+  /// Sends messages FIFO. On retryable failure, increments retry count and
+  /// stops draining (will retry on next connectivity event or backoff timer).
+  /// If retry count exceeds [maxOutboxRetryAttempts], marks the item failed.
+  /// On non-retryable failure, marks the item as failed immediately.
   Future<void> drain(ConversationDetailTarget target) async {
     final targetKey = outboxTargetKey(target);
     final repo = ref.read(conversationRepositoryProvider);
@@ -348,7 +426,22 @@ class OutboxStore extends Notifier<OutboxState> {
             ?.call(target, item.localId, serverMessage, null);
       } on AppFailure catch (e) {
         if (e.isRetryable) {
-          // Network/timeout — stop draining, will retry later.
+          // Increment retry count for this item.
+          final newRetryCount = item.retryCount + 1;
+          if (newRetryCount >= maxOutboxRetryAttempts) {
+            // Max retries exceeded — mark as permanently failed.
+            _updateItemStatus(
+              targetKey,
+              item.localId,
+              OutboxMessageStatus.failed,
+              failureMessage: e.message,
+              retryCount: newRetryCount,
+            );
+            _drainCallbacks[targetKey]?.call(target, item.localId, null, e);
+            continue; // Try next item in the queue.
+          }
+          // Still retryable — update count and stop draining.
+          _updateItemRetryCount(targetKey, item.localId, newRetryCount);
           _recordDrainFailure();
           return;
         }
@@ -358,6 +451,7 @@ class OutboxStore extends Notifier<OutboxState> {
           item.localId,
           OutboxMessageStatus.failed,
           failureMessage: e.message,
+          retryCount: item.retryCount + 1,
         );
         _drainCallbacks[targetKey]?.call(target, item.localId, null, e);
       } catch (e) {
@@ -369,6 +463,7 @@ class OutboxStore extends Notifier<OutboxState> {
           item.localId,
           OutboxMessageStatus.failed,
           failureMessage: 'Unexpected error: $e',
+          retryCount: item.retryCount + 1,
         );
         _drainCallbacks[targetKey]?.call(
           target,
@@ -455,13 +550,29 @@ class OutboxStore extends Notifier<OutboxState> {
     }
   }
 
+  /// Compute the exponential backoff duration for the current failure count.
+  /// Starts at [initialDrainBackoffDuration], doubles each time, capped at
+  /// [maxDrainBackoffDuration].
+  @visibleForTesting
+  Duration computeBackoffDuration() {
+    // Exponent = number of times backoff has been triggered (starts at 0).
+    final exponent = _consecutiveDrainFailures - _maxConsecutiveDrainFailures;
+    final multiplier = 1 << exponent.clamp(0, 10); // 2^exponent, safe shift
+    final backoffMs = initialDrainBackoffDuration.inMilliseconds * multiplier;
+    final cappedMs = backoffMs.clamp(
+      initialDrainBackoffDuration.inMilliseconds,
+      maxDrainBackoffDuration.inMilliseconds,
+    );
+    return Duration(milliseconds: cappedMs);
+  }
+
   void _startDrainBackoff() {
     if (_drainBackoffActive) return;
     _drainBackoffActive = true;
     _drainBackoffTimer?.cancel();
-    _drainBackoffTimer = Timer(_drainBackoffDuration, () {
+    final backoff = computeBackoffDuration();
+    _drainBackoffTimer = Timer(backoff, () {
       _drainBackoffActive = false;
-      _consecutiveDrainFailures = 0;
       _scheduleDrainIfNeeded();
     });
   }
@@ -488,13 +599,37 @@ class OutboxStore extends Notifier<OutboxState> {
     String localId,
     OutboxMessageStatus status, {
     String? failureMessage,
+    int? retryCount,
   }) {
     final current = Map<String, List<OutboxMessage>>.from(state.items);
     final list = current[targetKey];
     if (list == null) return;
     current[targetKey] = list.map((m) {
       if (m.localId == localId) {
-        return m.copyWith(status: status, failureMessage: failureMessage);
+        return m.copyWith(
+          status: status,
+          failureMessage: failureMessage,
+          retryCount: retryCount,
+        );
+      }
+      return m;
+    }).toList();
+    state = state.copyWith(items: current);
+    _persist();
+  }
+
+  /// Update only the retry count for an item (without changing status).
+  void _updateItemRetryCount(
+    String targetKey,
+    String localId,
+    int retryCount,
+  ) {
+    final current = Map<String, List<OutboxMessage>>.from(state.items);
+    final list = current[targetKey];
+    if (list == null) return;
+    current[targetKey] = list.map((m) {
+      if (m.localId == localId) {
+        return m.copyWith(retryCount: retryCount);
       }
       return m;
     }).toList();

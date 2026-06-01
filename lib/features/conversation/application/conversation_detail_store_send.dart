@@ -67,6 +67,22 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     // Offline path: queue text-only messages in the outbox for later sending.
     // Attachment uploads are not supported offline.
     final connectivity = ref.read(connectivityServiceProvider);
+
+    // B131: Offline + attachments — surface failure immediately so the user
+    // knows to wait for connectivity. Don't attempt upload (it would fail).
+    if (!connectivity.isOnline &&
+        pendingFiles != null &&
+        pendingFiles.isNotEmpty) {
+      state = state.copyWith(
+        sendFailure: const ValidationFailure(
+          message: 'You are offline. Message will be sent when '
+              'connection is restored.',
+          causeType: 'offlineAttachment',
+        ),
+      );
+      return;
+    }
+
     if (!connectivity.isOnline &&
         (pendingFiles == null || pendingFiles.isEmpty)) {
       final localId =

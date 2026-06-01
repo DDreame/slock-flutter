@@ -2626,6 +2626,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationOfflineBanner => '您已离线。重新连接后消息将被发送。';
 
   @override
+  String get conversationOfflineAttachmentSnackbar => '您已离线。连接恢复后消息将被发送。';
+
+  @override
+  String outboxFailedBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条消息发送失败',
+      one: '1 条消息发送失败',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get conversationInfoMute => '静音通知';
 
   @override

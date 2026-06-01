@@ -2743,6 +2743,21 @@ class AppLocalizationsEs extends AppLocalizations {
       'Estás sin conexión. Los mensajes se enviarán cuando te reconectes.';
 
   @override
+  String get conversationOfflineAttachmentSnackbar =>
+      'Estás sin conexión. El mensaje se enviará cuando se restablezca la conexión.';
+
+  @override
+  String outboxFailedBanner(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mensajes no se pudieron enviar',
+      one: '1 mensaje no se pudo enviar',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get conversationInfoMute => 'Silenciar notificaciones';
 
   @override
