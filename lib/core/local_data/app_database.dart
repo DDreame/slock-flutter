@@ -4,26 +4,26 @@ import 'package:drift/drift.dart';
 
 part 'conversation_local_tables.dart';
 part 'conversation_local_dao.dart';
+part 'outbox_local_dao.dart';
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [ConversationSummaries, Messages, Identities],
-  daos: [ConversationLocalDao],
+  tables: [ConversationSummaries, Messages, Identities, OutboxEntries],
+  daos: [ConversationLocalDao, OutboxLocalDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (Migrator m) => m.createAll(),
         onUpgrade: (Migrator m, int from, int to) async {
-          // Step-by-step migration scaffold. Add version-specific steps here
-          // when schemaVersion is bumped:
-          //   if (from < 2) { await m.addColumn(...); }
-          //   if (from < 3) { ... }
+          if (from < 2) {
+            await m.createTable(outboxEntries);
+          }
         },
       );
 }
@@ -151,6 +151,36 @@ class LocalStoredMessageRecord {
   final int? seq;
   final String? attachmentsJson;
   final String? threadId;
+}
+
+class LocalOutboxEntry {
+  const LocalOutboxEntry({
+    required this.targetKey,
+    required this.localId,
+    required this.content,
+    required this.createdAt,
+    required this.status,
+    this.replyToId,
+    this.failureMessage,
+    this.retryCount = 0,
+  });
+
+  final String targetKey;
+  final String localId;
+  final String content;
+  final DateTime createdAt;
+  final String status;
+  final String? replyToId;
+  final String? failureMessage;
+  final int retryCount;
+}
+
+abstract class OutboxLocalStore {
+  Future<Map<String, List<LocalOutboxEntry>>> loadAll();
+
+  Future<void> replaceAll(Map<String, List<LocalOutboxEntry>> items);
+
+  Future<void> clearAll();
 }
 
 abstract class ConversationLocalStore {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,11 +15,35 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
 
+Future<AppDatabase?> _tryOpenMemoryDb() async {
+  AppDatabase? database;
+  try {
+    database = AppDatabase(NativeDatabase.memory());
+    await database.customSelect('SELECT 1').get();
+    return database;
+  } catch (_) {
+    await database?.close();
+    return null;
+  }
+}
+
+Future<void> _waitForStoredOutboxItem(
+  OutboxLocalStore store,
+  String targetKey,
+) async {
+  for (var attempt = 0; attempt < 10; attempt += 1) {
+    final stored = await store.loadAll();
+    if ((stored[targetKey]?.isNotEmpty ?? false)) return;
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+}
+
 void main() {
   late ProviderContainer container;
   late _FakeConversationRepository repository;
   late StreamController<ConnectivityStatus> connectivityController;
   late ConnectivityService connectivityService;
+  late _FakeOutboxLocalStore outboxLocalStore;
 
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
@@ -36,12 +61,14 @@ void main() {
       ConnectivityStatus.online,
       controller: connectivityController,
     );
+    outboxLocalStore = _FakeOutboxLocalStore();
 
     container = ProviderContainer(
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
         connectivityServiceProvider.overrideWithValue(connectivityService),
         sharedPreferencesProvider.overrideWithValue(prefs),
+        outboxLocalStoreProvider.overrideWithValue(outboxLocalStore),
       ],
     );
   });
@@ -382,19 +409,125 @@ void main() {
   });
 
   group('OutboxStore persistence', () {
-    test('enqueue persists to SharedPreferences', () async {
+    test('enqueue persists to SQLite local store', () async {
       final notifier = container.read(outboxStoreProvider.notifier);
       notifier.enqueue(target, 'Persisted');
+      await Future<void>.delayed(Duration.zero);
 
-      final prefs = container.read(sharedPreferencesProvider);
-      final raw = prefs.getString('outbox_queue');
-      expect(raw, isNotNull);
-
-      final decoded = jsonDecode(raw!) as Map<String, dynamic>;
-      expect(decoded.values.first, isA<List>());
+      final stored = await container.read(outboxLocalStoreProvider).loadAll();
+      final targetKey = outboxTargetKey(target);
+      expect(stored[targetKey], hasLength(1));
+      expect(stored[targetKey]!.first.content, 'Persisted');
     });
 
-    test('restores queue from SharedPreferences on build', () async {
+    test('restores queue from SQLite local store after container restart',
+        () async {
+      final sharedOutboxStore = _FakeOutboxLocalStore();
+      final offlineController =
+          StreamController<ConnectivityStatus>.broadcast();
+      addTearDown(offlineController.close);
+      final offlineConnectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: offlineController,
+      );
+
+      final firstContainer = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(offlineConnectivity),
+          sharedPreferencesProvider.overrideWithValue(
+            container.read(sharedPreferencesProvider),
+          ),
+          outboxLocalStoreProvider.overrideWithValue(sharedOutboxStore),
+        ],
+      );
+      addTearDown(firstContainer.dispose);
+      firstContainer.read(outboxStoreProvider.notifier).enqueue(
+            target,
+            'Survives restart',
+            localId: 'restart-1',
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final targetKey = outboxTargetKey(target);
+      expect((await sharedOutboxStore.loadAll())[targetKey], hasLength(1));
+      firstContainer.dispose();
+
+      final secondContainer = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(offlineConnectivity),
+          sharedPreferencesProvider.overrideWithValue(
+            container.read(sharedPreferencesProvider),
+          ),
+          outboxLocalStoreProvider.overrideWithValue(sharedOutboxStore),
+        ],
+      );
+      addTearDown(secondContainer.dispose);
+      secondContainer.read(outboxStoreProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = secondContainer.read(outboxStoreProvider);
+      expect(state.items[targetKey], hasLength(1));
+      expect(state.items[targetKey]!.first.content, 'Survives restart');
+    });
+
+    test('restores queue from real Drift database after container restart',
+        () async {
+      final database = await _tryOpenMemoryDb();
+      if (database == null) {
+        markTestSkipped('sqlite3 native library not available');
+        return;
+      }
+      addTearDown(database.close);
+      final offlineController =
+          StreamController<ConnectivityStatus>.broadcast();
+      addTearDown(offlineController.close);
+      final offlineConnectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: offlineController,
+      );
+      final prefs = container.read(sharedPreferencesProvider);
+      final targetKey = outboxTargetKey(target);
+
+      final firstContainer = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(offlineConnectivity),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(firstContainer.dispose);
+      firstContainer.read(outboxStoreProvider.notifier).enqueue(
+            target,
+            'Survives real database restart',
+            localId: 'real-db-restart-1',
+          );
+      await _waitForStoredOutboxItem(database.outboxLocalDao, targetKey);
+      firstContainer.dispose();
+
+      final secondContainer = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(offlineConnectivity),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(secondContainer.dispose);
+      secondContainer.read(outboxStoreProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = secondContainer.read(outboxStoreProvider);
+      expect(state.items[targetKey], hasLength(1));
+      expect(
+        state.items[targetKey]!.first.content,
+        'Survives real database restart',
+      );
+    });
+
+    test('imports legacy queue from SharedPreferences on build', () async {
       final targetKey = outboxTargetKey(target);
       final prefs = container.read(sharedPreferencesProvider);
       final queueJson = jsonEncode({
@@ -409,12 +542,22 @@ void main() {
       });
       await prefs.setString('outbox_queue', queueJson);
 
-      // Create a new container to simulate app restart
+      final legacyConnectivityController =
+          StreamController<ConnectivityStatus>.broadcast();
+      addTearDown(legacyConnectivityController.close);
+      final legacyConnectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: legacyConnectivityController,
+      );
+
+      // Create a new container to simulate app restart. Keep it offline so the
+      // imported queue is not drained before the migration assertion.
       final newContainer = ProviderContainer(
         overrides: [
           conversationRepositoryProvider.overrideWithValue(repository),
-          connectivityServiceProvider.overrideWithValue(connectivityService),
+          connectivityServiceProvider.overrideWithValue(legacyConnectivity),
           sharedPreferencesProvider.overrideWithValue(prefs),
+          outboxLocalStoreProvider.overrideWithValue(outboxLocalStore),
         ],
       );
       addTearDown(newContainer.dispose);
@@ -422,9 +565,73 @@ void main() {
       final state = newContainer.read(outboxStoreProvider);
       expect(state.items[targetKey], hasLength(1));
       expect(state.items[targetKey]!.first.content, 'Restored message');
+      await Future<void>.delayed(Duration.zero);
+
+      final stored =
+          await newContainer.read(outboxLocalStoreProvider).loadAll();
+      expect(stored[targetKey], hasLength(1));
+      expect(prefs.getString('outbox_queue'), isNull);
     });
 
-    test('persisted DM targets are restored as DM (not channel)', () async {
+    test('online legacy import cannot resurrect entries drained on startup',
+        () async {
+      final targetKey = outboxTargetKey(target);
+      final prefs = container.read(sharedPreferencesProvider);
+      await prefs.setString(
+        'outbox_queue',
+        jsonEncode({
+          targetKey: [
+            {
+              'localId': 'legacy-online-1',
+              'content': 'Send me during migration',
+              'status': 'pending',
+              'createdAt': '2026-05-07T12:00:00.000Z',
+            },
+          ],
+        }),
+      );
+      repository.sentMessage = ConversationMessageSummary(
+        id: 'sent-online-1',
+        content: 'Send me during migration',
+        createdAt: DateTime.parse('2026-05-07T12:00:01Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      );
+      repository.sendStarted = Completer<void>();
+      final migratingStore = _FakeOutboxLocalStore();
+      final legacyImportGate = Completer<void>();
+      migratingStore.nextReplaceGate = legacyImportGate;
+
+      final newContainer = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivityService),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          outboxLocalStoreProvider.overrideWithValue(migratingStore),
+        ],
+      );
+      addTearDown(newContainer.dispose);
+
+      final initialState = newContainer.read(outboxStoreProvider);
+      expect(initialState.items[targetKey], hasLength(1));
+
+      await repository.sendStarted!.future;
+      expect(repository.sentContents, ['Send me during migration']);
+
+      legacyImportGate.complete();
+      await migratingStore.waitForReplaceCount(2);
+
+      expect(
+        newContainer.read(outboxStoreProvider).items[targetKey] ?? [],
+        isEmpty,
+      );
+      expect((await migratingStore.loadAll())[targetKey] ?? [], isEmpty);
+      expect(prefs.getString('outbox_queue'), isNull);
+    });
+
+    test('legacy persisted DM targets are restored as DM (not channel)',
+        () async {
       final dmTarget = ConversationDetailTarget.directMessage(
         const DirectMessageScopeId(
           serverId: ServerScopeId('server-1'),
@@ -446,12 +653,22 @@ void main() {
       });
       await prefs.setString('outbox_queue', queueJson);
 
-      // Create a new container to simulate app restart
+      final legacyConnectivityController =
+          StreamController<ConnectivityStatus>.broadcast();
+      addTearDown(legacyConnectivityController.close);
+      final legacyConnectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: legacyConnectivityController,
+      );
+
+      // Create a new container to simulate app restart. Keep it offline so the
+      // imported queue is not drained before the migration assertion.
       final newContainer = ProviderContainer(
         overrides: [
           conversationRepositoryProvider.overrideWithValue(repository),
-          connectivityServiceProvider.overrideWithValue(connectivityService),
+          connectivityServiceProvider.overrideWithValue(legacyConnectivity),
           sharedPreferencesProvider.overrideWithValue(prefs),
+          outboxLocalStoreProvider.overrideWithValue(outboxLocalStore),
         ],
       );
       addTearDown(newContainer.dispose);
@@ -460,6 +677,11 @@ void main() {
       expect(state.items[dmKey], hasLength(1));
       // Verify the key format includes surface
       expect(dmKey, 'directMessage/server-1/dm-abc');
+      await Future<void>.delayed(Duration.zero);
+
+      final stored =
+          await newContainer.read(outboxLocalStoreProvider).loadAll();
+      expect(stored[dmKey], hasLength(1));
     });
   });
 
@@ -478,6 +700,55 @@ void main() {
       expect(updated.items[targetKey] ?? [], isEmpty);
     });
   });
+}
+
+class _FakeOutboxLocalStore implements OutboxLocalStore {
+  Map<String, List<LocalOutboxEntry>> _items = const {};
+  Completer<void>? nextReplaceGate;
+  int replaceCount = 0;
+  final List<Completer<void>> _replaceWaiters = [];
+
+  @override
+  Future<Map<String, List<LocalOutboxEntry>>> loadAll() async {
+    return _clone(_items);
+  }
+
+  Future<void> waitForReplaceCount(int expectedCount) async {
+    if (replaceCount >= expectedCount) return;
+    final completer = Completer<void>();
+    _replaceWaiters.add(completer);
+    await completer.future;
+  }
+
+  @override
+  Future<void> replaceAll(Map<String, List<LocalOutboxEntry>> items) async {
+    final gate = nextReplaceGate;
+    nextReplaceGate = null;
+    if (gate != null) {
+      await gate.future;
+    }
+    _items = _clone(items);
+    replaceCount += 1;
+    for (final waiter in List<Completer<void>>.of(_replaceWaiters)) {
+      if (replaceCount >= 2 && !waiter.isCompleted) {
+        waiter.complete();
+        _replaceWaiters.remove(waiter);
+      }
+    }
+  }
+
+  @override
+  Future<void> clearAll() async {
+    _items = const {};
+  }
+
+  Map<String, List<LocalOutboxEntry>> _clone(
+    Map<String, List<LocalOutboxEntry>> items,
+  ) {
+    return {
+      for (final entry in items.entries) entry.key: List.of(entry.value),
+    };
+  }
 }
 
 class _FakeConversationRepository implements ConversationRepository {

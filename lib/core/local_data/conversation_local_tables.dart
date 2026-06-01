@@ -41,3 +41,17 @@ class Identities extends Table {
   @override
   Set<Column<Object>> get primaryKey => {serverId, identityId};
 }
+
+class OutboxEntries extends Table {
+  TextColumn get targetKey => text()();
+  TextColumn get localId => text()();
+  TextColumn get content => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  TextColumn get replyToId => text().nullable()();
+  TextColumn get status => text()();
+  TextColumn get failureMessage => text().nullable()();
+  IntColumn get retryCount => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {targetKey, localId};
+}

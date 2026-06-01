@@ -1356,6 +1356,447 @@ class IdentitiesCompanion extends UpdateCompanion<Identity> {
   }
 }
 
+class $OutboxEntriesTable extends OutboxEntries
+    with TableInfo<$OutboxEntriesTable, OutboxEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OutboxEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _targetKeyMeta =
+      const VerificationMeta('targetKey');
+  @override
+  late final GeneratedColumn<String> targetKey = GeneratedColumn<String>(
+      'target_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _localIdMeta =
+      const VerificationMeta('localId');
+  @override
+  late final GeneratedColumn<String> localId = GeneratedColumn<String>(
+      'local_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _replyToIdMeta =
+      const VerificationMeta('replyToId');
+  @override
+  late final GeneratedColumn<String> replyToId = GeneratedColumn<String>(
+      'reply_to_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _failureMessageMeta =
+      const VerificationMeta('failureMessage');
+  @override
+  late final GeneratedColumn<String> failureMessage = GeneratedColumn<String>(
+      'failure_message', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _retryCountMeta =
+      const VerificationMeta('retryCount');
+  @override
+  late final GeneratedColumn<int> retryCount = GeneratedColumn<int>(
+      'retry_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  @override
+  List<GeneratedColumn> get $columns => [
+        targetKey,
+        localId,
+        content,
+        createdAt,
+        replyToId,
+        status,
+        failureMessage,
+        retryCount
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'outbox_entries';
+  @override
+  VerificationContext validateIntegrity(Insertable<OutboxEntry> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('target_key')) {
+      context.handle(_targetKeyMeta,
+          targetKey.isAcceptableOrUnknown(data['target_key']!, _targetKeyMeta));
+    } else if (isInserting) {
+      context.missing(_targetKeyMeta);
+    }
+    if (data.containsKey('local_id')) {
+      context.handle(_localIdMeta,
+          localId.isAcceptableOrUnknown(data['local_id']!, _localIdMeta));
+    } else if (isInserting) {
+      context.missing(_localIdMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('reply_to_id')) {
+      context.handle(
+          _replyToIdMeta,
+          replyToId.isAcceptableOrUnknown(
+              data['reply_to_id']!, _replyToIdMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('failure_message')) {
+      context.handle(
+          _failureMessageMeta,
+          failureMessage.isAcceptableOrUnknown(
+              data['failure_message']!, _failureMessageMeta));
+    }
+    if (data.containsKey('retry_count')) {
+      context.handle(
+          _retryCountMeta,
+          retryCount.isAcceptableOrUnknown(
+              data['retry_count']!, _retryCountMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {targetKey, localId};
+  @override
+  OutboxEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OutboxEntry(
+      targetKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}target_key'])!,
+      localId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}local_id'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      replyToId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reply_to_id']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      failureMessage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}failure_message']),
+      retryCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}retry_count'])!,
+    );
+  }
+
+  @override
+  $OutboxEntriesTable createAlias(String alias) {
+    return $OutboxEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class OutboxEntry extends DataClass implements Insertable<OutboxEntry> {
+  final String targetKey;
+  final String localId;
+  final String content;
+  final DateTime createdAt;
+  final String? replyToId;
+  final String status;
+  final String? failureMessage;
+  final int retryCount;
+  const OutboxEntry(
+      {required this.targetKey,
+      required this.localId,
+      required this.content,
+      required this.createdAt,
+      this.replyToId,
+      required this.status,
+      this.failureMessage,
+      required this.retryCount});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['target_key'] = Variable<String>(targetKey);
+    map['local_id'] = Variable<String>(localId);
+    map['content'] = Variable<String>(content);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || replyToId != null) {
+      map['reply_to_id'] = Variable<String>(replyToId);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || failureMessage != null) {
+      map['failure_message'] = Variable<String>(failureMessage);
+    }
+    map['retry_count'] = Variable<int>(retryCount);
+    return map;
+  }
+
+  OutboxEntriesCompanion toCompanion(bool nullToAbsent) {
+    return OutboxEntriesCompanion(
+      targetKey: Value(targetKey),
+      localId: Value(localId),
+      content: Value(content),
+      createdAt: Value(createdAt),
+      replyToId: replyToId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(replyToId),
+      status: Value(status),
+      failureMessage: failureMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(failureMessage),
+      retryCount: Value(retryCount),
+    );
+  }
+
+  factory OutboxEntry.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OutboxEntry(
+      targetKey: serializer.fromJson<String>(json['targetKey']),
+      localId: serializer.fromJson<String>(json['localId']),
+      content: serializer.fromJson<String>(json['content']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      replyToId: serializer.fromJson<String?>(json['replyToId']),
+      status: serializer.fromJson<String>(json['status']),
+      failureMessage: serializer.fromJson<String?>(json['failureMessage']),
+      retryCount: serializer.fromJson<int>(json['retryCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'targetKey': serializer.toJson<String>(targetKey),
+      'localId': serializer.toJson<String>(localId),
+      'content': serializer.toJson<String>(content),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'replyToId': serializer.toJson<String?>(replyToId),
+      'status': serializer.toJson<String>(status),
+      'failureMessage': serializer.toJson<String?>(failureMessage),
+      'retryCount': serializer.toJson<int>(retryCount),
+    };
+  }
+
+  OutboxEntry copyWith(
+          {String? targetKey,
+          String? localId,
+          String? content,
+          DateTime? createdAt,
+          Value<String?> replyToId = const Value.absent(),
+          String? status,
+          Value<String?> failureMessage = const Value.absent(),
+          int? retryCount}) =>
+      OutboxEntry(
+        targetKey: targetKey ?? this.targetKey,
+        localId: localId ?? this.localId,
+        content: content ?? this.content,
+        createdAt: createdAt ?? this.createdAt,
+        replyToId: replyToId.present ? replyToId.value : this.replyToId,
+        status: status ?? this.status,
+        failureMessage:
+            failureMessage.present ? failureMessage.value : this.failureMessage,
+        retryCount: retryCount ?? this.retryCount,
+      );
+  OutboxEntry copyWithCompanion(OutboxEntriesCompanion data) {
+    return OutboxEntry(
+      targetKey: data.targetKey.present ? data.targetKey.value : this.targetKey,
+      localId: data.localId.present ? data.localId.value : this.localId,
+      content: data.content.present ? data.content.value : this.content,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      replyToId: data.replyToId.present ? data.replyToId.value : this.replyToId,
+      status: data.status.present ? data.status.value : this.status,
+      failureMessage: data.failureMessage.present
+          ? data.failureMessage.value
+          : this.failureMessage,
+      retryCount:
+          data.retryCount.present ? data.retryCount.value : this.retryCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxEntry(')
+          ..write('targetKey: $targetKey, ')
+          ..write('localId: $localId, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('replyToId: $replyToId, ')
+          ..write('status: $status, ')
+          ..write('failureMessage: $failureMessage, ')
+          ..write('retryCount: $retryCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(targetKey, localId, content, createdAt,
+      replyToId, status, failureMessage, retryCount);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OutboxEntry &&
+          other.targetKey == this.targetKey &&
+          other.localId == this.localId &&
+          other.content == this.content &&
+          other.createdAt == this.createdAt &&
+          other.replyToId == this.replyToId &&
+          other.status == this.status &&
+          other.failureMessage == this.failureMessage &&
+          other.retryCount == this.retryCount);
+}
+
+class OutboxEntriesCompanion extends UpdateCompanion<OutboxEntry> {
+  final Value<String> targetKey;
+  final Value<String> localId;
+  final Value<String> content;
+  final Value<DateTime> createdAt;
+  final Value<String?> replyToId;
+  final Value<String> status;
+  final Value<String?> failureMessage;
+  final Value<int> retryCount;
+  final Value<int> rowid;
+  const OutboxEntriesCompanion({
+    this.targetKey = const Value.absent(),
+    this.localId = const Value.absent(),
+    this.content = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.replyToId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.failureMessage = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OutboxEntriesCompanion.insert({
+    required String targetKey,
+    required String localId,
+    required String content,
+    required DateTime createdAt,
+    this.replyToId = const Value.absent(),
+    required String status,
+    this.failureMessage = const Value.absent(),
+    this.retryCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : targetKey = Value(targetKey),
+        localId = Value(localId),
+        content = Value(content),
+        createdAt = Value(createdAt),
+        status = Value(status);
+  static Insertable<OutboxEntry> custom({
+    Expression<String>? targetKey,
+    Expression<String>? localId,
+    Expression<String>? content,
+    Expression<DateTime>? createdAt,
+    Expression<String>? replyToId,
+    Expression<String>? status,
+    Expression<String>? failureMessage,
+    Expression<int>? retryCount,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (targetKey != null) 'target_key': targetKey,
+      if (localId != null) 'local_id': localId,
+      if (content != null) 'content': content,
+      if (createdAt != null) 'created_at': createdAt,
+      if (replyToId != null) 'reply_to_id': replyToId,
+      if (status != null) 'status': status,
+      if (failureMessage != null) 'failure_message': failureMessage,
+      if (retryCount != null) 'retry_count': retryCount,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OutboxEntriesCompanion copyWith(
+      {Value<String>? targetKey,
+      Value<String>? localId,
+      Value<String>? content,
+      Value<DateTime>? createdAt,
+      Value<String?>? replyToId,
+      Value<String>? status,
+      Value<String?>? failureMessage,
+      Value<int>? retryCount,
+      Value<int>? rowid}) {
+    return OutboxEntriesCompanion(
+      targetKey: targetKey ?? this.targetKey,
+      localId: localId ?? this.localId,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      replyToId: replyToId ?? this.replyToId,
+      status: status ?? this.status,
+      failureMessage: failureMessage ?? this.failureMessage,
+      retryCount: retryCount ?? this.retryCount,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (targetKey.present) {
+      map['target_key'] = Variable<String>(targetKey.value);
+    }
+    if (localId.present) {
+      map['local_id'] = Variable<String>(localId.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (replyToId.present) {
+      map['reply_to_id'] = Variable<String>(replyToId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (failureMessage.present) {
+      map['failure_message'] = Variable<String>(failureMessage.value);
+    }
+    if (retryCount.present) {
+      map['retry_count'] = Variable<int>(retryCount.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OutboxEntriesCompanion(')
+          ..write('targetKey: $targetKey, ')
+          ..write('localId: $localId, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('replyToId: $replyToId, ')
+          ..write('status: $status, ')
+          ..write('failureMessage: $failureMessage, ')
+          ..write('retryCount: $retryCount, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1363,14 +1804,17 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $ConversationSummariesTable(this);
   late final $MessagesTable messages = $MessagesTable(this);
   late final $IdentitiesTable identities = $IdentitiesTable(this);
+  late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   late final ConversationLocalDao conversationLocalDao =
       ConversationLocalDao(this as AppDatabase);
+  late final OutboxLocalDao outboxLocalDao =
+      OutboxLocalDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [conversationSummaries, messages, identities];
+      [conversationSummaries, messages, identities, outboxEntries];
 }
 
 typedef $$ConversationSummariesTableCreateCompanionBuilder
@@ -2029,6 +2473,226 @@ typedef $$IdentitiesTableProcessedTableManager = ProcessedTableManager<
     (Identity, BaseReferences<_$AppDatabase, $IdentitiesTable, Identity>),
     Identity,
     PrefetchHooks Function()>;
+typedef $$OutboxEntriesTableCreateCompanionBuilder = OutboxEntriesCompanion
+    Function({
+  required String targetKey,
+  required String localId,
+  required String content,
+  required DateTime createdAt,
+  Value<String?> replyToId,
+  required String status,
+  Value<String?> failureMessage,
+  Value<int> retryCount,
+  Value<int> rowid,
+});
+typedef $$OutboxEntriesTableUpdateCompanionBuilder = OutboxEntriesCompanion
+    Function({
+  Value<String> targetKey,
+  Value<String> localId,
+  Value<String> content,
+  Value<DateTime> createdAt,
+  Value<String?> replyToId,
+  Value<String> status,
+  Value<String?> failureMessage,
+  Value<int> retryCount,
+  Value<int> rowid,
+});
+
+class $$OutboxEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+  $$OutboxEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get targetKey => $composableBuilder(
+      column: $table.targetKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get localId => $composableBuilder(
+      column: $table.localId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get replyToId => $composableBuilder(
+      column: $table.replyToId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get failureMessage => $composableBuilder(
+      column: $table.failureMessage,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnFilters(column));
+}
+
+class $$OutboxEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+  $$OutboxEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get targetKey => $composableBuilder(
+      column: $table.targetKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get localId => $composableBuilder(
+      column: $table.localId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get replyToId => $composableBuilder(
+      column: $table.replyToId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get failureMessage => $composableBuilder(
+      column: $table.failureMessage,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => ColumnOrderings(column));
+}
+
+class $$OutboxEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+  $$OutboxEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get targetKey =>
+      $composableBuilder(column: $table.targetKey, builder: (column) => column);
+
+  GeneratedColumn<String> get localId =>
+      $composableBuilder(column: $table.localId, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get replyToId =>
+      $composableBuilder(column: $table.replyToId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get failureMessage => $composableBuilder(
+      column: $table.failureMessage, builder: (column) => column);
+
+  GeneratedColumn<int> get retryCount => $composableBuilder(
+      column: $table.retryCount, builder: (column) => column);
+}
+
+class $$OutboxEntriesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $OutboxEntriesTable,
+    OutboxEntry,
+    $$OutboxEntriesTableFilterComposer,
+    $$OutboxEntriesTableOrderingComposer,
+    $$OutboxEntriesTableAnnotationComposer,
+    $$OutboxEntriesTableCreateCompanionBuilder,
+    $$OutboxEntriesTableUpdateCompanionBuilder,
+    (
+      OutboxEntry,
+      BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>
+    ),
+    OutboxEntry,
+    PrefetchHooks Function()> {
+  $$OutboxEntriesTableTableManager(_$AppDatabase db, $OutboxEntriesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OutboxEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OutboxEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OutboxEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> targetKey = const Value.absent(),
+            Value<String> localId = const Value.absent(),
+            Value<String> content = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<String?> replyToId = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> failureMessage = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              OutboxEntriesCompanion(
+            targetKey: targetKey,
+            localId: localId,
+            content: content,
+            createdAt: createdAt,
+            replyToId: replyToId,
+            status: status,
+            failureMessage: failureMessage,
+            retryCount: retryCount,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String targetKey,
+            required String localId,
+            required String content,
+            required DateTime createdAt,
+            Value<String?> replyToId = const Value.absent(),
+            required String status,
+            Value<String?> failureMessage = const Value.absent(),
+            Value<int> retryCount = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              OutboxEntriesCompanion.insert(
+            targetKey: targetKey,
+            localId: localId,
+            content: content,
+            createdAt: createdAt,
+            replyToId: replyToId,
+            status: status,
+            failureMessage: failureMessage,
+            retryCount: retryCount,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$OutboxEntriesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $OutboxEntriesTable,
+    OutboxEntry,
+    $$OutboxEntriesTableFilterComposer,
+    $$OutboxEntriesTableOrderingComposer,
+    $$OutboxEntriesTableAnnotationComposer,
+    $$OutboxEntriesTableCreateCompanionBuilder,
+    $$OutboxEntriesTableUpdateCompanionBuilder,
+    (
+      OutboxEntry,
+      BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>
+    ),
+    OutboxEntry,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2039,6 +2703,8 @@ class $AppDatabaseManager {
       $$MessagesTableTableManager(_db, _db.messages);
   $$IdentitiesTableTableManager get identities =>
       $$IdentitiesTableTableManager(_db, _db.identities);
+  $$OutboxEntriesTableTableManager get outboxEntries =>
+      $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
 }
 
 mixin _$ConversationLocalDaoMixin on DatabaseAccessor<AppDatabase> {
@@ -2059,4 +2725,16 @@ class ConversationLocalDaoManager {
       $$MessagesTableTableManager(_db.attachedDatabase, _db.messages);
   $$IdentitiesTableTableManager get identities =>
       $$IdentitiesTableTableManager(_db.attachedDatabase, _db.identities);
+}
+
+mixin _$OutboxLocalDaoMixin on DatabaseAccessor<AppDatabase> {
+  $OutboxEntriesTable get outboxEntries => attachedDatabase.outboxEntries;
+  OutboxLocalDaoManager get managers => OutboxLocalDaoManager(this);
+}
+
+class OutboxLocalDaoManager {
+  final _$OutboxLocalDaoMixin _db;
+  OutboxLocalDaoManager(this._db);
+  $$OutboxEntriesTableTableManager get outboxEntries =>
+      $$OutboxEntriesTableTableManager(_db.attachedDatabase, _db.outboxEntries);
 }

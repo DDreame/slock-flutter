@@ -241,7 +241,7 @@ typedef OutboxDrainCallback = void Function(
 ///
 /// Messages are enqueued when the device is offline and drained
 /// when connectivity is restored. The queue persists to
-/// SharedPreferences so it survives app restart.
+/// SQLite so it survives app restart and app process death.
 class OutboxStore extends Notifier<OutboxState> {
   int _localIdCounter = 0;
   bool _isDraining = false;
@@ -250,6 +250,7 @@ class OutboxStore extends Notifier<OutboxState> {
   Timer? _drainBackoffTimer;
   Timer? _drainRescheduleTimer;
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
+  Future<void> _storageWrite = Future<void>.value();
   final Map<String, OutboxDrainCallback> _drainCallbacks = {};
 
   @override
@@ -258,14 +259,15 @@ class OutboxStore extends Notifier<OutboxState> {
 
   @override
   OutboxState build() {
-    final state = _loadFromPrefs();
+    final state = _loadLegacyFromPrefs();
     _listenConnectivity();
     ref.onDispose(() {
       _connectivitySub?.cancel();
       _drainBackoffTimer?.cancel();
       _drainRescheduleTimer?.cancel();
     });
-    // Drain any persisted outbox items on startup when already online.
+    unawaited(_hydrateFromStorage(initialState: state));
+    // Drain any legacy persisted outbox items on startup when already online.
     if (state.items.isNotEmpty) {
       final connectivity = ref.read(connectivityServiceProvider);
       if (connectivity.isOnline) {
@@ -546,11 +548,18 @@ class OutboxStore extends Notifier<OutboxState> {
   /// caller can await durable removal of the persisted key.
   Future<void> clearAll() async {
     state = const OutboxState();
-    try {
-      await ref.read(sharedPreferencesProvider).remove(_prefsKey);
-    } catch (_) {
-      // Best-effort; ignore failures during cleanup.
-    }
+    await _enqueueStorageWrite(() async {
+      try {
+        await ref.read(outboxLocalStoreProvider).clearAll();
+      } catch (_) {
+        // Best-effort; ignore failures during cleanup.
+      }
+      try {
+        await ref.read(sharedPreferencesProvider).remove(_prefsKey);
+      } catch (_) {
+        // Best-effort; ignore failures during cleanup.
+      }
+    });
   }
 
   void _recordDrainFailure() {
@@ -658,19 +667,57 @@ class OutboxStore extends Notifier<OutboxState> {
   }
 
   void _persist() {
-    try {
-      final prefs = ref.read(sharedPreferencesProvider);
-      final map = <String, dynamic>{};
-      for (final entry in state.items.entries) {
-        map[entry.key] = entry.value.map((m) => m.toJson()).toList();
+    final snapshot = state.items;
+    unawaited(_enqueueStorageWrite(() async {
+      try {
+        await ref.read(outboxLocalStoreProvider).replaceAll(
+              _toLocalEntries(snapshot),
+            );
+      } catch (_) {
+        // Best-effort persistence; ignore failures.
       }
-      prefs.setString(_prefsKey, jsonEncode(map));
+    }));
+  }
+
+  Future<void> _enqueueStorageWrite(Future<void> Function() action) {
+    final write = _storageWrite.catchError((_) {}).then((_) => action());
+    _storageWrite = write;
+    return write;
+  }
+
+  Future<void> _hydrateFromStorage({required OutboxState initialState}) async {
+    if (initialState.items.isNotEmpty) {
+      await _importLegacyPrefs();
+      return;
+    }
+
+    try {
+      final stored = await ref.read(outboxLocalStoreProvider).loadAll();
+      if (stored.isEmpty) return;
+      state = OutboxState(items: _fromLocalEntries(stored));
+      final connectivity = ref.read(connectivityServiceProvider);
+      if (connectivity.isOnline) {
+        _scheduleDrainIfNeeded();
+      }
     } catch (_) {
-      // Best-effort persistence; ignore failures.
+      // Best-effort hydration; an empty outbox is safer than crashing startup.
     }
   }
 
-  OutboxState _loadFromPrefs() {
+  Future<void> _importLegacyPrefs() async {
+    await _enqueueStorageWrite(() async {
+      try {
+        await ref.read(outboxLocalStoreProvider).replaceAll(
+              _toLocalEntries(state.items),
+            );
+        await ref.read(sharedPreferencesProvider).remove(_prefsKey);
+      } catch (_) {
+        // Keep the legacy pref if import fails so a later launch can retry.
+      }
+    });
+  }
+
+  OutboxState _loadLegacyFromPrefs() {
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       final raw = prefs.getString(_prefsKey);
@@ -687,6 +734,47 @@ class OutboxStore extends Notifier<OutboxState> {
     } catch (_) {
       return const OutboxState();
     }
+  }
+
+  Map<String, List<LocalOutboxEntry>> _toLocalEntries(
+    Map<String, List<OutboxMessage>> items,
+  ) {
+    return {
+      for (final entry in items.entries)
+        entry.key: [
+          for (final message in entry.value)
+            LocalOutboxEntry(
+              targetKey: entry.key,
+              localId: message.localId,
+              content: message.content,
+              createdAt: message.createdAt,
+              replyToId: message.replyToId,
+              status: message.status.name,
+              failureMessage: message.failureMessage,
+              retryCount: message.retryCount,
+            ),
+        ],
+    };
+  }
+
+  Map<String, List<OutboxMessage>> _fromLocalEntries(
+    Map<String, List<LocalOutboxEntry>> items,
+  ) {
+    return {
+      for (final entry in items.entries)
+        entry.key: [
+          for (final item in entry.value)
+            OutboxMessage(
+              localId: item.localId,
+              content: item.content,
+              createdAt: item.createdAt,
+              replyToId: item.replyToId,
+              status: OutboxMessage._parseStatus(item.status),
+              failureMessage: item.failureMessage,
+              retryCount: item.retryCount,
+            ),
+        ],
+    };
   }
 }
 

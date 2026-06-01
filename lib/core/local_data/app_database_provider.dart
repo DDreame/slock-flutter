@@ -20,6 +20,10 @@ final conversationLocalStoreProvider = Provider<ConversationLocalStore>((ref) {
   return ref.watch(appDatabaseProvider).conversationLocalDao;
 });
 
+final outboxLocalStoreProvider = Provider<OutboxLocalStore>((ref) {
+  return ref.watch(appDatabaseProvider).outboxLocalDao;
+});
+
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     if (_isRunningInFlutterTest()) {
