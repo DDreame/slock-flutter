@@ -1587,6 +1587,9 @@
   "billingResourceChannels": "Channels",
 
   "notificationNewMessageFallback": "New message",
+  "notificationActionReply": "Reply",
+  "notificationActionMarkRead": "Mark as read",
+  "notificationActionReplyHint": "Type a reply",
 
   "typingIndicatorOne": "{name} is typing...",
   "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },

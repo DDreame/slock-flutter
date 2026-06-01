@@ -43,6 +43,7 @@ void main() {
         userId: 'user-abc',
         serverId: 'server-xyz',
         realtimeUrl: 'wss://realtime.example.com',
+        apiBaseUrl: 'https://api.example.com',
       );
 
       // All 4 credentials must be in SecureStorage.
@@ -70,6 +71,12 @@ void main() {
         reason: 'RealtimeUrl must be stored in SecureStorage '
             '(INV-SEC-PERSIST-1)',
       );
+      expect(
+        await secureStorage.read(key: backgroundWorkerApiBaseUrlKey),
+        equals('https://api.example.com'),
+        reason: 'ApiBaseUrl must be stored in SecureStorage '
+            '(INV-SEC-PERSIST-1)',
+      );
     },
   );
 
@@ -89,6 +96,7 @@ void main() {
         userId: 'user-abc',
         serverId: 'server-xyz',
         realtimeUrl: 'wss://realtime.example.com',
+        apiBaseUrl: 'https://api.example.com',
       );
 
       await persistence.clear();
@@ -118,6 +126,12 @@ void main() {
         reason: 'RealtimeUrl must be removed from SecureStorage '
             '(INV-SEC-PERSIST-2)',
       );
+      expect(
+        await secureStorage.read(key: backgroundWorkerApiBaseUrlKey),
+        isNull,
+        reason: 'ApiBaseUrl must be removed from SecureStorage '
+            '(INV-SEC-PERSIST-2)',
+      );
     },
   );
 
@@ -138,6 +152,7 @@ void main() {
         userId: 'user-abc',
         serverId: 'server-xyz',
         realtimeUrl: 'wss://realtime.example.com',
+        apiBaseUrl: 'https://api.example.com',
       );
 
       // Load and assert the returned auth object fields.
@@ -165,6 +180,12 @@ void main() {
         auth.realtimeUrl,
         equals('wss://realtime.example.com'),
         reason: 'Auth realtimeUrl must match persisted value '
+            '(INV-SEC-LOAD-1)',
+      );
+      expect(
+        auth.apiBaseUrl,
+        equals('https://api.example.com'),
+        reason: 'Auth apiBaseUrl must match persisted value '
             '(INV-SEC-LOAD-1)',
       );
     },
@@ -208,6 +229,12 @@ void main() {
         reason: 'Auth realtimeUrl must fall back to default when '
             'nothing stored (INV-SEC-LOAD-2)',
       );
+      expect(
+        auth.apiBaseUrl,
+        equals('https://api.slock.invalid'),
+        reason: 'Auth apiBaseUrl must fall back to default when '
+            'nothing stored (INV-SEC-LOAD-2)',
+      );
     },
   );
 
@@ -224,6 +251,7 @@ void main() {
         backgroundWorkerUserIdKey,
         backgroundWorkerServerIdKey,
         backgroundWorkerRealtimeUrlKey,
+        backgroundWorkerApiBaseUrlKey,
       };
 
       final sessionKeys = {

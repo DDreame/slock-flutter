@@ -348,9 +348,17 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
       'channelId': resolved.parentChannelId ?? channelId,
       if (resolved.serverId != null) 'serverId': resolved.serverId,
       'type': resolved.surfaceName,
+      'notificationChannelType': map['mentioned'] == true
+          ? 'mention'
+          : resolved.surfaceName == 'dm'
+              ? 'direct_message'
+              : 'channel',
       if (resolved.parentMessageId != null)
         'threadId': resolved.parentMessageId,
       if (messageId != null) 'messageId': messageId,
+      'replyActionLabel': l10n.notificationActionReply,
+      'markReadActionLabel': l10n.notificationActionMarkRead,
+      'replyInputLabel': l10n.notificationActionReplyHint,
       'slock.source': 'realtime',
     };
 

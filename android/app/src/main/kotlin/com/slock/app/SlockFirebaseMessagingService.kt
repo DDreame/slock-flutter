@@ -8,6 +8,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.RemoteInput
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
@@ -20,8 +21,8 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
         private const val dmChannelName = "Direct Messages"
         private const val mentionChannelId = "slock_mentions"
         private const val mentionChannelName = "Mentions"
-        private const val generalChannelId = "slock_general"
-        private const val generalChannelName = "General"
+        private const val generalChannelId = "slock_channel_messages"
+        private const val generalChannelName = "Channel Messages"
         private const val tag = "SlockFCM"
     }
 
@@ -82,15 +83,17 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
 
         ensureNotificationChannels()
 
-        val notification = NotificationCompat.Builder(this, channelId)
+        val builder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .build()
 
+        addMessageActions(builder, payload, requestCode)
+
+        val notification = builder.build()
         val notificationManager = NotificationManagerCompat.from(this)
         val notificationId = localNotificationId++
         try {
@@ -101,10 +104,69 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun resolveChannelId(payload: Map<String, Any?>): String {
-        return when (payload["type"] as? String) {
-            "direct_message" -> dmChannelId
+        val channelType = payload["notificationChannelType"] as? String
+            ?: payload["type"] as? String
+        return when (channelType) {
+            "dm", "direct_message" -> dmChannelId
             "mention" -> mentionChannelId
             else -> generalChannelId
+        }
+    }
+
+    private fun addMessageActions(
+        builder: NotificationCompat.Builder,
+        payload: Map<String, Any?>,
+        requestCode: Int,
+    ) {
+        payload["serverId"] as? String ?: return
+        payload["channelId"] as? String ?: return
+        val replyLabel = payload["replyActionLabel"] as? String ?: "Reply"
+        val markReadLabel = payload["markReadActionLabel"] as? String ?: "Mark as read"
+        val replyInputLabel = payload["replyInputLabel"] as? String ?: replyLabel
+
+        val replyInput = RemoteInput.Builder(SlockNotificationActionReceiver.KEY_REPLY_TEXT)
+            .setLabel(replyInputLabel)
+            .build()
+        val replyPendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode + 1,
+            actionIntent(SlockNotificationActionReceiver.ACTION_REPLY, payload),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+        )
+        val replyAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_send,
+            replyLabel,
+            replyPendingIntent,
+        ).addRemoteInput(replyInput).build()
+
+        val markReadPendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode + 2,
+            actionIntent(SlockNotificationActionReceiver.ACTION_MARK_READ, payload),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val markReadAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_manage,
+            markReadLabel,
+            markReadPendingIntent,
+        ).build()
+
+        builder.addAction(replyAction)
+        builder.addAction(markReadAction)
+    }
+
+    private fun actionIntent(action: String, payload: Map<String, Any?>): Intent {
+        return Intent(this, SlockNotificationActionReceiver::class.java).apply {
+            this.action = action
+            for ((key, value) in payload) {
+                when (value) {
+                    is String -> putExtra(key, value)
+                    is Boolean -> putExtra(key, value)
+                    is Int -> putExtra(key, value)
+                    is Long -> putExtra(key, value)
+                    is Double -> putExtra(key, value)
+                }
+            }
         }
     }
 

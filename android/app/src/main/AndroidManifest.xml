@@ -85,6 +85,9 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
         <receiver
+            android:name=".SlockNotificationActionReceiver"
+            android:exported="false" />
+        <receiver
             android:name=".SlockBootReceiver"
             android:exported="false">
             <intent-filter>

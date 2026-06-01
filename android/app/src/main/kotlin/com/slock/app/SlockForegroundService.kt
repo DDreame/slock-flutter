@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.RemoteInput
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
@@ -22,8 +23,14 @@ class SlockForegroundService : Service() {
     companion object {
         private const val channelId = "slock_foreground"
         private const val channelName = "Real-time connection"
-        private const val messageChannelId = "slock_messages"
-        private const val messageChannelName = "Messages"
+        private const val legacyMessageChannelId = "slock_messages"
+        private const val legacyMessageChannelName = "Messages"
+        private const val dmChannelId = "slock_direct_messages"
+        private const val dmChannelName = "Direct Messages"
+        private const val mentionChannelId = "slock_mentions"
+        private const val mentionChannelName = "Mentions"
+        private const val channelMessageChannelId = "slock_channel_messages"
+        private const val channelMessageChannelName = "Channel Messages"
         private const val notificationId = 9001
         private const val tag = "SlockForegroundService"
         internal const val servicePrefsName = "slock_foreground_service"
@@ -32,6 +39,8 @@ class SlockForegroundService : Service() {
         private const val backgroundWorkerChannelName =
             "slock/notifications/background_worker"
         private const val dartEntrypoint = "backgroundNotificationMain"
+        const val ACTION_NOTIFICATION_ACTION = "com.slock.app.notification.ACTION"
+        const val EXTRA_NOTIFICATION_ACTION = "slock.action"
 
         /** Minimum interval between OS-triggered restarts. */
         private const val restartBackoffMs = 5_000L
@@ -90,7 +99,9 @@ class SlockForegroundService : Service() {
 
     private var flutterEngine: FlutterEngine? = null
     private var workerMethodChannel: MethodChannel? = null
+    private var dartWorkerReady = false
     private var backgroundNotificationId = 10_000
+    private val pendingNotificationActions = mutableListOf<Map<String, Any?>>()
 
     override fun onCreate() {
         super.onCreate()
@@ -152,6 +163,7 @@ class SlockForegroundService : Service() {
 
         // Start headless FlutterEngine for background notification worker.
         startDartWorker()
+        handleNotificationActionIntent(intent)
 
         return START_STICKY
     }
@@ -198,6 +210,11 @@ class SlockForegroundService : Service() {
                         result.success(null)
                     }
                 }
+                "workerReady" -> {
+                    dartWorkerReady = true
+                    flushPendingNotificationActions()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -216,6 +233,8 @@ class SlockForegroundService : Service() {
     private fun stopDartWorker() {
         workerMethodChannel?.setMethodCallHandler(null)
         workerMethodChannel = null
+        dartWorkerReady = false
+        pendingNotificationActions.clear()
         flutterEngine?.destroy()
         flutterEngine = null
         Log.d(tag, "Headless Dart worker stopped")
@@ -255,14 +274,17 @@ class SlockForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notification = NotificationCompat.Builder(this, messageChannelId)
+        val builder = NotificationCompat.Builder(this, resolveMessageChannelId(payload))
             .setSmallIcon(applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .build()
+
+        addMessageActions(builder, payload, requestCode)
+
+        val notification = builder.build()
 
         val notificationManager = NotificationManagerCompat.from(this)
         val id = backgroundNotificationId++
@@ -287,6 +309,103 @@ class SlockForegroundService : Service() {
             return Pair("PERMISSION_DENIED", e.message ?: "SecurityException")
         }
         return null
+    }
+
+    private fun handleNotificationActionIntent(intent: Intent?) {
+        if (intent?.action != ACTION_NOTIFICATION_ACTION) return
+        val payload = mutableMapOf<String, Any?>()
+        intent.getStringExtra(EXTRA_NOTIFICATION_ACTION)?.let { payload["action"] = it }
+        intent.getStringExtra("serverId")?.let { payload["serverId"] = it }
+        intent.getStringExtra("channelId")?.let { payload["channelId"] = it }
+        intent.getStringExtra("messageId")?.let { payload["messageId"] = it }
+        intent.getStringExtra("replyText")?.let { payload["replyText"] = it }
+        if (payload.isEmpty()) return
+        dispatchNotificationAction(payload)
+    }
+
+    private fun dispatchNotificationAction(payload: Map<String, Any?>) {
+        val channel = workerMethodChannel
+        if (dartWorkerReady && channel != null) {
+            channel.invokeMethod("handleNotificationAction", payload)
+        } else {
+            pendingNotificationActions.add(payload)
+        }
+    }
+
+    private fun flushPendingNotificationActions() {
+        val channel = workerMethodChannel ?: return
+        val pending = pendingNotificationActions.toList()
+        pendingNotificationActions.clear()
+        for (payload in pending) {
+            channel.invokeMethod("handleNotificationAction", payload)
+        }
+    }
+
+    private fun addMessageActions(
+        builder: NotificationCompat.Builder,
+        payload: Map<String, Any?>,
+        requestCode: Int,
+    ) {
+        payload["serverId"] as? String ?: return
+        payload["channelId"] as? String ?: return
+        val replyLabel = payload["replyActionLabel"] as? String ?: "Reply"
+        val markReadLabel = payload["markReadActionLabel"] as? String ?: "Mark as read"
+        val replyInputLabel = payload["replyInputLabel"] as? String ?: replyLabel
+
+        val replyInput = RemoteInput.Builder(SlockNotificationActionReceiver.KEY_REPLY_TEXT)
+            .setLabel(replyInputLabel)
+            .build()
+        val replyPendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode + 1,
+            actionIntent(SlockNotificationActionReceiver.ACTION_REPLY, payload),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+        )
+        val replyAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_send,
+            replyLabel,
+            replyPendingIntent,
+        ).addRemoteInput(replyInput).build()
+
+        val markReadPendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode + 2,
+            actionIntent(SlockNotificationActionReceiver.ACTION_MARK_READ, payload),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val markReadAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_manage,
+            markReadLabel,
+            markReadPendingIntent,
+        ).build()
+
+        builder.addAction(replyAction)
+        builder.addAction(markReadAction)
+    }
+
+    private fun actionIntent(action: String, payload: Map<String, Any?>): Intent {
+        return Intent(this, SlockNotificationActionReceiver::class.java).apply {
+            this.action = action
+            for ((key, value) in payload) {
+                when (value) {
+                    is String -> putExtra(key, value)
+                    is Boolean -> putExtra(key, value)
+                    is Int -> putExtra(key, value)
+                    is Long -> putExtra(key, value)
+                    is Double -> putExtra(key, value)
+                }
+            }
+        }
+    }
+
+    private fun resolveMessageChannelId(payload: Map<String, Any?>): String {
+        val channelType = payload["notificationChannelType"] as? String
+            ?: payload["type"] as? String
+        return when (channelType) {
+            "dm", "direct_message" -> dmChannelId
+            "mention" -> mentionChannelId
+            else -> channelMessageChannelId
+        }
     }
 
     // -- Service prefs -------------------------------------------------
@@ -323,13 +442,35 @@ class SlockForegroundService : Service() {
 
     private fun ensureMessageNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                messageChannelId,
-                messageChannelName,
-                NotificationManager.IMPORTANCE_HIGH,
+            val manager = getSystemService(NotificationManager::class.java) ?: return
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    legacyMessageChannelId,
+                    legacyMessageChannelName,
+                    NotificationManager.IMPORTANCE_HIGH,
+                ),
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    dmChannelId,
+                    dmChannelName,
+                    NotificationManager.IMPORTANCE_HIGH,
+                ),
+            )
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    mentionChannelId,
+                    mentionChannelName,
+                    NotificationManager.IMPORTANCE_HIGH,
+                ),
+            )
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    channelMessageChannelId,
+                    channelMessageChannelName,
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ),
+            )
         }
     }
 

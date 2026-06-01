@@ -3501,6 +3501,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationNewMessageFallback => 'New message';
 
   @override
+  String get notificationActionReply => 'Reply';
+
+  @override
+  String get notificationActionMarkRead => 'Mark as read';
+
+  @override
+  String get notificationActionReplyHint => 'Type a reply';
+
+  @override
   String typingIndicatorOne(String name) {
     return '$name is typing...';
   }

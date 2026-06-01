@@ -15,6 +15,7 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
 import io.flutter.embedding.android.FlutterActivity
@@ -36,8 +37,8 @@ class MainActivity : FlutterActivity() {
         private const val dmChannelName = "Direct Messages"
         private const val mentionChannelId = "slock_mentions"
         private const val mentionChannelName = "Mentions"
-        private const val generalChannelId = "slock_general"
-        private const val generalChannelName = "General"
+        private const val generalChannelId = "slock_channel_messages"
+        private const val generalChannelName = "Channel Messages"
         private const val tag = "SlockNotifications"
     }
 
@@ -77,6 +78,12 @@ class MainActivity : FlutterActivity() {
                     @Suppress("UNCHECKED_CAST")
                     val payload = call.arguments as? Map<String, Any?> ?: emptyMap()
                     showLocalNotification(payload)
+                    result.success(null)
+                }
+                "configureNotificationChannels" -> {
+                    @Suppress("UNCHECKED_CAST")
+                    val channels = call.arguments as? List<Map<String, Any?>> ?: emptyList()
+                    configureNotificationChannels(channels)
                     result.success(null)
                 }
                 else -> result.notImplemented()
@@ -274,6 +281,24 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun configureNotificationChannels(channels: List<Map<String, Any?>>) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        for (channel in channels) {
+            val id = channel["id"] as? String ?: continue
+            val name = channel["name"] as? String ?: id
+            val importance = when (channel["importance"] as? String) {
+                "low" -> NotificationManager.IMPORTANCE_LOW
+                "high" -> NotificationManager.IMPORTANCE_HIGH
+                else -> NotificationManager.IMPORTANCE_DEFAULT
+            }
+            val notificationChannel = NotificationChannel(id, name, importance).apply {
+                description = channel["description"] as? String ?: ""
+            }
+            manager.createNotificationChannel(notificationChannel)
+        }
+    }
+
     private fun showLocalNotification(payload: Map<String, Any?>) {
         val title = payload["title"] as? String ?: "Slock"
         val body = payload["body"] as? String ?: ""
@@ -302,14 +327,17 @@ class MainActivity : FlutterActivity() {
 
         ensureNotificationChannel()
 
-        val notification = NotificationCompat.Builder(this, channelId)
+        val builder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .build()
+
+        addMessageActions(builder, payload, requestCode)
+
+        val notification = builder.build()
 
         val notificationManager = NotificationManagerCompat.from(this)
         val notificationId = localNotificationId++
@@ -320,9 +348,76 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun addMessageActions(
+        builder: NotificationCompat.Builder,
+        payload: Map<String, Any?>,
+        requestCode: Int,
+    ) {
+        val serverId = payload["serverId"] as? String ?: return
+        val channelId = payload["channelId"] as? String ?: return
+        val replyLabel = payload["replyActionLabel"] as? String ?: "Reply"
+        val markReadLabel = payload["markReadActionLabel"] as? String ?: "Mark as read"
+        val replyInputLabel = payload["replyInputLabel"] as? String ?: replyLabel
+
+        val replyInput = RemoteInput.Builder(SlockNotificationActionReceiver.KEY_REPLY_TEXT)
+            .setLabel(replyInputLabel)
+            .build()
+        val replyIntent = actionIntent(
+            SlockNotificationActionReceiver.ACTION_REPLY,
+            payload,
+        )
+        val replyPendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode + 1,
+            replyIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+        )
+        val replyAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_send,
+            replyLabel,
+            replyPendingIntent,
+        ).addRemoteInput(replyInput).build()
+
+        val markReadIntent = actionIntent(
+            SlockNotificationActionReceiver.ACTION_MARK_READ,
+            payload,
+        )
+        val markReadPendingIntent = PendingIntent.getBroadcast(
+            this,
+            requestCode + 2,
+            markReadIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val markReadAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_manage,
+            markReadLabel,
+            markReadPendingIntent,
+        ).build()
+
+        builder.addAction(replyAction)
+        builder.addAction(markReadAction)
+    }
+
+    private fun actionIntent(action: String, payload: Map<String, Any?>): Intent {
+        return Intent(this, SlockNotificationActionReceiver::class.java).apply {
+            this.action = action
+            for ((key, value) in payload) {
+                when (value) {
+                    is String -> putExtra(key, value)
+                    is Boolean -> putExtra(key, value)
+                    is Int -> putExtra(key, value)
+                    is Long -> putExtra(key, value)
+                    is Double -> putExtra(key, value)
+                }
+            }
+        }
+    }
+
     private fun resolveChannelId(payload: Map<String, Any?>): String {
-        return when (payload["type"] as? String) {
-            "direct_message" -> dmChannelId
+        val channelType = payload["notificationChannelType"] as? String
+            ?: payload["type"] as? String
+        return when (channelType) {
+            "dm", "direct_message" -> dmChannelId
             "mention" -> mentionChannelId
             else -> generalChannelId
         }

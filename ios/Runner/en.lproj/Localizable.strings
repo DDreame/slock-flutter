@@ -1,0 +1,4 @@
+"notification.action.reply" = "Reply";
+"notification.action.reply.send" = "Send";
+"notification.action.reply.hint" = "Type a reply";
+"notification.action.markRead" = "Mark as read";

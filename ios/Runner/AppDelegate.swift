@@ -11,6 +11,9 @@ import BackgroundTasks
   private let notificationTokenEventChannelName = "slock/notifications/token"
   private let backgroundSyncChannelName = "slock/notifications/background_sync"
   private let apnsTokenDefaultsKey = "slock.notifications.apnsToken"
+  private let messageCategoryIdentifier = "SLOCK_MESSAGE_ACTIONS"
+  private let replyActionIdentifier = "SLOCK_REPLY"
+  private let markReadActionIdentifier = "SLOCK_MARK_READ"
 
   // Background sync constants
   private static let bgSyncTaskIdentifier = "com.slock.app.bgSync"
@@ -42,6 +45,7 @@ import BackgroundTasks
       from: launchOptions?[.remoteNotification] as? [AnyHashable: Any]
     )
     UNUserNotificationCenter.current().delegate = self
+    registerNotificationCategories()
     registerBackgroundSyncTask()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
@@ -196,8 +200,19 @@ import BackgroundTasks
       )
     }
 
-    guard let payload = notificationPayload(from: response.notification.request.content.userInfo) else {
+    guard var payload = notificationPayload(from: response.notification.request.content.userInfo) else {
       return
+    }
+
+    if response.actionIdentifier == replyActionIdentifier {
+      payload["action"] = "reply"
+      payload["slock.action"] = "reply"
+      if let textResponse = response as? UNTextInputNotificationResponse {
+        payload["replyText"] = textResponse.userText
+      }
+    } else if response.actionIdentifier == markReadActionIdentifier {
+      payload["action"] = "mark_read"
+      payload["slock.action"] = "mark_read"
     }
 
     if let tapEventSink {
@@ -232,8 +247,40 @@ import BackgroundTasks
     completionHandler([])
   }
 
+  private func registerNotificationCategories() {
+    let replyAction = UNTextInputNotificationAction(
+      identifier: replyActionIdentifier,
+      title: NSLocalizedString("notification.action.reply", comment: "Notification reply action"),
+      options: [],
+      textInputButtonTitle: NSLocalizedString(
+        "notification.action.reply.send",
+        comment: "Notification reply text input send button"
+      ),
+      textInputPlaceholder: NSLocalizedString(
+        "notification.action.reply.hint",
+        comment: "Notification reply text input placeholder"
+      )
+    )
+    let markReadAction = UNNotificationAction(
+      identifier: markReadActionIdentifier,
+      title: NSLocalizedString(
+        "notification.action.markRead",
+        comment: "Notification mark as read action"
+      ),
+      options: []
+    )
+    let category = UNNotificationCategory(
+      identifier: messageCategoryIdentifier,
+      actions: [replyAction, markReadAction],
+      intentIdentifiers: [],
+      options: []
+    )
+    UNUserNotificationCenter.current().setNotificationCategories([category])
+  }
+
   private func initializeNotifications(result: @escaping FlutterResult) {
     UNUserNotificationCenter.current().delegate = self
+    registerNotificationCategories()
     resolvePermissionStatus { [weak self] status in
       guard let self else {
         result(nil)
@@ -313,6 +360,7 @@ import BackgroundTasks
     content.title = payload["title"] as? String ?? ""
     content.body = payload["body"] as? String ?? ""
     content.sound = .default
+    content.categoryIdentifier = messageCategoryIdentifier
     var userInfo = payload
     userInfo["slock.localRepost"] = true
     content.userInfo = userInfo

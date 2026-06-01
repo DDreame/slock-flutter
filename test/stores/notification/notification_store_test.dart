@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/core/notifications/notification_actions.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/notification_storage_keys.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
@@ -95,20 +96,38 @@ class FakeNotificationInitializer implements NotificationInitializer {
   Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
 }
 
+class FakeNotificationActionApi implements NotificationActionApi {
+  final sentReplies = <NotificationActionRequest>[];
+  final markedRead = <NotificationActionRequest>[];
+
+  @override
+  Future<void> sendReply(NotificationActionRequest request) async {
+    sentReplies.add(request);
+  }
+
+  @override
+  Future<void> markRead(NotificationActionRequest request) async {
+    markedRead.add(request);
+  }
+}
+
 void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
   late FakeNotificationInitializer fakeInitializer;
+  late FakeNotificationActionApi fakeActionApi;
   late DiagnosticsCollector diagnostics;
 
   setUp(() {
     fakeStorage = FakeSecureStorage();
     fakeInitializer = FakeNotificationInitializer();
+    fakeActionApi = FakeNotificationActionApi();
     diagnostics = DiagnosticsCollector();
     container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(fakeStorage),
         notificationInitializerProvider.overrideWithValue(fakeInitializer),
+        notificationActionApiProvider.overrideWithValue(fakeActionApi),
         diagnosticsCollectorProvider.overrideWithValue(diagnostics),
       ],
     );
@@ -164,6 +183,24 @@ void main() {
       expect(fakeInitializer.initCount, 1);
       expect(readState().pushToken, 'saved-token');
       expect(readState().pushTokenPlatform, 'ios');
+    });
+
+    test('notification action payload is handled without deep-linking',
+        () async {
+      readStore().handleNotificationTap({
+        'action': notificationActionReply,
+        'serverId': 'server-1',
+        'channelId': 'channel-1',
+        'messageId': 'message-1',
+        'replyText': 'Reply from shade',
+        'type': 'channel',
+      });
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeActionApi.sentReplies.single.replyText, 'Reply from shade');
+      expect(fakeActionApi.markedRead.single.channelId, 'channel-1');
+      expect(container.read(pendingDeepLinkProvider), isNull);
     });
 
     test('requestPermission updates permission status', () async {

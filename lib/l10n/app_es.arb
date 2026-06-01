@@ -1358,6 +1358,9 @@
   "billingResourceChannels": "Canales",
 
   "notificationNewMessageFallback": "Mensaje nuevo",
+  "notificationActionReply": "Responder",
+  "notificationActionMarkRead": "Marcar como leído",
+  "notificationActionReplyHint": "Escribe una respuesta",
 
   "typingIndicatorOne": "{name} está escribiendo...",
   "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },

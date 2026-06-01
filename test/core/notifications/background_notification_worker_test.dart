@@ -607,4 +607,7 @@ class FakeBackgroundAuthProvider implements BackgroundAuthProvider {
 
   @override
   String get realtimeUrl => 'wss://realtime.example.com';
+
+  @override
+  String get apiBaseUrl => 'https://api.example.com';
 }

@@ -58,6 +58,7 @@ abstract class BackgroundAuthProvider {
   String? get userId;
   String? get serverId;
   String get realtimeUrl;
+  String get apiBaseUrl;
 }
 
 /// Diagnostic snapshot from the background notification worker.
@@ -85,6 +86,35 @@ class BackgroundWorkerDiagnostics {
 /// Used to reload credentials from SharedPreferences after token
 /// refresh or server switch.
 typedef BackgroundAuthRefresher = Future<BackgroundAuthProvider> Function();
+
+String _notificationRoutingType(Map<String, dynamic> payload) {
+  final explicitType = payload['type'];
+  if (explicitType == 'direct_message') return 'dm';
+  if (explicitType is String &&
+      explicitType.isNotEmpty &&
+      explicitType != 'mention') {
+    return explicitType;
+  }
+  final surface = payload['surface'] ?? payload['conversationType'];
+  if (surface == 'dm' || surface == 'direct_message') return 'dm';
+  return 'channel';
+}
+
+String _notificationChannelType(Map<String, dynamic> payload) {
+  final explicitChannelType = payload['notificationChannelType'];
+  if (explicitChannelType is String && explicitChannelType.isNotEmpty) {
+    return explicitChannelType;
+  }
+  final eventType = payload['eventType'];
+  if (eventType == 'mention' ||
+      payload['mentioned'] == true ||
+      payload['type'] == 'mention') {
+    return 'mention';
+  }
+  final routingType = _notificationRoutingType(payload);
+  if (routingType == 'dm') return 'direct_message';
+  return 'channel';
+}
 
 /// Background notification worker that runs inside the Android
 /// foreground service's headless FlutterEngine.
@@ -332,9 +362,14 @@ class BackgroundNotificationWorker {
     final notificationPayload = <String, dynamic>{
       'title': senderName ?? l10n.notificationNewMessageFallback,
       'body': body,
+      'type': _notificationRoutingType(payload),
+      'notificationChannelType': _notificationChannelType(payload),
       'channelId': channelId,
       if (_authProvider.serverId != null) 'serverId': _authProvider.serverId,
       if (messageId != null) 'messageId': messageId,
+      'replyActionLabel': l10n.notificationActionReply,
+      'markReadActionLabel': l10n.notificationActionMarkRead,
+      'replyInputLabel': l10n.notificationActionReplyHint,
       'slock.source': 'background-worker',
     };
 
