@@ -1,0 +1,4 @@
+"notification.action.reply" = "回复";
+"notification.action.reply.send" = "发送";
+"notification.action.reply.hint" = "输入回复";
+"notification.action.markRead" = "标记为已读";

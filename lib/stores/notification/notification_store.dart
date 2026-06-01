@@ -6,6 +6,7 @@ import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/notification_deep_link_helper.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/core/notifications/notification_actions.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/notification_storage_keys.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
@@ -83,6 +84,16 @@ class NotificationStore extends Notifier<NotificationState> {
   }
 
   void handleNotificationTap(Map<String, dynamic> payload) {
+    if (NotificationActionRequest.fromPayload(payload) != null) {
+      unawaited(
+        ref
+            .read(notificationActionHandlerProvider)
+            .handlePayload(payload)
+            .catchError((_) => false),
+      );
+      return;
+    }
+
     final route = resolveNotificationRoute(payload);
     if (route != null) {
       ref.read(pendingDeepLinkProvider.notifier).state = route;

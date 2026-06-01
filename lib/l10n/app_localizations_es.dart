@@ -3538,6 +3538,15 @@ class AppLocalizationsEs extends AppLocalizations {
   String get notificationNewMessageFallback => 'Mensaje nuevo';
 
   @override
+  String get notificationActionReply => 'Responder';
+
+  @override
+  String get notificationActionMarkRead => 'Marcar como leído';
+
+  @override
+  String get notificationActionReplyHint => 'Escribe una respuesta';
+
+  @override
   String typingIndicatorOne(String name) {
     return '$name está escribiendo...';
   }

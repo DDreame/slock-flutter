@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/core/notifications/background_notification_worker.dart';
 import 'package:slock_app/core/notifications/background_socket_connection.dart';
+import 'package:slock_app/core/notifications/notification_actions.dart';
+import 'package:slock_app/core/network/dio_client.dart';
 import 'package:slock_app/core/storage/background_worker_storage_keys.dart';
 import 'package:slock_app/core/storage/flutter_secure_storage_impl.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
@@ -23,6 +26,7 @@ const backgroundWorkerTokenKey = BackgroundWorkerStorageKeys.token;
 const backgroundWorkerUserIdKey = BackgroundWorkerStorageKeys.userId;
 const backgroundWorkerServerIdKey = BackgroundWorkerStorageKeys.serverId;
 const backgroundWorkerRealtimeUrlKey = BackgroundWorkerStorageKeys.realtimeUrl;
+const backgroundWorkerApiBaseUrlKey = BackgroundWorkerStorageKeys.apiBaseUrl;
 
 /// Entry point executed by the headless [FlutterEngine] inside
 /// [SlockForegroundService]. This runs in a separate Dart isolate
@@ -86,9 +90,39 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
         // Toggle foreground-active suppression flag.
         final active = call.arguments as bool? ?? false;
         worker.foregroundActive = active;
+      case 'handleNotificationAction':
+        final args = call.arguments;
+        if (args is Map) {
+          final payload = args.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+          final currentAuth = await persistence.load();
+          final actionHandler = _buildActionHandler(currentAuth);
+          return actionHandler.handlePayload(payload);
+        }
+        return false;
     }
     return null;
   });
+  await methodChannel.invokeMethod<void>('workerReady');
+}
+
+NotificationActionHandler _buildActionHandler(
+  BackgroundAuthProvider authProvider,
+) {
+  final dio = Dio(
+    BaseOptions(
+      baseUrl: authProvider.apiBaseUrl,
+      headers: <String, Object>{
+        'Accept': 'application/json',
+        if (authProvider.token != null && authProvider.token!.isNotEmpty)
+          'Authorization': 'Bearer ${authProvider.token}',
+      },
+    ),
+  );
+  return NotificationActionHandler(
+    api: DioNotificationActionApi(client: AppDioClient(dio)),
+  );
 }
 
 /// Calls `showNotification` on the native MethodChannel to post
@@ -130,6 +164,7 @@ class BackgroundWorkerAuthPersistence {
     required String userId,
     required String serverId,
     required String realtimeUrl,
+    required String apiBaseUrl,
   }) async {
     await Future.wait([
       _storage.write(key: BackgroundWorkerStorageKeys.token, value: token),
@@ -142,6 +177,10 @@ class BackgroundWorkerAuthPersistence {
         key: BackgroundWorkerStorageKeys.realtimeUrl,
         value: realtimeUrl,
       ),
+      _storage.write(
+        key: BackgroundWorkerStorageKeys.apiBaseUrl,
+        value: apiBaseUrl,
+      ),
     ]);
   }
 
@@ -152,6 +191,7 @@ class BackgroundWorkerAuthPersistence {
       _storage.delete(key: BackgroundWorkerStorageKeys.userId),
       _storage.delete(key: BackgroundWorkerStorageKeys.serverId),
       _storage.delete(key: BackgroundWorkerStorageKeys.realtimeUrl),
+      _storage.delete(key: BackgroundWorkerStorageKeys.apiBaseUrl),
     ]);
   }
 
@@ -178,6 +218,8 @@ class BackgroundWorkerAuthPersistence {
               prefs.getString(BackgroundWorkerStorageKeys.serverId);
           final legacyRealtimeUrl =
               prefs.getString(BackgroundWorkerStorageKeys.realtimeUrl);
+          final legacyApiBaseUrl =
+              prefs.getString(BackgroundWorkerStorageKeys.apiBaseUrl);
 
           // Write to SecureStorage.
           await persist(
@@ -185,6 +227,7 @@ class BackgroundWorkerAuthPersistence {
             userId: legacyUserId ?? '',
             serverId: legacyServerId ?? '',
             realtimeUrl: legacyRealtimeUrl ?? 'wss://realtime.slock.invalid',
+            apiBaseUrl: legacyApiBaseUrl ?? 'https://api.slock.invalid',
           );
 
           // Clean up legacy SharedPreferences keys.
@@ -193,6 +236,7 @@ class BackgroundWorkerAuthPersistence {
             prefs.remove(BackgroundWorkerStorageKeys.userId),
             prefs.remove(BackgroundWorkerStorageKeys.serverId),
             prefs.remove(BackgroundWorkerStorageKeys.realtimeUrl),
+            prefs.remove(BackgroundWorkerStorageKeys.apiBaseUrl),
           ]);
 
           // Return the migrated credentials.
@@ -201,6 +245,7 @@ class BackgroundWorkerAuthPersistence {
             userId: legacyUserId,
             serverId: legacyServerId,
             realtimeUrl: legacyRealtimeUrl ?? 'wss://realtime.slock.invalid',
+            apiBaseUrl: legacyApiBaseUrl ?? 'https://api.slock.invalid',
           );
         }
       } on Object {
@@ -216,6 +261,9 @@ class BackgroundWorkerAuthPersistence {
       realtimeUrl:
           await _storage.read(key: BackgroundWorkerStorageKeys.realtimeUrl) ??
               'wss://realtime.slock.invalid',
+      apiBaseUrl:
+          await _storage.read(key: BackgroundWorkerStorageKeys.apiBaseUrl) ??
+              'https://api.slock.invalid',
     );
   }
 }
@@ -227,6 +275,7 @@ class _SecureStorageAuthProvider implements BackgroundAuthProvider {
     required this.userId,
     required this.serverId,
     required this.realtimeUrl,
+    required this.apiBaseUrl,
   });
 
   @override
@@ -240,4 +289,7 @@ class _SecureStorageAuthProvider implements BackgroundAuthProvider {
 
   @override
   final String realtimeUrl;
+
+  @override
+  final String apiBaseUrl;
 }

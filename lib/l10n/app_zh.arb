@@ -1198,6 +1198,9 @@
   "billingResourceChannels": "频道",
 
   "notificationNewMessageFallback": "新消息",
+  "notificationActionReply": "回复",
+  "notificationActionMarkRead": "标为已读",
+  "notificationActionReplyHint": "输入回复",
 
   "typingIndicatorOne": "{name} 正在输入...",
   "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },

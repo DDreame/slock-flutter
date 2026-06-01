@@ -8,6 +8,7 @@ abstract final class BackgroundWorkerStorageKeys {
   static const userId = 'background_worker_user_id';
   static const serverId = 'background_worker_server_id';
   static const realtimeUrl = 'background_worker_realtime_url';
+  static const apiBaseUrl = 'background_worker_api_base_url';
 
-  static const all = [token, userId, serverId, realtimeUrl];
+  static const all = [token, userId, serverId, realtimeUrl, apiBaseUrl];
 }

@@ -6557,6 +6557,24 @@ abstract class AppLocalizations {
   /// **'New message'**
   String get notificationNewMessageFallback;
 
+  /// No description provided for @notificationActionReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get notificationActionReply;
+
+  /// No description provided for @notificationActionMarkRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as read'**
+  String get notificationActionMarkRead;
+
+  /// No description provided for @notificationActionReplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a reply'**
+  String get notificationActionReplyHint;
+
   /// No description provided for @typingIndicatorOne.
   ///
   /// In en, this message translates to:

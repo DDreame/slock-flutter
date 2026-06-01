@@ -3394,6 +3394,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notificationNewMessageFallback => '新消息';
 
   @override
+  String get notificationActionReply => '回复';
+
+  @override
+  String get notificationActionMarkRead => '标为已读';
+
+  @override
+  String get notificationActionReplyHint => '输入回复';
+
+  @override
   String typingIndicatorOne(String name) {
     return '$name 正在输入...';
   }

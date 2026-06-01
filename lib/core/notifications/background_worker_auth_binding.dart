@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/notifications/background_notification_entrypoint.dart';
 import 'package:slock_app/core/network/auth_token_provider.dart'
     show selectedServerIdProvider;
+import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeSocketOptionsProvider;
@@ -35,12 +36,14 @@ final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
       }
 
       final options = ref.read(realtimeSocketOptionsProvider);
+      final apiBaseUrl = ref.read(networkConfigProvider).baseUrl;
       final serverId = ref.read(selectedServerIdProvider) ?? '';
       await persistence.persist(
         token: session.token!,
         userId: session.userId ?? '',
         serverId: serverId,
         realtimeUrl: options.uri,
+        apiBaseUrl: apiBaseUrl,
       );
       diagnostics.info(
         'background-worker-auth',
