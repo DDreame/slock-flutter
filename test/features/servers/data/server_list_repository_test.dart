@@ -264,6 +264,156 @@ void main() {
     expect(server.role, '');
     expect(server.createdAt, isNull);
   });
+
+  group('generic catch — non-AppFailure exceptions map to UnknownFailure', () {
+    test('loadServers wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.loadServers(),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('load server list'),
+        )),
+      );
+    });
+
+    test('createServer wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.createServer(name: 'X', slug: 'x'),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('create server'),
+        )),
+      );
+    });
+
+    test('renameServer wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.renameServer('srv-1', name: 'New Name'),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('rename server'),
+        )),
+      );
+    });
+
+    test('deleteServer wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.deleteServer('srv-1'),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('delete server'),
+        )),
+      );
+    });
+
+    test('leaveServer wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.leaveServer('srv-1'),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('leave server'),
+        )),
+      );
+    });
+
+    test('acceptInvite wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.acceptInvite('token-abc'),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('accept invite'),
+        )),
+      );
+    });
+
+    test('getInviteInfo wraps non-AppFailure in UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.getInviteInfo('token-abc'),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          contains('invite info'),
+        )),
+      );
+    });
+
+    test('AppFailure is rethrown without wrapping', () async {
+      final appDioClient = _AppFailureThrowingClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+
+      expect(
+        () => repo.loadServers(),
+        throwsA(isA<NotFoundFailure>()),
+      );
+    });
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {
@@ -315,4 +465,40 @@ class _CapturedRequest {
   final String path;
   final Object? data;
   final Map<String, dynamic>? queryParameters;
+}
+
+/// Always throws a non-AppFailure exception to test the generic catch path.
+class _ThrowingAppDioClient extends AppDioClient {
+  _ThrowingAppDioClient() : super(Dio());
+
+  @override
+  Future<Response<T>> request<T>(
+    String path, {
+    required String method,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    throw StateError('Simulated non-AppFailure error');
+  }
+}
+
+/// Throws an AppFailure to verify rethrow behavior.
+class _AppFailureThrowingClient extends AppDioClient {
+  _AppFailureThrowingClient() : super(Dio());
+
+  @override
+  Future<Response<T>> request<T>(
+    String path, {
+    required String method,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    throw const NotFoundFailure();
+  }
 }
