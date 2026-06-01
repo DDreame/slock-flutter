@@ -2,16 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/auth/biometric_service.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/settings/data/biometric_preference.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
+import 'package:slock_app/stores/biometric/biometric_store.dart';
+
+import '../../../core/storage/fake_secure_storage.dart';
 
 void main() {
   testWidgets(
@@ -304,6 +313,76 @@ void main() {
     expect(find.text('members-route'), findsOneWidget);
   });
 
+  testWidgets('biometric toggle and timeout persist to secure storage',
+      (tester) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+    final biometricService = _FakeBiometricService();
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final secureStorage = FakeSecureStorage();
+    final container = ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWith(() => sessionStore),
+        notificationStoreProvider.overrideWith(() => notificationStore),
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        biometricServiceProvider.overrideWithValue(biometricService),
+        secureStorageProvider.overrideWithValue(secureStorage),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(biometricStoreProvider.notifier).checkAvailability();
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: _buildRouter(),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-biometric-switch')),
+      200,
+    );
+    await tester.tap(find.byKey(const ValueKey('settings-biometric-switch')));
+    await tester.pumpAndSettle();
+
+    expect(
+      await secureStorage.read(key: biometricEnabledStorageKey),
+      'true',
+    );
+    expect(container.read(biometricStoreProvider).enabled, isTrue);
+    expect(
+      find.byKey(const ValueKey('settings-biometric-timeout-dropdown')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('settings-biometric-timeout-dropdown')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('After 15 minutes').last);
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(biometricStoreProvider).timeout,
+      BiometricLockTimeout.fifteenMinutes,
+    );
+    expect(
+      await secureStorage.read(key: biometricTimeoutStorageKey),
+      BiometricLockTimeout.fifteenMinutes.name,
+    );
+  });
+
   testWidgets('members tile does not navigate when no active server',
       (tester) async {
     final sessionStore = _FakeSessionStore();
@@ -443,5 +522,17 @@ class _FakeNotificationStore extends NotificationStore {
       pushTokenPlatform: platform,
       pushTokenUpdatedAt: DateTime.utc(2026, 4, 22),
     );
+  }
+}
+
+class _FakeBiometricService implements BiometricService {
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<BiometricAuthResult> authenticate({
+    required String localizedReason,
+  }) async {
+    return BiometricAuthResult.success;
   }
 }

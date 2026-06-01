@@ -52,9 +52,10 @@ class LocalAuthBiometricService implements BiometricService {
   @override
   Future<bool> isAvailable() async {
     try {
-      final canCheck = await _auth.canCheckBiometrics;
-      final isSupported = await _auth.isDeviceSupported();
-      return canCheck && isSupported;
+      // `authenticate(biometricOnly: false)` can fall back to device PIN /
+      // pattern when biometrics are unavailable, so app lock is available when
+      // the device supports local authentication at all.
+      return _auth.isDeviceSupported();
     } on PlatformException {
       return false;
     }

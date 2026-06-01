@@ -629,6 +629,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsBiometricLockDisabled => '已禁用 - 无生物识别锁定';
 
   @override
+  String get settingsBiometricLockTimeoutTitle => '锁定超时';
+
+  @override
+  String get settingsBiometricLockTimeoutImmediate => '立即';
+
+  @override
+  String get settingsBiometricLockTimeoutOneMinute => '1 分钟后';
+
+  @override
+  String get settingsBiometricLockTimeoutFiveMinutes => '5 分钟后';
+
+  @override
+  String get settingsBiometricLockTimeoutFifteenMinutes => '15 分钟后';
+
+  @override
   String get settingsBillingTitle => '账单';
 
   @override

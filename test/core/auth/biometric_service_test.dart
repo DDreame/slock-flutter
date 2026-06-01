@@ -16,14 +16,14 @@ void main() {
       expect(await service.isAvailable(), isTrue);
     });
 
-    test('returns false when canCheckBiometrics is false', () async {
+    test('returns true when device credentials are supported', () async {
       final auth = _FakeLocalAuth(
         canCheck: false,
         deviceSupported: true,
       );
       final service = LocalAuthBiometricService(auth: auth);
 
-      expect(await service.isAvailable(), isFalse);
+      expect(await service.isAvailable(), isTrue);
     });
 
     test('returns false when isDeviceSupported is false', () async {
@@ -40,7 +40,7 @@ void main() {
       final auth = _FakeLocalAuth(
         canCheck: true,
         deviceSupported: true,
-        throwOnCanCheck: true,
+        throwOnIsDeviceSupported: true,
       );
       final service = LocalAuthBiometricService(auth: auth);
 
@@ -169,27 +169,27 @@ class _FakeLocalAuth implements LocalAuthentication {
     required this.canCheck,
     required this.deviceSupported,
     this.authResult = true,
-    this.throwOnCanCheck = false,
+    this.throwOnIsDeviceSupported = false,
     this.authException,
   });
 
   final bool canCheck;
   final bool deviceSupported;
   final bool authResult;
-  final bool throwOnCanCheck;
+  final bool throwOnIsDeviceSupported;
   final PlatformException? authException;
   String? lastLocalizedReason;
 
   @override
-  Future<bool> get canCheckBiometrics {
-    if (throwOnCanCheck) {
-      throw PlatformException(code: 'NotAvailable');
-    }
-    return Future.value(canCheck);
-  }
+  Future<bool> get canCheckBiometrics => Future.value(canCheck);
 
   @override
-  Future<bool> isDeviceSupported() => Future.value(deviceSupported);
+  Future<bool> isDeviceSupported() {
+    if (throwOnIsDeviceSupported) {
+      throw PlatformException(code: 'NotAvailable');
+    }
+    return Future.value(deviceSupported);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) {

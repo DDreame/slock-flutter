@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
 import 'package:slock_app/features/settings/data/biometric_preference.dart';
 
-/// Duration of background inactivity before biometric re-lock is required.
-const kBiometricLockTimeout = Duration(minutes: 5);
-
 /// Whether the device has biometric hardware available.
 enum BiometricAvailability { unknown, available, unavailable }
 
@@ -19,6 +16,7 @@ class BiometricState {
     this.enabled = false,
     this.lockStatus = BiometricLockStatus.unlocked,
     this.availability = BiometricAvailability.unknown,
+    this.timeout = BiometricLockTimeout.fiveMinutes,
     this.lastBackgroundAt,
   });
 
@@ -31,6 +29,9 @@ class BiometricState {
   /// Whether the device has biometric hardware.
   final BiometricAvailability availability;
 
+  /// Background duration before the app requires authentication again.
+  final BiometricLockTimeout timeout;
+
   /// When the app last went to background (for timeout calculation).
   final DateTime? lastBackgroundAt;
 
@@ -40,6 +41,7 @@ class BiometricState {
     bool? enabled,
     BiometricLockStatus? lockStatus,
     BiometricAvailability? availability,
+    BiometricLockTimeout? timeout,
     DateTime? lastBackgroundAt,
     bool clearLastBackgroundAt = false,
   }) {
@@ -47,6 +49,7 @@ class BiometricState {
       enabled: enabled ?? this.enabled,
       lockStatus: lockStatus ?? this.lockStatus,
       availability: availability ?? this.availability,
+      timeout: timeout ?? this.timeout,
       lastBackgroundAt: clearLastBackgroundAt
           ? null
           : (lastBackgroundAt ?? this.lastBackgroundAt),
@@ -61,6 +64,7 @@ class BiometricState {
           enabled == other.enabled &&
           lockStatus == other.lockStatus &&
           availability == other.availability &&
+          timeout == other.timeout &&
           lastBackgroundAt == other.lastBackgroundAt;
 
   @override
@@ -68,6 +72,7 @@ class BiometricState {
         enabled,
         lockStatus,
         availability,
+        timeout,
         lastBackgroundAt,
       );
 }
@@ -76,18 +81,32 @@ class BiometricState {
 ///
 /// Preference (enabled/disabled) is persisted via [BiometricPreferenceRepository].
 /// Lock status is ephemeral — starts unlocked and transitions to locked
-/// when the app is backgrounded beyond [kBiometricLockTimeout].
+/// when the app is backgrounded beyond the configured biometric timeout.
 class BiometricStore extends Notifier<BiometricState> {
   @override
   BiometricState build() => const BiometricState();
 
-  /// Restore preference from persisted storage (called synchronously at startup).
-  void restoreFrom(BiometricPreferenceRepository repo) {
-    final enabled = repo.isEnabled();
+  /// Restore preferences from secure storage before first authenticated frame.
+  Future<void> initialize() async {
+    final repo = ref.read(biometricPreferenceRepositoryProvider);
+    final snapshot = await repo.load();
     state = state.copyWith(
-      enabled: enabled,
-      lockStatus:
-          enabled ? BiometricLockStatus.locked : BiometricLockStatus.unlocked,
+      enabled: snapshot.enabled,
+      timeout: snapshot.timeout,
+      lockStatus: snapshot.enabled
+          ? BiometricLockStatus.locked
+          : BiometricLockStatus.unlocked,
+    );
+  }
+
+  /// Restore preference snapshot directly for tests/bootstrap helpers.
+  void restoreFrom(BiometricPreferenceSnapshot snapshot) {
+    state = state.copyWith(
+      enabled: snapshot.enabled,
+      timeout: snapshot.timeout,
+      lockStatus: snapshot.enabled
+          ? BiometricLockStatus.locked
+          : BiometricLockStatus.unlocked,
     );
   }
 
@@ -147,12 +166,19 @@ class BiometricStore extends Notifier<BiometricState> {
     state = state.copyWith(lastBackgroundAt: timestamp);
   }
 
+  /// Persist and update the background timeout.
+  Future<void> setTimeout(BiometricLockTimeout timeout) async {
+    final repo = ref.read(biometricPreferenceRepositoryProvider);
+    await repo.setTimeout(timeout);
+    state = state.copyWith(timeout: timeout);
+  }
+
   /// Check whether the background timeout has elapsed and lock if so.
   void checkTimeoutAndLock(DateTime now) {
     if (!state.enabled) return;
     final backgroundAt = state.lastBackgroundAt;
     if (backgroundAt == null) return;
-    if (now.difference(backgroundAt) >= kBiometricLockTimeout) {
+    if (now.difference(backgroundAt) >= state.timeout.duration) {
       state = state.copyWith(lockStatus: BiometricLockStatus.locked);
     }
   }

@@ -649,6 +649,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'Disabled — no biometric lock on app access';
 
   @override
+  String get settingsBiometricLockTimeoutTitle => 'Lock timeout';
+
+  @override
+  String get settingsBiometricLockTimeoutImmediate => 'Immediately';
+
+  @override
+  String get settingsBiometricLockTimeoutOneMinute => 'After 1 minute';
+
+  @override
+  String get settingsBiometricLockTimeoutFiveMinutes => 'After 5 minutes';
+
+  @override
+  String get settingsBiometricLockTimeoutFifteenMinutes => 'After 15 minutes';
+
+  @override
   String get settingsBillingTitle => 'Billing';
 
   @override

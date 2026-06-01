@@ -6,20 +6,26 @@ import 'package:slock_app/features/settings/data/biometric_preference.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
+import 'package:slock_app/core/storage/secure_storage.dart';
+
+import '../../core/storage/fake_secure_storage.dart';
 
 void main() {
   late ProviderContainer container;
   late _FakeBiometricService fakeService;
+  late FakeSecureStorage storage;
   late SharedPreferences prefs;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    storage = FakeSecureStorage();
     prefs = await SharedPreferences.getInstance();
     fakeService = _FakeBiometricService();
 
     container = ProviderContainer(
       overrides: [
         biometricServiceProvider.overrideWithValue(fakeService),
+        secureStorageProvider.overrideWithValue(storage),
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
     );
@@ -45,23 +51,38 @@ void main() {
   });
 
   group('restoreFrom', () {
-    test('restores enabled=true and locks', () {
-      final repo = SharedPrefsBiometricPreferenceRepository(prefs: prefs);
-      // Simulate a previously enabled preference
-      prefs.setBool('biometric_lock_enabled', true);
+    test('restores enabled=true and locks', () async {
+      await storage.write(key: biometricEnabledStorageKey, value: 'true');
+      await storage.write(
+        key: biometricTimeoutStorageKey,
+        value: BiometricLockTimeout.oneMinute.name,
+      );
 
-      readStore().restoreFrom(repo);
+      await readStore().initialize();
 
       final state = readState();
       expect(state.enabled, isTrue);
       expect(state.lockStatus, BiometricLockStatus.locked);
       expect(state.isLocked, isTrue);
+      expect(state.timeout, BiometricLockTimeout.oneMinute);
     });
 
-    test('restores enabled=false and stays unlocked', () {
-      final repo = SharedPrefsBiometricPreferenceRepository(prefs: prefs);
+    test('migrates legacy SharedPreferences enabled flag on initialize',
+        () async {
+      await prefs.setBool(biometricEnabledStorageKey, true);
 
-      readStore().restoreFrom(repo);
+      await readStore().initialize();
+
+      final state = readState();
+      expect(state.enabled, isTrue);
+      expect(state.lockStatus, BiometricLockStatus.locked);
+      expect(state.isLocked, isTrue);
+      expect(await storage.read(key: biometricEnabledStorageKey), 'true');
+      expect(prefs.containsKey(biometricEnabledStorageKey), isFalse);
+    });
+
+    test('restores enabled=false and stays unlocked', () async {
+      await readStore().initialize();
 
       final state = readState();
       expect(state.enabled, isFalse);
@@ -102,7 +123,7 @@ void main() {
       expect(state.lockStatus, BiometricLockStatus.unlocked);
       expect(state.isLocked, isFalse);
       // Also verify the preference was persisted as disabled.
-      expect(prefs.getBool('biometric_lock_enabled'), isFalse);
+      expect(await storage.read(key: biometricEnabledStorageKey), 'false');
     });
 
     test('does not auto-disable when unavailable and already disabled',
@@ -137,10 +158,20 @@ void main() {
       expect(state.isLocked, isFalse);
     });
 
-    test('persists preference to SharedPreferences', () async {
+    test('persists preference to secure storage', () async {
       await readStore().setEnabled(true);
 
-      expect(prefs.getBool('biometric_lock_enabled'), isTrue);
+      expect(await storage.read(key: biometricEnabledStorageKey), 'true');
+    });
+
+    test('setTimeout persists timeout to secure storage', () async {
+      await readStore().setTimeout(BiometricLockTimeout.immediate);
+
+      expect(readState().timeout, BiometricLockTimeout.immediate);
+      expect(
+        await storage.read(key: biometricTimeoutStorageKey),
+        BiometricLockTimeout.immediate.name,
+      );
     });
   });
 
@@ -189,6 +220,8 @@ void main() {
       final backgroundAt = DateTime(2026, 5, 7, 12, 0, 0);
       readStore().recordBackground(backgroundAt);
 
+      await readStore().setTimeout(BiometricLockTimeout.fiveMinutes);
+
       // 6 minutes later — exceeds 5-min threshold
       final now = backgroundAt.add(const Duration(minutes: 6));
       readStore().checkTimeoutAndLock(now);
@@ -202,6 +235,8 @@ void main() {
 
       final backgroundAt = DateTime(2026, 5, 7, 12, 0, 0);
       readStore().recordBackground(backgroundAt);
+
+      await readStore().setTimeout(BiometricLockTimeout.fiveMinutes);
 
       // 3 minutes later — within 5-min threshold
       final now = backgroundAt.add(const Duration(minutes: 3));
@@ -229,15 +264,17 @@ void main() {
       expect(readState().isLocked, isFalse);
     });
 
-    test('locks at exactly 5-minute boundary', () async {
+    test('locks at exactly configured timeout boundary', () async {
       await readStore().setEnabled(true);
       readStore().unlock();
 
       final backgroundAt = DateTime(2026, 5, 7, 12, 0, 0);
       readStore().recordBackground(backgroundAt);
 
-      // Exactly 5 minutes — equals threshold
-      final now = backgroundAt.add(kBiometricLockTimeout);
+      await readStore().setTimeout(BiometricLockTimeout.oneMinute);
+
+      // Exactly 1 minute — equals configured threshold
+      final now = backgroundAt.add(BiometricLockTimeout.oneMinute.duration);
       readStore().checkTimeoutAndLock(now);
 
       expect(readState().isLocked, isTrue);
