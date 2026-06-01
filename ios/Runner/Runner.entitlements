@@ -8,5 +8,9 @@
 	<array>
 		<string>applinks:app.slock.ai</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.app.slock.shared</string>
+	</array>
 </dict>
 </plist>

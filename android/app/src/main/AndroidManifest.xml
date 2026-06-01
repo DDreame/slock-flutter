@@ -42,7 +42,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
-                <data android:mimeType="application/*" />
+                <data android:mimeType="*/*" />
             </intent-filter>
 
             <!-- Receive multiple shared images/videos/files -->
@@ -51,7 +51,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
-                <data android:mimeType="application/*" />
+                <data android:mimeType="*/*" />
             </intent-filter>
 
             <!-- HTTPS App Links (requires server .well-known/assetlinks.json) -->
