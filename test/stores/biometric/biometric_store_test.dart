@@ -102,8 +102,7 @@ void main() {
       );
       addTearDown(throwingContainer.dispose);
 
-      final store =
-          throwingContainer.read(biometricStoreProvider.notifier);
+      final store = throwingContainer.read(biometricStoreProvider.notifier);
 
       // Should not throw — the error is caught internally.
       await store.initialize();

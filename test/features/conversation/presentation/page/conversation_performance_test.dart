@@ -9,6 +9,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -223,6 +224,62 @@ void main() {
         reason: 'ListView must have cacheExtent of 500 for pre-building '
             'off-screen messages (INV-PERF-4)',
       );
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // 5. MediaQuery.sizeOf suppresses rebuild on keyboard (INV-PERF-5)
+  //
+  // MediaQuery.sizeOf(context) subscribes only to size changes, so keyboard
+  // appearance (viewInsets change) must NOT rebuild the message list.
+  // Reverting to MediaQuery.of(context).size.width would break this test
+  // because `of()` subscribes to the entire MediaQuery, including viewInsets.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Conversation: keyboard appearance does not rebuild message list '
+    '(INV-PERF-5)',
+    (tester) async {
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: ConversationDetailTarget.channel(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+          ),
+          title: '#general',
+          messages: _generateMessages(10),
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
+
+      // Record build count after initial render stabilizes.
+      final initialBuildCount = ConversationMessageList.buildCount;
+
+      // Simulate keyboard appearance via platform viewInsets.
+      // This changes viewInsets but NOT size — only MediaQuery.of subscribers
+      // would see this as a dependency change.
+      tester.view.viewInsets =
+          const FakeViewPadding(bottom: 300, left: 0, top: 0, right: 0);
+      await tester.pump();
+
+      // With MediaQuery.sizeOf, the message list must NOT rebuild because
+      // only viewInsets changed, not size. With MediaQuery.of, this would
+      // trigger a full rebuild (buildCount would increase).
+      expect(
+        ConversationMessageList.buildCount,
+        initialBuildCount,
+        reason: 'Message list must NOT rebuild when only viewInsets change — '
+            'MediaQuery.sizeOf must be used instead of MediaQuery.of '
+            '(INV-PERF-5)',
+      );
+
+      // Reset view insets for other tests.
+      tester.view.resetViewInsets();
     },
   );
 }
