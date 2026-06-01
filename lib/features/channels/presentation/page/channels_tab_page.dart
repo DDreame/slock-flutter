@@ -55,6 +55,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   // PERF-819: Memoize filtered list — only recompute when search query or
   // sorted list identity changes, not on unrelated rebuilds (e.g. unread
@@ -69,9 +70,26 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   Set<String>? _cachedPinnedIds;
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  @override
   void dispose() {
+    _scrollController.removeListener(_handleScroll);
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients || _searchQuery.isNotEmpty) return;
+    final position = _scrollController.position;
+    if (position.extentAfter > 320) return;
+    final state = ref.read(homeListStoreProvider);
+    if (!state.hasMoreChannels || state.isLoadingMoreChannels) return;
+    ref.read(homeListStoreProvider.notifier).loadMoreChannels();
   }
 
   @override
@@ -83,6 +101,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
           failure: s.failure,
           pinnedChannels: s.pinnedChannels,
           channels: s.channels,
+          hasMoreChannels: s.hasMoreChannels,
+          isLoadingMoreChannels: s.isLoadingMoreChannels,
         ),
       ),
     );
@@ -189,6 +209,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             child: _buildChannelList(
               pinnedChannels: state.pinnedChannels,
               channels: state.channels,
+              hasMoreChannels: state.hasMoreChannels,
+              isLoadingMoreChannels: state.isLoadingMoreChannels,
               homeStore: homeStore,
               channelUnreadCounts: channelUnreadCounts,
               managementIsBusy: isBusy,
@@ -202,6 +224,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   Widget _buildChannelList({
     required List<HomeChannelSummary> pinnedChannels,
     required List<HomeChannelSummary> channels,
+    required bool hasMoreChannels,
+    required bool isLoadingMoreChannels,
     required HomeListStore homeStore,
     required Map<ChannelScopeId, int> channelUnreadCounts,
     required bool managementIsBusy,
@@ -240,6 +264,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
     if (displayList.isEmpty && _searchQuery.isEmpty) {
       return ListView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _buildSearchField(l10n, colors),
           Padding(
@@ -267,6 +293,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
     if (_searchQuery.isNotEmpty) {
       return ListView.builder(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         itemCount: displayList.length + 1 + (displayList.isEmpty ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == 0) {
@@ -307,9 +335,18 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     }
 
     return ReorderableListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       key: const ValueKey('channels-tab-reorder-list'),
       buildDefaultDragHandles: false,
+      scrollController: _scrollController,
       header: _buildSearchField(l10n, colors),
+      footer: isLoadingMoreChannels
+          ? const _ChannelsLoadMoreIndicator(
+              key: ValueKey('channels-load-more-indicator'),
+            )
+          : hasMoreChannels
+              ? const SizedBox(key: ValueKey('channels-load-more-sentinel'))
+              : null,
       itemCount: displayList.length,
       onReorder: (oldIndex, newIndex) {
         _handleChannelReorder(
@@ -817,6 +854,24 @@ class _ChannelsErrorState extends StatelessWidget {
               child: Text(l10n.homeRetry),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChannelsLoadMoreIndicator extends StatelessWidget {
+  const _ChannelsLoadMoreIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
     );

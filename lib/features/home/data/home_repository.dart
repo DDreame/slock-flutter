@@ -25,8 +25,45 @@ abstract class HomeRepository {
   });
 }
 
+abstract class PaginatedHomeRepository {
+  Future<HomeWorkspacePage> loadWorkspacePage(
+    ServerScopeId serverId, {
+    required int channelOffset,
+    required int directMessageOffset,
+    required int limit,
+  });
+
+  Future<HomeChannelPage> loadChannelPage(
+    ServerScopeId serverId, {
+    required int offset,
+    required int limit,
+  });
+
+  Future<HomeDirectMessagePage> loadDirectMessagePage(
+    ServerScopeId serverId, {
+    required int offset,
+    required int limit,
+  });
+}
+
 typedef HomeWorkspaceSnapshotLoader = Future<HomeWorkspaceSnapshot> Function(
     ServerScopeId serverId);
+typedef HomeWorkspacePageLoader = Future<HomeWorkspacePage> Function(
+  ServerScopeId serverId, {
+  required int channelOffset,
+  required int directMessageOffset,
+  required int limit,
+});
+typedef HomeChannelPageLoader = Future<HomeChannelPage> Function(
+  ServerScopeId serverId, {
+  required int offset,
+  required int limit,
+});
+typedef HomeDirectMessagePageLoader = Future<HomeDirectMessagePage> Function(
+  ServerScopeId serverId, {
+  required int offset,
+  required int limit,
+});
 typedef HomeCachedWorkspaceLoader = Future<HomeWorkspaceSnapshot?> Function(
     ServerScopeId serverId);
 typedef HomeDirectMessageSummaryPersister = Future<HomeDirectMessageSummary>
@@ -45,21 +82,31 @@ typedef HomeConversationPreviewUpdatePersister = Future<void> Function({
   required String preview,
 });
 
-class BaselineHomeRepository implements HomeRepository {
+class BaselineHomeRepository
+    implements HomeRepository, PaginatedHomeRepository {
   BaselineHomeRepository({
     required HomeWorkspaceSnapshotLoader loadWorkspace,
+    required HomeWorkspacePageLoader loadWorkspacePage,
+    required HomeChannelPageLoader loadChannelPage,
+    required HomeDirectMessagePageLoader loadDirectMessagePage,
     required HomeCachedWorkspaceLoader loadCachedWorkspace,
     required HomeDirectMessageSummaryPersister persistDirectMessageSummary,
     required HomeConversationActivityPersister persistConversationActivity,
     required HomeConversationPreviewUpdatePersister
         persistConversationPreviewUpdate,
   })  : _loadWorkspace = loadWorkspace,
+        _loadWorkspacePage = loadWorkspacePage,
+        _loadChannelPage = loadChannelPage,
+        _loadDirectMessagePage = loadDirectMessagePage,
         _loadCachedWorkspace = loadCachedWorkspace,
         _persistDirectMessageSummary = persistDirectMessageSummary,
         _persistConversationActivity = persistConversationActivity,
         _persistConversationPreviewUpdate = persistConversationPreviewUpdate;
 
   final HomeWorkspaceSnapshotLoader _loadWorkspace;
+  final HomeWorkspacePageLoader _loadWorkspacePage;
+  final HomeChannelPageLoader _loadChannelPage;
+  final HomeDirectMessagePageLoader _loadDirectMessagePage;
   final HomeCachedWorkspaceLoader _loadCachedWorkspace;
   final HomeDirectMessageSummaryPersister _persistDirectMessageSummary;
   final HomeConversationActivityPersister _persistConversationActivity;
@@ -75,6 +122,74 @@ class BaselineHomeRepository implements HomeRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to load home workspace snapshot.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<HomeWorkspacePage> loadWorkspacePage(
+    ServerScopeId serverId, {
+    required int channelOffset,
+    required int directMessageOffset,
+    required int limit,
+  }) async {
+    try {
+      return await _loadWorkspacePage(
+        serverId,
+        channelOffset: channelOffset,
+        directMessageOffset: directMessageOffset,
+        limit: limit,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load home workspace page.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<HomeChannelPage> loadChannelPage(
+    ServerScopeId serverId, {
+    required int offset,
+    required int limit,
+  }) async {
+    try {
+      return await _loadChannelPage(
+        serverId,
+        offset: offset,
+        limit: limit,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load home channel page.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<HomeDirectMessagePage> loadDirectMessagePage(
+    ServerScopeId serverId, {
+    required int offset,
+    required int limit,
+  }) async {
+    try {
+      return await _loadDirectMessagePage(
+        serverId,
+        offset: offset,
+        limit: limit,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load home direct message page.',
         causeType: error.runtimeType.toString(),
       );
     }
@@ -156,6 +271,44 @@ class BaselineHomeRepository implements HomeRepository {
       );
     }
   }
+}
+
+class HomeWorkspacePage {
+  const HomeWorkspacePage({
+    required this.snapshot,
+    required this.hasMoreChannels,
+    required this.hasMoreDirectMessages,
+  });
+
+  final HomeWorkspaceSnapshot snapshot;
+  final bool hasMoreChannels;
+  final bool hasMoreDirectMessages;
+}
+
+class HomeChannelPage {
+  const HomeChannelPage({
+    required this.channels,
+    required this.hasMore,
+    this.unreadCounts = const {},
+    this.threadChannelIds = const {},
+  });
+
+  final List<HomeChannelSummary> channels;
+  final bool hasMore;
+  final Map<String, int> unreadCounts;
+  final Set<String> threadChannelIds;
+}
+
+class HomeDirectMessagePage {
+  const HomeDirectMessagePage({
+    required this.directMessages,
+    required this.hasMore,
+    this.unreadCounts = const {},
+  });
+
+  final List<HomeDirectMessageSummary> directMessages;
+  final bool hasMore;
+  final Map<String, int> unreadCounts;
 }
 
 class HomeWorkspaceSnapshot {

@@ -25,6 +25,9 @@ final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
   HomeListStore.new,
 );
 
+@visibleForTesting
+const homeListPageSize = 30;
+
 /// Loads the machine count for the home console tile.
 ///
 /// Uses [appDioClientProvider] directly because [machinesRepositoryProvider]
@@ -55,6 +58,10 @@ class HomeListStore extends Notifier<HomeListState> {
   int _threadCount = 0;
   List<ThreadInboxItem> _threadItems = const [];
   SidebarOrder _sidebarOrder = const SidebarOrder();
+  int _visibleChannelLimit = homeListPageSize;
+  int _visibleDirectMessageLimit = homeListPageSize;
+  bool _hasMoreChannels = false;
+  bool _hasMoreDirectMessages = false;
   final RequestCoordinator _coordinator = RequestCoordinator();
 
   /// Generation counter for supplemental loads. Incremented on each call
@@ -87,6 +94,10 @@ class HomeListStore extends Notifier<HomeListState> {
     _threadCount = 0;
     _threadItems = const [];
     _sidebarOrder = const SidebarOrder();
+    _visibleChannelLimit = homeListPageSize;
+    _visibleDirectMessageLimit = homeListPageSize;
+    _hasMoreChannels = false;
+    _hasMoreDirectMessages = false;
     _realtimePreviewIds.clear();
     _disposed = false;
 
@@ -117,6 +128,10 @@ class HomeListStore extends Notifier<HomeListState> {
     // Reset per-load-cycle state so retries start clean.
     _realtimePreviewIds.clear();
     _taskLoadFailure = null;
+    _visibleChannelLimit = homeListPageSize;
+    _visibleDirectMessageLimit = homeListPageSize;
+    _hasMoreChannels = false;
+    _hasMoreDirectMessages = false;
 
     state = state.copyWith(
       serverScopeId: serverScopeId,
@@ -133,6 +148,8 @@ class HomeListStore extends Notifier<HomeListState> {
     if (cached != null) {
       _allChannels = List.of(cached.channels);
       _allDirectMessages = List.of(cached.directMessages);
+      _hasMoreChannels = false;
+      _hasMoreDirectMessages = false;
       _emitPersonalizedState(
         serverScopeId: cached.serverId,
         status: HomeListStatus.success,
@@ -143,10 +160,13 @@ class HomeListStore extends Notifier<HomeListState> {
       // Tier 1: workspace + sidebar order — critical for initial render.
       // Start both concurrently, await sequentially to preserve raw exception
       // types (record .wait wraps in ParallelWaitError).
-      final workspaceFuture = repo.loadWorkspace(serverScopeId);
+      final workspaceFuture = _loadInitialWorkspace(repo, serverScopeId);
       final sidebarFuture = _loadSidebarOrderSafe(serverScopeId);
-      final snapshot = await workspaceFuture;
+      final page = await workspaceFuture;
+      final snapshot = page.snapshot;
       final sidebarOrder = await sidebarFuture;
+      _hasMoreChannels = page.hasMoreChannels;
+      _hasMoreDirectMessages = page.hasMoreDirectMessages;
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
       // Build cached-preview lookup before overwriting.
@@ -283,6 +303,28 @@ class HomeListStore extends Notifier<HomeListState> {
     }
   }
 
+  Future<HomeWorkspacePage> _loadInitialWorkspace(
+    HomeRepository repo,
+    ServerScopeId serverScopeId,
+  ) async {
+    if (repo is PaginatedHomeRepository) {
+      final paginatedRepo = repo as PaginatedHomeRepository;
+      return paginatedRepo.loadWorkspacePage(
+        serverScopeId,
+        channelOffset: 0,
+        directMessageOffset: 0,
+        limit: homeListPageSize,
+      );
+    }
+
+    final snapshot = await repo.loadWorkspace(serverScopeId);
+    return HomeWorkspacePage(
+      snapshot: snapshot,
+      hasMoreChannels: snapshot.channels.length > homeListPageSize,
+      hasMoreDirectMessages: snapshot.directMessages.length > homeListPageSize,
+    );
+  }
+
   Future<SidebarOrder> _loadSidebarOrderSafe(
     ServerScopeId serverScopeId,
   ) async {
@@ -384,6 +426,110 @@ class HomeListStore extends Notifier<HomeListState> {
 
   Future<void> retry() => load();
 
+  Future<void> loadMoreChannels() async {
+    if (state.status != HomeListStatus.success ||
+        state.isLoadingMoreChannels ||
+        !state.hasMoreChannels) {
+      return;
+    }
+    state = state.copyWith(isLoadingMoreChannels: true);
+    await _loadMoreChannelPage();
+  }
+
+  Future<void> loadMoreDirectMessages() async {
+    if (state.status != HomeListStatus.success ||
+        state.isLoadingMoreDirectMessages ||
+        !state.hasMoreDirectMessages) {
+      return;
+    }
+    state = state.copyWith(isLoadingMoreDirectMessages: true);
+    await _loadMoreDirectMessagePage();
+  }
+
+  Future<void> _loadMoreChannelPage() async {
+    final serverScopeId = state.serverScopeId;
+    if (serverScopeId == null) return;
+    final repo = ref.read(homeRepositoryProvider);
+    if (repo is PaginatedHomeRepository) {
+      final paginatedRepo = repo as PaginatedHomeRepository;
+      try {
+        final page = await paginatedRepo.loadChannelPage(
+          serverScopeId,
+          offset: _allChannels.length,
+          limit: homeListPageSize,
+        );
+        if (_disposed || state.status != HomeListStatus.success) return;
+        _allChannels = _appendUniqueChannels(
+          _allChannels,
+          page.channels,
+        );
+        _hasMoreChannels = page.hasMore;
+      } catch (_) {
+        // Keep the current page visible; the user can retry by scrolling again.
+      }
+    } else {
+      await Future<void>.delayed(Duration.zero);
+      _hasMoreChannels = false;
+    }
+    if (_disposed || state.status != HomeListStatus.success) return;
+    _visibleChannelLimit += homeListPageSize;
+    _emitPersonalizedState(isLoadingMoreChannels: false);
+  }
+
+  Future<void> _loadMoreDirectMessagePage() async {
+    final serverScopeId = state.serverScopeId;
+    if (serverScopeId == null) return;
+    final repo = ref.read(homeRepositoryProvider);
+    if (repo is PaginatedHomeRepository) {
+      final paginatedRepo = repo as PaginatedHomeRepository;
+      try {
+        final page = await paginatedRepo.loadDirectMessagePage(
+          serverScopeId,
+          offset: _allDirectMessages.length,
+          limit: homeListPageSize,
+        );
+        if (_disposed || state.status != HomeListStatus.success) return;
+        _allDirectMessages = _appendUniqueDirectMessages(
+          _allDirectMessages,
+          page.directMessages,
+        );
+        _hasMoreDirectMessages = page.hasMore;
+      } catch (_) {
+        // Keep the current page visible; the user can retry by scrolling again.
+      }
+    } else {
+      await Future<void>.delayed(Duration.zero);
+      _hasMoreDirectMessages = false;
+    }
+    if (_disposed || state.status != HomeListStatus.success) return;
+    _visibleDirectMessageLimit += homeListPageSize;
+    _emitPersonalizedState(isLoadingMoreDirectMessages: false);
+  }
+
+  List<HomeChannelSummary> _appendUniqueChannels(
+    List<HomeChannelSummary> current,
+    List<HomeChannelSummary> nextPage,
+  ) {
+    final seen = {for (final channel in current) channel.scopeId.value};
+    return [
+      ...current,
+      for (final channel in nextPage)
+        if (seen.add(channel.scopeId.value)) channel,
+    ];
+  }
+
+  List<HomeDirectMessageSummary> _appendUniqueDirectMessages(
+    List<HomeDirectMessageSummary> current,
+    List<HomeDirectMessageSummary> nextPage,
+  ) {
+    final seen = {for (final dm in current) dm.scopeId.value};
+    return [
+      ...current,
+      for (final dm in nextPage)
+        if (seen.add(dm.scopeId.value)) dm,
+    ];
+  }
+
   /// Loads supplemental data (agents, tasks, machines, threads)
   /// independently and merges each into state as it arrives.
   ///
@@ -465,10 +611,13 @@ class HomeListStore extends Notifier<HomeListState> {
         // Tier 1: workspace + sidebar order — critical for render.
         // Start both concurrently, await sequentially to preserve raw exception
         // types (record .wait wraps in ParallelWaitError).
-        final workspaceFuture = repo.loadWorkspace(serverScopeId);
+        final workspaceFuture = _loadInitialWorkspace(repo, serverScopeId);
         final sidebarFuture = _loadSidebarOrderSafe(serverScopeId);
-        final snapshot = await workspaceFuture;
+        final page = await workspaceFuture;
+        final snapshot = page.snapshot;
         final sidebarOrder = await sidebarFuture;
+        _hasMoreChannels = page.hasMoreChannels;
+        _hasMoreDirectMessages = page.hasMoreDirectMessages;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
         // Build cached-preview lookup before overwriting.
@@ -564,6 +713,9 @@ class HomeListStore extends Notifier<HomeListState> {
     if (state.status != HomeListStatus.success) return;
     if (_allDirectMessages.any((d) => d.scopeId == dm.scopeId)) return;
     _allDirectMessages = [dm, ..._allDirectMessages];
+    if (_allDirectMessages.length > _visibleDirectMessageLimit) {
+      _visibleDirectMessageLimit++;
+    }
     _emitPersonalizedState();
   }
 
@@ -1049,6 +1201,8 @@ class HomeListStore extends Notifier<HomeListState> {
     ServerScopeId? serverScopeId,
     HomeListStatus? status,
     bool? isRefreshing,
+    bool? isLoadingMoreChannels,
+    bool? isLoadingMoreDirectMessages,
   }) {
     final order = _sidebarOrder;
 
@@ -1104,6 +1258,11 @@ class HomeListStore extends Notifier<HomeListState> {
     final hiddenDms =
         sortedDms.where((d) => hiddenSet.contains(d.scopeId.value)).toList();
 
+    final visibleUnpinnedChannels =
+        unpinned.take(_visibleChannelLimit).toList(growable: false);
+    final visibleDirectMessages =
+        visibleDms.take(_visibleDirectMessageLimit).toList(growable: false);
+
     final sortedAgents = _sortByOrder(
       _allAgents,
       order.agentOrder,
@@ -1140,8 +1299,8 @@ class HomeListStore extends Notifier<HomeListState> {
         orderedDirectMessageIds: orderedDirectMessageIds,
         orderedAgentIds: orderedAgentIds,
       ),
-      channels: unpinned,
-      directMessages: visibleDms,
+      channels: visibleUnpinnedChannels,
+      directMessages: visibleDirectMessages,
       hiddenDirectMessages: hiddenDms,
       pinnedAgents: pinnedAgentList,
       agents: unpinnedAgentList,
@@ -1151,6 +1310,14 @@ class HomeListStore extends Notifier<HomeListState> {
       threadCount: _threadCount,
       threadItems: _threadItems,
       sidebarOrder: order,
+      hasMoreChannels:
+          _hasMoreChannels || unpinned.length > visibleUnpinnedChannels.length,
+      isLoadingMoreChannels:
+          isLoadingMoreChannels ?? state.isLoadingMoreChannels,
+      hasMoreDirectMessages: _hasMoreDirectMessages ||
+          visibleDms.length > visibleDirectMessages.length,
+      isLoadingMoreDirectMessages:
+          isLoadingMoreDirectMessages ?? state.isLoadingMoreDirectMessages,
       isRefreshing: isRefreshing,
       clearFailure: status == HomeListStatus.success,
       taskLoadFailure: _taskLoadFailure,
