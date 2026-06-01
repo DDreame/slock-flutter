@@ -148,7 +148,7 @@ void main() {
               () => _ScrollFabConversationDetailStore(target, messages),
             ),
             conversationDetailSessionStoreProvider
-                .overrideWith(() => _FakeDetailSessionStore()),
+                .overrideWithValue(ConversationDetailSessionCache()),
             voiceMessageStoreProvider
                 .overrideWith(() => _FakeVoiceMessageStore()),
             sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
@@ -556,12 +556,6 @@ class _ScrollFabConversationDetailStore extends ConversationDetailStore {
 
   @override
   Future<void> loadNewer() async {}
-}
-
-class _FakeDetailSessionStore extends ConversationDetailSessionStore {
-  @override
-  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
-      const {};
 }
 
 class _FakeVoiceMessageStore extends VoiceMessageStore {

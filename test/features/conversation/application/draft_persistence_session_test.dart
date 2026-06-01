@@ -137,11 +137,10 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final store =
-          container.read(conversationDetailSessionStoreProvider.notifier);
+      final cache = container.read(conversationDetailSessionStoreProvider);
 
       // Save two different conversations.
-      store.saveSuccessState(
+      cache.saveSuccessState(
         ConversationDetailState(
           target: _target1,
           status: ConversationDetailStatus.success,
@@ -151,7 +150,7 @@ void main() {
         ),
         scrollOffset: 100,
       );
-      store.saveSuccessState(
+      cache.saveSuccessState(
         ConversationDetailState(
           target: _target2,
           status: ConversationDetailStatus.success,
@@ -163,28 +162,24 @@ void main() {
       );
 
       // Verify both are saved.
-      final stateBefore =
-          container.read(conversationDetailSessionStoreProvider);
-      expect(stateBefore.length, 2);
-      expect(stateBefore[_target1]?.draft, 'draft for ch-1');
-      expect(stateBefore[_target2]?.draft, 'draft for ch-2');
+      expect(cache.length, 2);
+      expect(cache[_target1]?.draft, 'draft for ch-1');
+      expect(cache[_target2]?.draft, 'draft for ch-2');
 
       // clearAll.
-      store.clearAll();
+      cache.clearAll();
 
       // Verify all cleared.
-      final stateAfter = container.read(conversationDetailSessionStoreProvider);
-      expect(stateAfter, isEmpty);
+      expect(cache.isEmpty, isTrue);
     });
 
     test('saveSuccessState persists draft from state', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final store =
-          container.read(conversationDetailSessionStoreProvider.notifier);
+      final cache = container.read(conversationDetailSessionStoreProvider);
 
-      store.saveSuccessState(
+      cache.saveSuccessState(
         ConversationDetailState(
           target: _target1,
           status: ConversationDetailStatus.success,
@@ -202,8 +197,7 @@ void main() {
         scrollOffset: 50,
       );
 
-      final entry =
-          container.read(conversationDetailSessionStoreProvider)[_target1];
+      final entry = cache[_target1];
       expect(entry, isNotNull);
       expect(entry!.draft, 'my draft text');
       expect(entry.pendingAttachments, hasLength(1));
@@ -269,9 +263,7 @@ void main() {
           .login(email: 'test@test.com', password: 'password');
 
       // Save a draft to the session store.
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(
+      container.read(conversationDetailSessionStoreProvider).saveSuccessState(
             ConversationDetailState(
               target: _target1,
               status: ConversationDetailStatus.success,

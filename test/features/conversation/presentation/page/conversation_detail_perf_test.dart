@@ -169,7 +169,7 @@ Widget _buildApp({
     overrides: [
       conversationDetailStoreProvider.overrideWith(() => store),
       conversationDetailSessionStoreProvider
-          .overrideWith(() => _FakeConversationDetailSessionStore()),
+          .overrideWithValue(ConversationDetailSessionCache()),
       voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       sharedPreferencesProvider.overrideWithValue(prefs),
@@ -235,13 +235,6 @@ class _ControllableConversationDetailStore extends ConversationDetailStore {
   void emitNewMessages(List<ConversationMessageSummary> messages) {
     state = state.copyWith(messages: messages);
   }
-}
-
-class _FakeConversationDetailSessionStore
-    extends ConversationDetailSessionStore {
-  @override
-  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
-      const {};
 }
 
 class _FakeVoiceMessageStore extends VoiceMessageStore {

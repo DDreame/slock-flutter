@@ -117,7 +117,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -128,9 +128,7 @@ void main() {
           .editMessage('message-1', 'Will revert');
       await Future<void>.value();
 
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(
+      container.read(conversationDetailSessionStoreProvider).saveSuccessState(
             container.read(conversationDetailStoreProvider),
             scrollOffset: 12,
           );
@@ -351,7 +349,7 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           conversationDetailSessionStoreProvider
-              .overrideWith(() => ConversationDetailSessionStore()),
+              .overrideWithValue(ConversationDetailSessionCache()),
         ],
       );
       addTearDown(container.dispose);
@@ -362,9 +360,7 @@ void main() {
           .deleteMessage('message-1');
       await Future<void>.value();
 
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(
+      container.read(conversationDetailSessionStoreProvider).saveSuccessState(
             container.read(conversationDetailStoreProvider),
             scrollOffset: 24,
           );

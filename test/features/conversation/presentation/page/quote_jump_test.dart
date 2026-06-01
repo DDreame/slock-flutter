@@ -503,7 +503,7 @@ void main() {
             conversationRepositoryProvider.overrideWithValue(repo),
             sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
             conversationDetailSessionStoreProvider
-                .overrideWith(() => sessionStore),
+                .overrideWithValue(sessionStore),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -1046,18 +1046,15 @@ class _ContextTrackingFakeRepository extends _FakeConversationRepository {
   }
 }
 
-/// Pre-seeded session store that starts with a cached entry for [target].
-class _PreSeededSessionStore extends ConversationDetailSessionStore {
+/// Pre-seeded session cache that starts with a cached entry for [target].
+class _PreSeededSessionStore extends ConversationDetailSessionCache {
   _PreSeededSessionStore({
-    required this.target,
-    required this.entry,
-  });
-
-  final ConversationDetailTarget target;
-  final ConversationDetailSessionEntry entry;
-
-  @override
-  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() {
-    return {target: entry};
+    required ConversationDetailTarget target,
+    required ConversationDetailSessionEntry entry,
+  }) {
+    saveSuccessState(
+      entry.toState(target),
+      scrollOffset: entry.scrollOffset,
+    );
   }
 }

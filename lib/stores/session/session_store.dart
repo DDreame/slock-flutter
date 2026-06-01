@@ -212,7 +212,7 @@ class SessionStore extends Notifier<SessionState> {
     // Clear conversation session store (drafts, pending attachments, cached
     // scroll positions) to prevent previous user's data from leaking.
     try {
-      ref.read(conversationDetailSessionStoreProvider.notifier).clearAll();
+      ref.read(conversationDetailSessionStoreProvider).clearAll();
     } on Object {
       // Best-effort — session store may not be initialized in test env.
     }

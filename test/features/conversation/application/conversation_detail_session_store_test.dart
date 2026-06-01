@@ -71,19 +71,17 @@ void main() {
     });
 
     test('initial state is empty map', () {
-      final state = container.read(conversationDetailSessionStoreProvider);
-      expect(state, isEmpty);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      expect(cache.isEmpty, isTrue);
     });
 
     test('saveSuccessState stores entry for target', () {
       final detailState = makeSuccessState();
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(detailState, scrollOffset: 100.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveSuccessState(detailState, scrollOffset: 100.0);
 
-      final state = container.read(conversationDetailSessionStoreProvider);
-      expect(state.containsKey(targetChannel), isTrue);
-      final entry = state[targetChannel]!;
+      expect(cache.containsKey(targetChannel), isTrue);
+      final entry = cache[targetChannel]!;
       expect(entry.title, '#general');
       expect(entry.messages.length, 1);
       expect(entry.scrollOffset, 100.0);
@@ -100,12 +98,10 @@ void main() {
         historyLimited: false,
         hasOlder: false,
       );
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(loadingState, scrollOffset: 50.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveSuccessState(loadingState, scrollOffset: 50.0);
 
-      final state = container.read(conversationDetailSessionStoreProvider);
-      expect(state, isEmpty);
+      expect(cache.isEmpty, isTrue);
     });
 
     test('saveSuccessState preserves draft and replyToMessage', () {
@@ -122,12 +118,10 @@ void main() {
         draft: 'My draft text',
         replyToMessage: replyMsg,
       );
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(detailState, scrollOffset: 200.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveSuccessState(detailState, scrollOffset: 200.0);
 
-      final entry = container
-          .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+      final entry = cache[targetChannel]!;
       expect(entry.draft, 'My draft text');
       expect(entry.replyToMessage?.id, 'msg-reply');
     });
@@ -154,12 +148,10 @@ void main() {
         ),
       ];
       final detailState = makeSuccessState(pendingMessages: pendingMessages);
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(detailState, scrollOffset: 0.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveSuccessState(detailState, scrollOffset: 0.0);
 
-      final entry = container
-          .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+      final entry = cache[targetChannel]!;
       // Sent messages should NOT be preserved.
       expect(entry.failedPendingMessages.length, 2);
       // Sending messages should be converted to queued.
@@ -178,24 +170,19 @@ void main() {
     test('saveScrollOffset updates existing entry after debounce', () {
       fakeAsync((async) {
         final detailState = makeSuccessState();
-        container
-            .read(conversationDetailSessionStoreProvider.notifier)
-            .saveSuccessState(detailState, scrollOffset: 100.0);
+        final cache = container.read(conversationDetailSessionStoreProvider);
+        cache.saveSuccessState(detailState, scrollOffset: 100.0);
 
-        container
-            .read(conversationDetailSessionStoreProvider.notifier)
-            .saveScrollOffset(targetChannel, 250.0);
+        cache.saveScrollOffset(targetChannel, 250.0);
 
-        var entry = container
-            .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+        var entry = cache[targetChannel]!;
         expect(entry.scrollOffset, 100.0);
 
         async.elapse(
-          ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+          ConversationDetailSessionCache.scrollOffsetDebounceDuration,
         );
 
-        entry = container
-            .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+        entry = cache[targetChannel]!;
         expect(entry.scrollOffset, 250.0);
       });
     });
@@ -203,52 +190,34 @@ void main() {
     test('saveScrollOffset coalesces rapid scroll notifications', () {
       fakeAsync((async) {
         final detailState = makeSuccessState();
-        container
-            .read(conversationDetailSessionStoreProvider.notifier)
-            .saveSuccessState(detailState, scrollOffset: 0.0);
-
-        var notifications = 0;
-        final subscription = container.listen(
-          conversationDetailSessionStoreProvider,
-          (_, __) => notifications++,
-        );
-        addTearDown(subscription.close);
+        final cache = container.read(conversationDetailSessionStoreProvider);
+        cache.saveSuccessState(detailState, scrollOffset: 0.0);
 
         for (var i = 1; i <= 100; i++) {
-          container
-              .read(conversationDetailSessionStoreProvider.notifier)
-              .saveScrollOffset(targetChannel, i.toDouble());
+          cache.saveScrollOffset(targetChannel, i.toDouble());
         }
 
-        expect(notifications, 0);
         expect(
-          container
-              .read(conversationDetailSessionStoreProvider)[targetChannel]!
-              .scrollOffset,
+          cache[targetChannel]!.scrollOffset,
           0.0,
         );
 
         async.elapse(
-          ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+          ConversationDetailSessionCache.scrollOffsetDebounceDuration,
         );
 
-        expect(notifications, 1);
         expect(
-          container
-              .read(conversationDetailSessionStoreProvider)[targetChannel]!
-              .scrollOffset,
+          cache[targetChannel]!.scrollOffset,
           100.0,
         );
       });
     });
 
     test('saveScrollOffset is no-op for unknown target', () {
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveScrollOffset(targetChannel, 250.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveScrollOffset(targetChannel, 250.0);
 
-      final state = container.read(conversationDetailSessionStoreProvider);
-      expect(state, isEmpty);
+      expect(cache.isEmpty, isTrue);
     });
 
     test('supports multiple conversation sessions', () {
@@ -258,25 +227,21 @@ void main() {
         title: 'Alice',
       );
 
-      final notifier =
-          container.read(conversationDetailSessionStoreProvider.notifier);
-      notifier.saveSuccessState(channelState, scrollOffset: 100.0);
-      notifier.saveSuccessState(dmState, scrollOffset: 200.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveSuccessState(channelState, scrollOffset: 100.0);
+      cache.saveSuccessState(dmState, scrollOffset: 200.0);
 
-      final state = container.read(conversationDetailSessionStoreProvider);
-      expect(state.length, 2);
-      expect(state[targetChannel]!.title, '#general');
-      expect(state[targetDm]!.title, 'Alice');
+      expect(cache.length, 2);
+      expect(cache[targetChannel]!.title, '#general');
+      expect(cache[targetDm]!.title, 'Alice');
     });
 
     test('toState round-trip reconstructs ConversationDetailState', () {
       final detailState = makeSuccessState(draft: 'My draft');
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(detailState, scrollOffset: 150.0);
+      final cache = container.read(conversationDetailSessionStoreProvider);
+      cache.saveSuccessState(detailState, scrollOffset: 150.0);
 
-      final entry = container
-          .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+      final entry = cache[targetChannel]!;
       final restored = entry.toState(targetChannel);
 
       expect(restored.status, ConversationDetailStatus.success);
