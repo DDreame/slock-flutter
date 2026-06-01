@@ -24,12 +24,14 @@ final _testRealtimeProvider = StateProvider<RealtimeConnectionStatus>(
   (ref) => RealtimeConnectionStatus.connected,
 );
 
+const _serverId = ServerScopeId('server-1');
+const _channelScopeId = ChannelScopeId(
+  serverId: _serverId,
+  value: 'general',
+);
+
 void main() {
-  const serverId = ServerScopeId('server-1');
-  const channelScopeId = ChannelScopeId(
-    serverId: serverId,
-    value: 'general',
-  );
+  const serverId = _serverId;
 
   late int loadCallCount;
 
@@ -52,16 +54,15 @@ void main() {
         ),
         sidebarOrderRepositoryProvider
             .overrideWithValue(const _FakeSidebarOrderRepository()),
-        homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-          (scopeId) async {
+        homeWorkspacePageLoaderProvider.overrideWithValue(
+          (
+            scopeId, {
+            required channelOffset,
+            required directMessageOffset,
+            required limit,
+          }) async {
             loadCallCount++;
-            return HomeWorkspaceSnapshot(
-              serverId: scopeId,
-              channels: const [
-                HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
-              ],
-              directMessages: const [],
-            );
+            return _workspacePage(scopeId);
           },
         ),
         _testLifecycleProvider.overrideWith((ref) => initialLifecycle),
@@ -259,16 +260,15 @@ void main() {
           ),
           sidebarOrderRepositoryProvider
               .overrideWithValue(const _FakeSidebarOrderRepository()),
-          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-            (scopeId) async {
+          homeWorkspacePageLoaderProvider.overrideWithValue(
+            (
+              scopeId, {
+              required channelOffset,
+              required directMessageOffset,
+              required limit,
+            }) async {
               loadCallCountForGroup++;
-              return HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: const [
-                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
-                ],
-                directMessages: const [],
-              );
+              return _workspacePage(scopeId);
             },
           ),
           _testLifecycleProvider
@@ -308,7 +308,7 @@ void main() {
     test('resume triggers load when home is loading (drains queue on success)',
         () async {
       var loadCallCountForGroup = 0;
-      final firstLoadCompleter = Completer<HomeWorkspaceSnapshot>();
+      final firstLoadCompleter = Completer<HomeWorkspacePage>();
 
       final container = ProviderContainer(
         overrides: [
@@ -320,19 +320,18 @@ void main() {
           ),
           sidebarOrderRepositoryProvider
               .overrideWithValue(const _FakeSidebarOrderRepository()),
-          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-            (scopeId) {
+          homeWorkspacePageLoaderProvider.overrideWithValue(
+            (
+              scopeId, {
+              required channelOffset,
+              required directMessageOffset,
+              required limit,
+            }) {
               loadCallCountForGroup++;
               if (loadCallCountForGroup == 1) {
                 return firstLoadCompleter.future;
               }
-              return Future.value(HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: const [
-                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
-                ],
-                directMessages: const [],
-              ));
+              return Future.value(_workspacePage(scopeId));
             },
           ),
           _testLifecycleProvider
@@ -365,6 +364,20 @@ void main() {
       expect(loadCallCountForGroup, greaterThan(afterAutoLoad));
     });
   });
+}
+
+HomeWorkspacePage _workspacePage(ServerScopeId scopeId) {
+  return HomeWorkspacePage(
+    snapshot: HomeWorkspaceSnapshot(
+      serverId: scopeId,
+      channels: const [
+        HomeChannelSummary(scopeId: _channelScopeId, name: 'general'),
+      ],
+      directMessages: const [],
+    ),
+    hasMoreChannels: false,
+    hasMoreDirectMessages: false,
+  );
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {

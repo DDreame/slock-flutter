@@ -84,6 +84,124 @@ void main() {
       expect(snapshot.directMessages.last.title, 'dm-3');
     });
 
+    test('loadWorkspacePage sends offset and limit query parameters', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          '/channels': [
+            {'id': 'channel-30', 'name': 'Engineering 30'},
+          ],
+          '/channels/dm': [
+            {
+              'id': 'dm-30',
+              'participant': {'displayName': 'Alice 30'},
+            },
+          ],
+        },
+      );
+      final container = _createContainer(appDioClient);
+      addTearDown(container.dispose);
+
+      final repository = container.read(homeRepositoryProvider);
+      final page =
+          await (repository as PaginatedHomeRepository).loadWorkspacePage(
+        const ServerScopeId('server-1'),
+        channelOffset: 30,
+        directMessageOffset: 60,
+        limit: 30,
+      );
+
+      expect(page.snapshot.channels.single.scopeId.value, 'channel-30');
+      expect(page.snapshot.directMessages.single.scopeId.value, 'dm-30');
+      expect(appDioClient.requests[0].path, '/channels');
+      expect(appDioClient.requests[0].queryParameters, {
+        'offset': 30,
+        'limit': 30,
+      });
+      expect(appDioClient.requests[1].path, '/channels/dm');
+      expect(appDioClient.requests[1].queryParameters, {
+        'offset': 60,
+        'limit': 30,
+      });
+    });
+
+    test('loadChannelPage slices full-list fallback by offset and limit',
+        () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          '/channels': List.generate(
+            35,
+            (index) => {
+              'id': 'channel-${index.toString().padLeft(2, '0')}',
+              'name': 'Channel ${index.toString().padLeft(2, '0')}',
+            },
+          ),
+          '/channels/dm': const [],
+        },
+      );
+      final container = _createContainer(appDioClient);
+      addTearDown(container.dispose);
+
+      final repository = container.read(homeRepositoryProvider);
+      final page =
+          await (repository as PaginatedHomeRepository).loadChannelPage(
+        const ServerScopeId('server-1'),
+        offset: 30,
+        limit: 30,
+      );
+
+      expect(page.channels.map((channel) => channel.scopeId.value), [
+        'channel-30',
+        'channel-31',
+        'channel-32',
+        'channel-33',
+        'channel-34',
+      ]);
+      expect(page.hasMore, isFalse);
+      expect(appDioClient.requests.single.queryParameters, {
+        'offset': 30,
+        'limit': 30,
+      });
+    });
+
+    test('loadDirectMessagePage slices full-list fallback by offset and limit',
+        () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          '/channels': const [],
+          '/channels/dm': List.generate(
+            33,
+            (index) => {
+              'id': 'dm-${index.toString().padLeft(2, '0')}',
+              'participant': {
+                'displayName': 'DM ${index.toString().padLeft(2, '0')}',
+              },
+            },
+          ),
+        },
+      );
+      final container = _createContainer(appDioClient);
+      addTearDown(container.dispose);
+
+      final repository = container.read(homeRepositoryProvider);
+      final page =
+          await (repository as PaginatedHomeRepository).loadDirectMessagePage(
+        const ServerScopeId('server-1'),
+        offset: 30,
+        limit: 30,
+      );
+
+      expect(page.directMessages.map((dm) => dm.scopeId.value), [
+        'dm-30',
+        'dm-31',
+        'dm-32',
+      ]);
+      expect(page.hasMore, isFalse);
+      expect(appDioClient.requests.single.queryParameters, {
+        'offset': 30,
+        'limit': 30,
+      });
+    });
+
     test('rethrows transport AppFailure without wrapping it', () async {
       const failure = ServerFailure(
         message: 'upstream exploded',
@@ -718,6 +836,25 @@ void main() {
       () async {
     final repository = BaselineHomeRepository(
       loadWorkspace: (serverId) async => throw StateError('boom'),
+      loadWorkspacePage: (
+        serverId, {
+        required channelOffset,
+        required directMessageOffset,
+        required limit,
+      }) async =>
+          throw StateError('boom'),
+      loadChannelPage: (
+        serverId, {
+        required offset,
+        required limit,
+      }) async =>
+          throw StateError('boom'),
+      loadDirectMessagePage: (
+        serverId, {
+        required offset,
+        required limit,
+      }) async =>
+          throw StateError('boom'),
       loadCachedWorkspace: (serverId) async => null,
       persistDirectMessageSummary: (summary) async => summary,
       persistConversationActivity: ({
@@ -774,7 +911,13 @@ class _FakeAppDioClient extends AppDioClient {
     Options? options,
   }) async {
     final headers = Map<String, Object?>.from(options?.headers ?? const {});
-    requests.add(_CapturedRequest(path: path, headers: headers));
+    requests.add(
+      _CapturedRequest(
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters,
+      ),
+    );
 
     final failure = _failures[path];
     if (failure != null) {
@@ -793,10 +936,15 @@ class _FakeAppDioClient extends AppDioClient {
 }
 
 class _CapturedRequest {
-  const _CapturedRequest({required this.path, required this.headers});
+  const _CapturedRequest({
+    required this.path,
+    required this.headers,
+    this.queryParameters,
+  });
 
   final String path;
   final Map<String, Object?> headers;
+  final Map<String, dynamic>? queryParameters;
 
   String? get serverIdHeader => headers['X-Server-Id'] as String?;
 }

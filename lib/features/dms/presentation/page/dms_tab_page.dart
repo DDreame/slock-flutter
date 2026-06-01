@@ -31,6 +31,8 @@ typedef _DmsTabProjection = ({
   List<HomeDirectMessageSummary> directMessages,
   List<HomeDirectMessageSummary> pinnedDirectMessages,
   List<HomeDirectMessageSummary> hiddenDirectMessages,
+  bool hasMoreDirectMessages,
+  bool isLoadingMoreDirectMessages,
 });
 
 /// INV-DMS-AGENT-SET-CACHE-1: Narrowed select for agent name sets.
@@ -61,6 +63,7 @@ class DmsTabPage extends ConsumerStatefulWidget {
 class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
 
   // INV-SELECT-809: Memoize sorted DM list. Only re-sort when the source
   // list references or sort preference changes — avoids O(n log n) on every
@@ -80,9 +83,28 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   Set<String>? _cachedPinnedDmIds;
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  @override
   void dispose() {
+    _scrollController.removeListener(_handleScroll);
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients || _searchQuery.isNotEmpty) return;
+    final position = _scrollController.position;
+    if (position.extentAfter > 320) return;
+    final state = ref.read(homeListStoreProvider);
+    if (!state.hasMoreDirectMessages || state.isLoadingMoreDirectMessages) {
+      return;
+    }
+    ref.read(homeListStoreProvider.notifier).loadMoreDirectMessages();
   }
 
   /// INV-SELECT-809: Returns the sorted DM list, reusing the cached result
@@ -155,6 +177,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           directMessages: s.directMessages,
           pinnedDirectMessages: s.pinnedDirectMessages,
           hiddenDirectMessages: s.hiddenDirectMessages,
+          hasMoreDirectMessages: s.hasMoreDirectMessages,
+          isLoadingMoreDirectMessages: s.isLoadingMoreDirectMessages,
         ),
       ),
     );
@@ -320,6 +344,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
 
     if (sorted.isEmpty && _searchQuery.isEmpty) {
       return ListView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           _buildSearchField(l10n, colors),
           if (state.hiddenDirectMessages.isNotEmpty)
@@ -356,16 +382,17 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
 
     if (_searchQuery.isEmpty && sorted.isNotEmpty) {
       return ReorderableListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         key: const ValueKey('dms-tab-reorder-list'),
+        scrollController: _scrollController,
         buildDefaultDragHandles: false,
         header: _buildSearchField(l10n, colors),
-        footer: hasHiddenTile
-            ? _buildHiddenDmsTile(
-                state: state,
-                homeStore: homeStore,
-                l10n: l10n,
-              )
-            : null,
+        footer: _buildDmListFooter(
+          state: state,
+          homeStore: homeStore,
+          l10n: l10n,
+          hasHiddenTile: hasHiddenTile,
+        ),
         itemCount: sorted.length,
         onReorder: (oldIndex, newIndex) {
           _handleDmReorder(
@@ -398,6 +425,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     }
 
     return ListView.builder(
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: itemCount,
       itemBuilder: (context, index) {
         if (index == 0) {
@@ -445,6 +474,30 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         );
       },
     );
+  }
+
+  Widget? _buildDmListFooter({
+    required _DmsTabProjection state,
+    required HomeListStore homeStore,
+    required AppLocalizations l10n,
+    required bool hasHiddenTile,
+  }) {
+    final children = <Widget>[
+      if (hasHiddenTile)
+        _buildHiddenDmsTile(
+          state: state,
+          homeStore: homeStore,
+          l10n: l10n,
+        ),
+      if (state.isLoadingMoreDirectMessages)
+        const _DmsLoadMoreIndicator(
+          key: ValueKey('dms-load-more-indicator'),
+        )
+      else if (state.hasMoreDirectMessages)
+        const SizedBox(key: ValueKey('dms-load-more-sentinel')),
+    ];
+    if (children.isEmpty) return null;
+    return Column(mainAxisSize: MainAxisSize.min, children: children);
   }
 
   Future<void> _handleDmReorder({
@@ -760,6 +813,24 @@ class _DmsErrorState extends StatelessWidget {
               child: Text(l10n.homeRetry),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DmsLoadMoreIndicator extends StatelessWidget {
+  const _DmsLoadMoreIndicator({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
     );

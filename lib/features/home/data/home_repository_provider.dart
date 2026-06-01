@@ -28,6 +28,67 @@ final homeWorkspaceSnapshotLoaderProvider =
       );
 });
 
+final homeWorkspacePageLoaderProvider =
+    Provider<HomeWorkspacePageLoader>((ref) {
+  final appDioClient = ref.watch(appDioClientProvider);
+  final localStore = ref.watch(conversationLocalStoreProvider);
+  final l10n = ref.watch(appLocalizationsProvider);
+  return (
+    serverId, {
+    required channelOffset,
+    required directMessageOffset,
+    required limit,
+  }) =>
+      _loadHomeWorkspacePage(
+        appDioClient: appDioClient,
+        localStore: localStore,
+        serverId: serverId,
+        l10n: l10n,
+        channelOffset: channelOffset,
+        directMessageOffset: directMessageOffset,
+        limit: limit,
+      );
+});
+
+final homeChannelPageLoaderProvider = Provider<HomeChannelPageLoader>((ref) {
+  final appDioClient = ref.watch(appDioClientProvider);
+  final localStore = ref.watch(conversationLocalStoreProvider);
+  final l10n = ref.watch(appLocalizationsProvider);
+  return (
+    serverId, {
+    required offset,
+    required limit,
+  }) =>
+      _loadHomeChannelPage(
+        appDioClient: appDioClient,
+        localStore: localStore,
+        serverId: serverId,
+        l10n: l10n,
+        offset: offset,
+        limit: limit,
+      );
+});
+
+final homeDirectMessagePageLoaderProvider =
+    Provider<HomeDirectMessagePageLoader>((ref) {
+  final appDioClient = ref.watch(appDioClientProvider);
+  final localStore = ref.watch(conversationLocalStoreProvider);
+  final l10n = ref.watch(appLocalizationsProvider);
+  return (
+    serverId, {
+    required offset,
+    required limit,
+  }) =>
+      _loadHomeDirectMessagePage(
+        appDioClient: appDioClient,
+        localStore: localStore,
+        serverId: serverId,
+        l10n: l10n,
+        offset: offset,
+        limit: limit,
+      );
+});
+
 final homeCachedWorkspaceLoaderProvider =
     Provider<HomeCachedWorkspaceLoader>((ref) {
   final localStore = ref.watch(conversationLocalStoreProvider);
@@ -101,6 +162,9 @@ final homeConversationPreviewUpdatePersisterProvider =
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
   final loadWorkspace = ref.watch(homeWorkspaceSnapshotLoaderProvider);
+  final loadWorkspacePage = ref.watch(homeWorkspacePageLoaderProvider);
+  final loadChannelPage = ref.watch(homeChannelPageLoaderProvider);
+  final loadDirectMessagePage = ref.watch(homeDirectMessagePageLoaderProvider);
   final loadCachedWorkspace = ref.watch(homeCachedWorkspaceLoaderProvider);
   final persistDirectMessageSummary =
       ref.watch(homeDirectMessageSummaryPersisterProvider);
@@ -110,6 +174,9 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
       ref.watch(homeConversationPreviewUpdatePersisterProvider);
   return BaselineHomeRepository(
     loadWorkspace: loadWorkspace,
+    loadWorkspacePage: loadWorkspacePage,
+    loadChannelPage: loadChannelPage,
+    loadDirectMessagePage: loadDirectMessagePage,
     loadCachedWorkspace: loadCachedWorkspace,
     persistDirectMessageSummary: persistDirectMessageSummary,
     persistConversationActivity: persistConversationActivity,
@@ -266,6 +333,167 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       threadChannelIds: threadChannelIds,
     );
   }
+}
+
+Future<HomeWorkspacePage> _loadHomeWorkspacePage({
+  required AppDioClient appDioClient,
+  required ConversationLocalStore localStore,
+  required ServerScopeId serverId,
+  required AppLocalizations l10n,
+  required int channelOffset,
+  required int directMessageOffset,
+  required int limit,
+}) async {
+  final pages = await Future.wait([
+    _loadHomeChannelPage(
+      appDioClient: appDioClient,
+      localStore: localStore,
+      serverId: serverId,
+      l10n: l10n,
+      offset: channelOffset,
+      limit: limit,
+    ),
+    _loadHomeDirectMessagePage(
+      appDioClient: appDioClient,
+      localStore: localStore,
+      serverId: serverId,
+      l10n: l10n,
+      offset: directMessageOffset,
+      limit: limit,
+    ),
+  ]);
+  final channelPage = pages[0] as HomeChannelPage;
+  final dmPage = pages[1] as HomeDirectMessagePage;
+
+  return HomeWorkspacePage(
+    snapshot: HomeWorkspaceSnapshot(
+      serverId: serverId,
+      channels: channelPage.channels,
+      directMessages: dmPage.directMessages,
+      channelUnreadCounts: channelPage.unreadCounts,
+      dmUnreadCounts: dmPage.unreadCounts,
+      threadChannelIds: channelPage.threadChannelIds,
+    ),
+    hasMoreChannels: channelPage.hasMore,
+    hasMoreDirectMessages: dmPage.hasMore,
+  );
+}
+
+Future<HomeChannelPage> _loadHomeChannelPage({
+  required AppDioClient appDioClient,
+  required ConversationLocalStore localStore,
+  required ServerScopeId serverId,
+  required AppLocalizations l10n,
+  required int offset,
+  required int limit,
+}) async {
+  final response = await appDioClient.get<Object?>(
+    _channelsPath,
+    queryParameters: {'offset': offset, 'limit': limit},
+    options: _serverScopedOptions(serverId),
+  );
+  final parseResult = parseChannelSummaries(
+    response.data,
+    serverId: serverId,
+    l10n: l10n,
+  );
+  final page = _pageItems(
+    parseResult.channels,
+    offset: offset,
+    limit: limit,
+  );
+
+  try {
+    await localStore.upsertConversationSummaries(
+      page.items.asMap().entries.map(
+            (entry) => LocalConversationSummaryUpsert(
+              serverId: serverId.value,
+              conversationId: entry.value.scopeId.value,
+              surface: _channelSurface,
+              title: entry.value.name,
+              sortIndex: offset + entry.key,
+              lastMessageId: entry.value.lastMessageId,
+              lastMessagePreview: entry.value.lastMessagePreview,
+              lastActivityAt: entry.value.lastActivityAt,
+            ),
+          ),
+    );
+  } catch (_) {
+    // Cache persistence is best-effort for paged loads.
+  }
+
+  return HomeChannelPage(
+    channels: page.items,
+    hasMore: page.hasMore,
+    unreadCounts: _parseUnreadCounts(response.data),
+    threadChannelIds: parseResult.threadChannelIds,
+  );
+}
+
+Future<HomeDirectMessagePage> _loadHomeDirectMessagePage({
+  required AppDioClient appDioClient,
+  required ConversationLocalStore localStore,
+  required ServerScopeId serverId,
+  required AppLocalizations l10n,
+  required int offset,
+  required int limit,
+}) async {
+  final response = await appDioClient.get<Object?>(
+    _directMessageChannelsPath,
+    queryParameters: {'offset': offset, 'limit': limit},
+    options: _serverScopedOptions(serverId),
+  );
+  final parsedDirectMessages = _parseDirectMessageSummaries(
+    response.data,
+    serverId: serverId,
+    l10n: l10n,
+  );
+  final page = _pageItems(
+    parsedDirectMessages,
+    offset: offset,
+    limit: limit,
+  );
+
+  try {
+    await localStore.upsertConversationSummaries(
+      page.items.asMap().entries.map(
+            (entry) => LocalConversationSummaryUpsert(
+              serverId: serverId.value,
+              conversationId: entry.value.scopeId.value,
+              surface: _directMessageSurface,
+              title: entry.value.title,
+              sortIndex: offset + entry.key,
+              lastMessageId: entry.value.lastMessageId,
+              lastMessagePreview: entry.value.lastMessagePreview,
+              lastActivityAt: entry.value.lastActivityAt,
+            ),
+          ),
+    );
+  } catch (_) {
+    // Cache persistence is best-effort for paged loads.
+  }
+
+  return HomeDirectMessagePage(
+    directMessages: page.items,
+    hasMore: page.hasMore,
+    unreadCounts: _parseUnreadCounts(response.data),
+  );
+}
+
+({List<T> items, bool hasMore}) _pageItems<T>(
+  List<T> parsed, {
+  required int offset,
+  required int limit,
+}) {
+  if (parsed.length > limit) {
+    final start = offset.clamp(0, parsed.length);
+    final end = (start + limit).clamp(start, parsed.length);
+    return (
+      items: parsed.sublist(start, end),
+      hasMore: end < parsed.length,
+    );
+  }
+  return (items: parsed, hasMore: parsed.length >= limit);
 }
 
 Future<HomeWorkspaceSnapshot?> _loadCachedWorkspaceSnapshot({

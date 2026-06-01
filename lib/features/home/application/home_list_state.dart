@@ -31,6 +31,10 @@ class HomeListState {
     this.threadCount = 0,
     this.threadItems = const [],
     this.sidebarOrder = const SidebarOrder(),
+    this.hasMoreChannels = false,
+    this.isLoadingMoreChannels = false,
+    this.hasMoreDirectMessages = false,
+    this.isLoadingMoreDirectMessages = false,
     this.isRefreshing = false,
     this.failure,
     this.taskLoadFailure,
@@ -54,6 +58,10 @@ class HomeListState {
   final int threadCount;
   final List<ThreadInboxItem> threadItems;
   final SidebarOrder sidebarOrder;
+  final bool hasMoreChannels;
+  final bool isLoadingMoreChannels;
+  final bool hasMoreDirectMessages;
+  final bool isLoadingMoreDirectMessages;
 
   /// Whether a background refresh is in progress while existing data
   /// remains visible (stale-while-revalidate).
@@ -98,6 +106,10 @@ class HomeListState {
     int? threadCount,
     List<ThreadInboxItem>? threadItems,
     SidebarOrder? sidebarOrder,
+    bool? hasMoreChannels,
+    bool? isLoadingMoreChannels,
+    bool? hasMoreDirectMessages,
+    bool? isLoadingMoreDirectMessages,
     bool? isRefreshing,
     AppFailure? failure,
     bool clearFailure = false,
@@ -122,6 +134,13 @@ class HomeListState {
       threadCount: threadCount ?? this.threadCount,
       threadItems: threadItems ?? this.threadItems,
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,
+      hasMoreChannels: hasMoreChannels ?? this.hasMoreChannels,
+      isLoadingMoreChannels:
+          isLoadingMoreChannels ?? this.isLoadingMoreChannels,
+      hasMoreDirectMessages:
+          hasMoreDirectMessages ?? this.hasMoreDirectMessages,
+      isLoadingMoreDirectMessages:
+          isLoadingMoreDirectMessages ?? this.isLoadingMoreDirectMessages,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       failure: clearFailure ? null : (failure ?? this.failure),
       taskLoadFailure: clearTaskLoadFailure
@@ -155,13 +174,17 @@ class HomeListState {
             threadCount == other.threadCount &&
             listEquals(threadItems, other.threadItems) &&
             sidebarOrder == other.sidebarOrder &&
+            hasMoreChannels == other.hasMoreChannels &&
+            isLoadingMoreChannels == other.isLoadingMoreChannels &&
+            hasMoreDirectMessages == other.hasMoreDirectMessages &&
+            isLoadingMoreDirectMessages == other.isLoadingMoreDirectMessages &&
             isRefreshing == other.isRefreshing &&
             failure == other.failure &&
             taskLoadFailure == other.taskLoadFailure;
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
         serverScopeId,
         status,
         Object.hashAll(pinnedChannels),
@@ -179,8 +202,12 @@ class HomeListState {
         threadCount,
         Object.hashAll(threadItems),
         sidebarOrder,
+        hasMoreChannels,
+        isLoadingMoreChannels,
+        hasMoreDirectMessages,
+        isLoadingMoreDirectMessages,
         isRefreshing,
         failure,
         taskLoadFailure,
-      );
+      ]);
 }

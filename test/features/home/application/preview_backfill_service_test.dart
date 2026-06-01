@@ -401,11 +401,21 @@ void main() {
             sidebarOrderRepositoryProvider.overrideWithValue(
               FakeSidebarOrderRepository(),
             ),
-            homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-              (scopeId) async => HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: channels,
-                directMessages: const [],
+            homeWorkspacePageLoaderProvider.overrideWithValue(
+              (
+                scopeId, {
+                required channelOffset,
+                required directMessageOffset,
+                required limit,
+              }) async =>
+                  HomeWorkspacePage(
+                snapshot: HomeWorkspaceSnapshot(
+                  serverId: scopeId,
+                  channels: channels,
+                  directMessages: const [],
+                ),
+                hasMoreChannels: false,
+                hasMoreDirectMessages: false,
               ),
             ),
           ],
@@ -468,11 +478,21 @@ void main() {
             sidebarOrderRepositoryProvider.overrideWithValue(
               FakeSidebarOrderRepository(),
             ),
-            homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-              (scopeId) async => HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: channels,
-                directMessages: const [],
+            homeWorkspacePageLoaderProvider.overrideWithValue(
+              (
+                scopeId, {
+                required channelOffset,
+                required directMessageOffset,
+                required limit,
+              }) async =>
+                  HomeWorkspacePage(
+                snapshot: HomeWorkspaceSnapshot(
+                  serverId: scopeId,
+                  channels: channels,
+                  directMessages: const [],
+                ),
+                hasMoreChannels: false,
+                hasMoreDirectMessages: false,
               ),
             ),
             // Phase B will inject the message API via a provider.
@@ -543,11 +563,21 @@ void main() {
             sidebarOrderRepositoryProvider.overrideWithValue(
               FakeSidebarOrderRepository(),
             ),
-            homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-              (scopeId) async => HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: channels,
-                directMessages: const [],
+            homeWorkspacePageLoaderProvider.overrideWithValue(
+              (
+                scopeId, {
+                required channelOffset,
+                required directMessageOffset,
+                required limit,
+              }) async =>
+                  HomeWorkspacePage(
+                snapshot: HomeWorkspaceSnapshot(
+                  serverId: scopeId,
+                  channels: channels,
+                  directMessages: const [],
+                ),
+                hasMoreChannels: false,
+                hasMoreDirectMessages: false,
               ),
             ),
             previewMessageFetcherProvider.overrideWithValue(
@@ -629,11 +659,21 @@ void main() {
             sidebarOrderRepositoryProvider.overrideWithValue(
               FakeSidebarOrderRepository(),
             ),
-            homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-              (scopeId) async => HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: channelsWithPreviews,
-                directMessages: const [],
+            homeWorkspacePageLoaderProvider.overrideWithValue(
+              (
+                scopeId, {
+                required channelOffset,
+                required directMessageOffset,
+                required limit,
+              }) async =>
+                  HomeWorkspacePage(
+                snapshot: HomeWorkspaceSnapshot(
+                  serverId: scopeId,
+                  channels: channelsWithPreviews,
+                  directMessages: const [],
+                ),
+                hasMoreChannels: false,
+                hasMoreDirectMessages: false,
               ),
             ),
             previewMessageFetcherProvider.overrideWithValue(
@@ -718,11 +758,21 @@ void main() {
             sidebarOrderRepositoryProvider.overrideWithValue(
               FakeSidebarOrderRepository(),
             ),
-            homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-              (scopeId) async => HomeWorkspaceSnapshot(
-                serverId: scopeId,
-                channels: channels,
-                directMessages: const [],
+            homeWorkspacePageLoaderProvider.overrideWithValue(
+              (
+                scopeId, {
+                required channelOffset,
+                required directMessageOffset,
+                required limit,
+              }) async =>
+                  HomeWorkspacePage(
+                snapshot: HomeWorkspaceSnapshot(
+                  serverId: scopeId,
+                  channels: channels,
+                  directMessages: const [],
+                ),
+                hasMoreChannels: false,
+                hasMoreDirectMessages: false,
               ),
             ),
             previewMessageFetcherProvider.overrideWithValue(
@@ -811,11 +861,21 @@ void main() {
               sidebarOrderRepositoryProvider.overrideWithValue(
                 FakeSidebarOrderRepository(),
               ),
-              homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-                (scopeId) async => HomeWorkspaceSnapshot(
-                  serverId: scopeId,
-                  channels: channels,
-                  directMessages: const [],
+              homeWorkspacePageLoaderProvider.overrideWithValue(
+                (
+                  scopeId, {
+                  required channelOffset,
+                  required directMessageOffset,
+                  required limit,
+                }) async =>
+                    HomeWorkspacePage(
+                  snapshot: HomeWorkspaceSnapshot(
+                    serverId: scopeId,
+                    channels: channels,
+                    directMessages: const [],
+                  ),
+                  hasMoreChannels: false,
+                  hasMoreDirectMessages: false,
                 ),
               ),
               previewMessageFetcherProvider.overrideWithValue(
