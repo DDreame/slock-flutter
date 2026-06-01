@@ -193,7 +193,6 @@ class ConversationDetailStore
   int _requestEpoch = 0;
   final RequestCoordinator _coordinator = RequestCoordinator();
   bool _disposed = false;
-  RealtimeConnectionStatus? _prevRealtimeStatus;
 
   /// INV-DEDUP-663-1: Cached Set of message IDs for O(1) dedup lookup.
   /// Invalidated (rebuilt lazily) whenever state.messages list changes.
@@ -333,31 +332,32 @@ class ConversationDetailStore
     final sessionCache = ref.read(conversationDetailSessionStoreProvider);
     outbox.registerDrainCallback(targetKey, _onOutboxDrain);
 
-    // Watch realtime connection status to trigger conversation refresh on
-    // reconnect. Using ref.watch (not ref.listen) avoids adding an internal
-    // dispose listener that causes ConcurrentModificationError during teardown.
-    final realtimeStatus =
-        ref.watch(realtimeServiceProvider.select((s) => s.status));
-    if (_prevRealtimeStatus == RealtimeConnectionStatus.reconnecting &&
-        realtimeStatus == RealtimeConnectionStatus.connected) {
-      if (state.status == ConversationDetailStatus.success) {
-        Future.microtask(() {
-          if (!_disposed) load();
-        });
+    // Listen for realtime reconnection to trigger conversation refresh.
+    // When the connection transitions from reconnecting → connected,
+    // we must reload to catch messages received during the disconnect.
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
+        if (state.status == ConversationDetailStatus.success) {
+          load();
+        }
       }
-    }
-    _prevRealtimeStatus = realtimeStatus;
+    });
 
-    ref.onDispose(() {
-      // Persist current state (including draft + pending attachments) so it
-      // survives conversation switches. sessionCache is a plain object (not a
-      // Notifier) — mutating it triggers no Riverpod cascades, safe in dispose.
-      if (state.status == ConversationDetailStatus.success) {
+    // Persist session on every state change so draft/attachments survive
+    // conversation switches. Using listenSelf (not onDispose) avoids
+    // mutating anything during the dispose phase — by the time dispose runs,
+    // the session is already up-to-date from the last state change.
+    listenSelf((_, next) {
+      if (next.status == ConversationDetailStatus.success) {
         sessionCache.saveSuccessState(
-          state,
-          scrollOffset: sessionCache[state.target]?.scrollOffset ?? 0,
+          next,
+          scrollOffset: sessionCache[next.target]?.scrollOffset ?? 0,
         );
       }
+    });
+
+    ref.onDispose(() {
       _disposed = true;
       _sendMixinDisposed = true;
       unawaited(subscription.cancel());
