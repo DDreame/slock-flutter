@@ -85,16 +85,26 @@ void main() {
       await tester.tap(sendButton);
       await tester.pump();
 
-      // Assert: optimistic pending message appears in the message list.
-      // The pending message content should be visible.
+      // Assert: optimistic pending message appears with sending indicator.
       expect(find.text('Hello world'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('pending-sending-indicator')),
+        findsOneWidget,
+        reason: 'Optimistic message must show sending indicator',
+      );
 
       // Complete the send.
       repository.completeSend();
       await tester.pumpAndSettle();
 
-      // Assert: message content still visible (now confirmed).
+      // Assert: message content still visible (now confirmed), sending
+      // indicator gone — proves the pending→confirmed state transition.
       expect(find.text('Hello world'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('pending-sending-indicator')),
+        findsNothing,
+        reason: 'Sending indicator must disappear after send confirms',
+      );
     });
 
     testWidgets('realtime message:new from another user appends to list',

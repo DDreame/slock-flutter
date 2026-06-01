@@ -4,8 +4,9 @@
 // Verifies the push notification → navigation flow with real production widgets:
 // 1. Pending deep link resolves to correct ConversationDetailPage
 // 2. Deep link to non-member server is gracefully cleared (no crash)
+// 3. Notification deep link to non-member server shows "no access" snackbar
 //
-// Load-bearing: reverting deep link resolution must break this test.
+// Load-bearing: reverting deep link resolution or snackbar must break this test.
 // =============================================================================
 
 import 'dart:async';
@@ -18,6 +19,7 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/data/auth_provider.dart';
 import 'package:slock_app/features/auth/data/auth_provider_repository.dart';
@@ -30,6 +32,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
@@ -168,6 +171,75 @@ void main() {
         reason: 'Non-member deep link must not navigate away from home',
       );
       // pendingDeepLinkProvider should be null after resolution attempt.
+      expect(container.read(pendingDeepLinkProvider), isNull);
+    });
+
+    testWidgets(
+        'notification deep link to non-member server shows "no access" snackbar',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'onboardingComplete': true,
+      });
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          authProviderRepositoryProvider
+              .overrideWithValue(const _EmptyAuthProviderRepo()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          serverListRepositoryProvider
+              .overrideWithValue(_FakeServerListRepository(['server-1'])),
+          homeRepositoryProvider.overrideWithValue(_FakeHomeRepository()),
+          homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+          inboxStoreProvider.overrideWith(() => _FakeInboxStore()),
+          shareIntentStoreProvider.overrideWith(() => _FakeShareIntentStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Bootstrap: authenticate, load server list, and mark ready.
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@test.com', password: 'password');
+      await container.read(serverListStoreProvider.notifier).load();
+      container.read(appReadyProvider.notifier).state = true;
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            // Wire rootScaffoldMessengerKey — required for snackbar delivery.
+            scaffoldMessengerKey: rootScaffoldMessengerKey,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Set a notification deep link for a server the user is NOT a member of.
+      // Path matches isNotificationDeepLink (agents subpath) but NOT
+      // isConversationDeepLink, so it follows the snackbar branch.
+      container.read(pendingDeepLinkProvider.notifier).state =
+          '/servers/nonexistent-server/agents/agent-1';
+      await tester.pumpAndSettle();
+
+      // Assert: "no access" snackbar is shown by the real router listener.
+      expect(
+        find.text("You don't have access to this channel"),
+        findsOneWidget,
+        reason:
+            'Notification deep link to non-member server must show no-access snackbar',
+      );
+      // Deep link was consumed.
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
   });

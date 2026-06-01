@@ -4,7 +4,7 @@
 // Verifies the full auth→navigation flow with real production widgets:
 // 1. Unauthenticated state renders login page
 // 2. Successful login transitions router to home page
-// 3. Home list shows channel data from fake repository
+// 3. Home list shows channel data from fake repository (real HomeListStore)
 //
 // Load-bearing: reverting auth redirect in router must break this test.
 // =============================================================================
@@ -19,14 +19,19 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/auth/data/auth_provider.dart';
 import 'package:slock_app/features/auth/data/auth_provider_repository.dart';
 import 'package:slock_app/features/auth/data/auth_provider_repository_provider.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
-import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -35,6 +40,12 @@ import 'package:slock_app/features/servers/data/server_list_repository_provider.
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
@@ -46,11 +57,10 @@ import '../stores/session/session_store_persistence_test.dart'
 void main() {
   group('B132 — Auth → Navigation flow', () {
     testWidgets(
-        'unauthenticated state shows login, then login transitions to home',
+        'unauthenticated state shows login, then login transitions to home with channel data',
         (tester) async {
       SharedPreferences.setMockInitialValues({
-        // Mark onboarding complete so it doesn't redirect there.
-        'onboarding_complete': true,
+        'onboardingComplete': true,
       });
       final prefs = await SharedPreferences.getInstance();
 
@@ -65,8 +75,19 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           serverListRepositoryProvider
               .overrideWithValue(_FakeServerListRepository(['server-1'])),
+          // Real HomeListStore builds against these fake repositories:
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
           homeRepositoryProvider.overrideWithValue(_FakeHomeRepository()),
-          homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(const _FakeTasksRepository()),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
           inboxStoreProvider.overrideWith(() => _FakeInboxStore()),
           shareIntentStoreProvider.overrideWith(() => _FakeShareIntentStore()),
         ],
@@ -112,13 +133,33 @@ void main() {
         reason: 'Authenticated session must redirect to /home',
       );
 
-      // Assert: home page is rendered (NavigationBar is part of HomePage shell).
+      // Assert: home page is rendered (NavigationBar is part of AppShell).
       expect(find.byType(NavigationBar), findsOneWidget);
+
+      // Navigate to the Channels tab to verify channel data from repository.
+      final channelsTab = find.byKey(const ValueKey('nav-channels'));
+      expect(channelsTab, findsOneWidget);
+      await tester.tap(channelsTab);
+      await tester.pumpAndSettle();
+
+      // Assert: channel names from _FakeHomeRepository appear on screen.
+      // This proves the real HomeListStore loaded data from the fake repo
+      // and the ChannelsTabPage rendered it.
+      expect(
+        find.text('general'),
+        findsOneWidget,
+        reason: 'Channel name from fake repository must appear on channels tab',
+      );
+      expect(
+        find.text('random'),
+        findsOneWidget,
+        reason: 'Channel name from fake repository must appear on channels tab',
+      );
     });
 
     testWidgets('logout from home navigates back to login', (tester) async {
       SharedPreferences.setMockInitialValues({
-        'onboarding_complete': true,
+        'onboardingComplete': true,
       });
       final prefs = await SharedPreferences.getInstance();
 
@@ -133,8 +174,18 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           serverListRepositoryProvider
               .overrideWithValue(_FakeServerListRepository(['server-1'])),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
           homeRepositoryProvider.overrideWithValue(_FakeHomeRepository()),
-          homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(const _FakeTasksRepository()),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
           inboxStoreProvider.overrideWith(() => _FakeInboxStore()),
           shareIntentStoreProvider.overrideWith(() => _FakeShareIntentStore()),
         ],
@@ -270,21 +321,123 @@ class _FakeHomeRepository implements HomeRepository {
   }) async {}
 }
 
-class _FakeHomeListStore extends HomeListStore {
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
   @override
-  HomeListState build() => HomeListState(
-        status: HomeListStatus.success,
-        channels: [
-          const HomeChannelSummary(
-            scopeId: ChannelScopeId(
-              serverId: ServerScopeId('server-1'),
-              value: 'general',
-            ),
-            name: 'general',
-          ),
-        ],
-        directMessages: const [],
-      );
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async =>
+      const SidebarOrder();
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  const _FakeAgentsRepository();
+
+  @override
+  Future<List<AgentItem>> listAgents() async => const [];
+  @override
+  Future<void> startAgent(String agentId) async {}
+  @override
+  Future<void> stopAgent(String agentId) async {}
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
+      const [];
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async =>
+      throw UnimplementedError();
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      const [];
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) async =>
+      throw UnimplementedError();
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+          ServerScopeId serverId) async =>
+      const [];
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) async =>
+      throw UnimplementedError();
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+  @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
 }
 
 class _FakeInboxStore extends InboxStore {
