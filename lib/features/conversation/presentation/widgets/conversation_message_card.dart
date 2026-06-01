@@ -317,6 +317,26 @@ class ConversationMessageCardState
     final number = int.tryParse(taskNumber);
     if (number == null || number <= 0) return;
 
+    // Show brief loading indicator.
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              Text('task #$taskNumber'),
+            ],
+          ),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+
     final repo = ref.read(tasksRepositoryProvider);
     repo
         .getTaskByNumber(
@@ -326,20 +346,28 @@ class ConversationMessageCardState
     )
         .then((task) {
       if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       if (task.isLegacy || task.messageId == null) {
-        // Legacy task or no message — route to tasks tab.
         context.push('/servers/${target.serverId.value}/tasks');
       } else {
-        // Route to channel + focus on the task message.
         context.push(
           '/servers/${target.serverId.value}/channels/${task.channelId}'
           '?messageId=${task.messageId}',
         );
       }
-    }).catchError((_) {
-      // Fallback: navigate to generic tasks page on error.
+    }).catchError((Object error) {
       if (!mounted) return;
-      context.push('/servers/${target.serverId.value}/tasks');
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              error is NotFoundFailure
+                  ? context.l10n.taskRefNotFound
+                  : context.l10n.taskRefLoadFailed,
+            ),
+          ),
+        );
     });
   }
 

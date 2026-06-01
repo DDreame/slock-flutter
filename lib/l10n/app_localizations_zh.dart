@@ -3538,4 +3538,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get outboxQueueFull => '消息队列已满，请等待待发送消息完成。';
+
+  @override
+  String get taskRefNotFound => '任务未找到';
+
+  @override
+  String get taskRefLoadFailed => '加载任务失败';
+
+  @override
+  String get notificationNoAccess => '您没有权限访问此频道';
+
+  @override
+  String get taskClaimConflict => '该任务已被其他人认领';
+
+  @override
+  String get composerMessageTooLong => '消息过长';
+
+  @override
+  String composerCharacterCount(int current, int max) {
+    return '$current/$max';
+  }
 }

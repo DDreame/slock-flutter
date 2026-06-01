@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
+import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/telemetry/crash_breadcrumb_observer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -619,7 +620,29 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final serverId = extractDeepLinkServerId(next);
       if (serverId != null) {
         final servers = ref.read(serverListStoreProvider).servers;
-        if (!servers.any((s) => s.id == serverId)) return;
+        if (!servers.any((s) => s.id == serverId)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final messenger = rootScaffoldMessengerKey.currentState;
+            if (messenger != null) {
+              final platformLocale =
+                  WidgetsBinding.instance.platformDispatcher.locale;
+              final supported = AppLocalizations.supportedLocales.any(
+                (l) => l.languageCode == platformLocale.languageCode,
+              );
+              final l10n = lookupAppLocalizations(
+                supported
+                    ? Locale(platformLocale.languageCode)
+                    : const Locale('en'),
+              );
+              messenger
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(content: Text(l10n.notificationNoAccess)),
+                );
+            }
+          });
+          return;
+        }
       }
       // Push onto existing stack so back returns to the previous
       // in-app screen instead of wiping the navigation stack.

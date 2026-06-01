@@ -277,6 +277,9 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   Future<void> _claimTask(TaskItem task) async {
     try {
       await ref.read(tasksStoreProvider.notifier).claimTask(task.id);
+    } on ConflictFailure {
+      if (!mounted) return;
+      showAppSnackBar(context, context.l10n.taskClaimConflict);
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));

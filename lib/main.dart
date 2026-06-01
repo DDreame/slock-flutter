@@ -8,6 +8,7 @@ import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/app/bootstrap/fatal_bootstrap_screen.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/notifications/background_sync_lifecycle_binding.dart';
 import 'package:slock_app/core/notifications/foreground_service_lifecycle_binding.dart';
 import 'package:slock_app/core/realtime/realtime.dart';
@@ -136,6 +137,7 @@ class SlockApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     return _LifecycleBindingsActivator(
       child: MaterialApp.router(
+        scaffoldMessengerKey: rootScaffoldMessengerKey,
         onGenerateTitle: (context) => context.l10n.appTitle,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,

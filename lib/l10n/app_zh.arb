@@ -1242,5 +1242,21 @@
   "channelUnarchiveConfirmTitle": "取消归档？",
   "channelUnarchiveConfirmBody": "这将恢复频道为活跃状态，成员可以重新发送消息。",
   "serverSwitcherUnreadBadge": "{name}，有未读消息",
-  "outboxQueueFull": "消息队列已满，请等待待发送消息完成。"
+  "outboxQueueFull": "消息队列已满，请等待待发送消息完成。",
+  "taskRefNotFound": "任务未找到",
+  "taskRefLoadFailed": "加载任务失败",
+  "notificationNoAccess": "您没有权限访问此频道",
+  "taskClaimConflict": "该任务已被其他人认领",
+  "composerMessageTooLong": "消息过长",
+  "composerCharacterCount": "{current}/{max}",
+  "@composerCharacterCount": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  }
 }

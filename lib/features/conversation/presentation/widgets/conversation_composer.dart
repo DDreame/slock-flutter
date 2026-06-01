@@ -84,10 +84,20 @@ class ConversationComposer extends ConsumerWidget {
     vertical: AppSpacing.md,
   );
 
+  /// Maximum allowed message length (characters).
+  static const int maxMessageLength = 4000;
+
+  /// Show character counter when remaining chars drops below this threshold.
+  static const int _counterThreshold = 200;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = _conversationL10n(context);
+    final draftLength = state.draft.length;
+    final isOverLimit = draftLength > maxMessageLength;
+    final showCounter = draftLength > maxMessageLength - _counterThreshold;
+    final canSend = state.canSend && !isOverLimit;
     return SafeArea(
       top: false,
       child: Padding(
@@ -249,7 +259,7 @@ class ConversationComposer extends ConsumerWidget {
                         event,
                         enterToSend: enterToSend,
                         controller: controller,
-                        canSend: state.canSend,
+                        canSend: canSend,
                         onSend: onSend,
                         onTextChanged: onChanged,
                       ),
@@ -280,7 +290,7 @@ class ConversationComposer extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  if (state.canSend)
+                  if (canSend)
                     Container(
                       key: const ValueKey('composer-send'),
                       width: 40,
@@ -321,6 +331,22 @@ class ConversationComposer extends ConsumerWidget {
                       ),
                     ),
                 ],
+              ),
+            ],
+            if (showCounter) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  key: const ValueKey('composer-char-counter'),
+                  isOverLimit
+                      ? l10n.composerMessageTooLong
+                      : l10n.composerCharacterCount(
+                          draftLength, maxMessageLength),
+                  style: AppTypography.caption.copyWith(
+                    color: isOverLimit ? colors.error : colors.textTertiary,
+                  ),
+                ),
               ),
             ],
             if (isEmojiPickerVisible)

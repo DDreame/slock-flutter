@@ -3651,4 +3651,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get outboxQueueFull =>
       'Message queue is full. Please wait for pending messages to send.';
+
+  @override
+  String get taskRefNotFound => 'Task not found';
+
+  @override
+  String get taskRefLoadFailed => 'Failed to load task';
+
+  @override
+  String get notificationNoAccess => 'You don\'t have access to this channel';
+
+  @override
+  String get taskClaimConflict =>
+      'This task was already claimed by someone else';
+
+  @override
+  String get composerMessageTooLong => 'Message too long';
+
+  @override
+  String composerCharacterCount(int current, int max) {
+    return '$current/$max';
+  }
 }
