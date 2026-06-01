@@ -14,6 +14,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
+import 'package:slock_app/features/conversation/presentation/utils/message_length_limit.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
@@ -84,8 +85,8 @@ class ConversationComposer extends ConsumerWidget {
     vertical: AppSpacing.md,
   );
 
-  /// Maximum allowed message length (characters).
-  static const int maxMessageLength = 4000;
+  /// Maximum allowed message length (Unicode scalar values).
+  static const int maxMessageLength = maxMessageContentLength;
 
   /// Show character counter when remaining chars drops below this threshold.
   static const int _counterThreshold = 200;
@@ -94,8 +95,8 @@ class ConversationComposer extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = _conversationL10n(context);
-    final draftLength = state.draft.length;
-    final isOverLimit = draftLength > maxMessageLength;
+    final draftLength = messageContentLength(state.draft);
+    final isOverLimit = isMessageContentOverLimit(state.draft);
     final showCounter = draftLength > maxMessageLength - _counterThreshold;
     final canSend = state.canSend && !isOverLimit;
     return SafeArea(
