@@ -196,8 +196,19 @@ class ShareViewController: UIViewController {
     private func openMainApp() {
         guard let url = URL(string: "ShareMedia-\(hostBundleIdentifier):share") else { return }
         var responder: UIResponder? = self
-        let selector = sel_registerName("openURL:")
 
+        if #available(iOS 18.0, *) {
+            while let current = responder {
+                if let application = current as? UIApplication {
+                    application.open(url, options: [:], completionHandler: nil)
+                    return
+                }
+                responder = current.next
+            }
+            return
+        }
+
+        let selector = sel_registerName("openURL:")
         while let current = responder {
             if current.responds(to: selector) {
                 _ = current.perform(selector, with: url)

@@ -56,6 +56,12 @@ void main() {
       expect(swift, contains('userDefaultsMessageKey = "ShareMessageKey"'));
       expect(swift, contains('JSONEncoder().encode(items)'));
       expect(swift, contains('ShareMedia-\\(hostBundleIdentifier):share'));
+      expect(swift, contains('if #available(iOS 18.0, *)'));
+      expect(
+          swift,
+          contains(
+              'application.open(url, options: [:], completionHandler: nil)'));
+      expect(swift, contains('sel_registerName("openURL:")'));
       expect(swift, contains('copyToSharedContainer'));
       expect(swift, isNot(contains('forKey: "SharedMedia"')));
     });
