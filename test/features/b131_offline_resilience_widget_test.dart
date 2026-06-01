@@ -84,7 +84,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Type something in the composer so canSend is true.
-      final composerField = find.byKey(const ValueKey('composer-text-field'));
+      final composerField = find.byKey(const ValueKey('composer-input'));
       expect(composerField, findsOneWidget);
       await tester.enterText(composerField, 'offline msg');
       await tester.pump();
