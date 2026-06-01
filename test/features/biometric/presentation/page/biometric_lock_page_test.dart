@@ -9,14 +9,19 @@ import 'package:slock_app/features/biometric/presentation/page/biometric_lock_pa
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
+import 'package:slock_app/core/storage/secure_storage.dart';
+
+import '../../../../core/storage/fake_secure_storage.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
+  late FakeSecureStorage storage;
   late SharedPreferences prefs;
   late _ControllableBiometricService fakeService;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    storage = FakeSecureStorage();
     prefs = await SharedPreferences.getInstance();
     fakeService = _ControllableBiometricService();
   });
@@ -25,6 +30,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         biometricServiceProvider.overrideWithValue(fakeService),
+        secureStorageProvider.overrideWithValue(storage),
         sharedPreferencesProvider.overrideWithValue(prefs),
       ],
     );

@@ -9,6 +9,7 @@ import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/features/settings/data/biometric_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
@@ -43,8 +44,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       themeModeStoreProvider.select((s) => s.preference),
     );
     final biometric = ref.watch(
-      biometricStoreProvider
-          .select((s) => (availability: s.availability, enabled: s.enabled)),
+      biometricStoreProvider.select(
+        (s) => (
+          availability: s.availability,
+          enabled: s.enabled,
+          timeout: s.timeout,
+        ),
+      ),
     );
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = ref.watch(appLocalizationsProvider);
@@ -258,25 +264,63 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               const SizedBox(height: AppSpacing.sm),
               SectionCard(
                 padding: EdgeInsets.zero,
-                child: _SettingsTile(
-                  key: const ValueKey('settings-biometric-toggle'),
-                  icon: Icons.fingerprint,
-                  iconColor: colors.primary,
-                  title: l10n.settingsBiometricLockTitle,
-                  subtitle: biometric.enabled
-                      ? l10n.settingsBiometricLockEnabled
-                      : l10n.settingsBiometricLockDisabled,
-                  colors: colors,
-                  trailing: Switch.adaptive(
-                    key: const ValueKey('settings-biometric-switch'),
-                    value: biometric.enabled,
-                    onChanged: (enabled) {
-                      ref
-                          .read(biometricStoreProvider.notifier)
-                          .setEnabled(enabled);
-                    },
-                  ),
-                  onTap: null,
+                child: Column(
+                  children: [
+                    _SettingsTile(
+                      key: const ValueKey('settings-biometric-toggle'),
+                      icon: Icons.fingerprint,
+                      iconColor: colors.primary,
+                      title: l10n.settingsBiometricLockTitle,
+                      subtitle: biometric.enabled
+                          ? l10n.settingsBiometricLockEnabled
+                          : l10n.settingsBiometricLockDisabled,
+                      colors: colors,
+                      trailing: Switch.adaptive(
+                        key: const ValueKey('settings-biometric-switch'),
+                        value: biometric.enabled,
+                        onChanged: (enabled) {
+                          ref
+                              .read(biometricStoreProvider.notifier)
+                              .setEnabled(enabled);
+                        },
+                      ),
+                      onTap: null,
+                    ),
+                    if (biometric.enabled)
+                      _SettingsTile(
+                        key: const ValueKey('settings-biometric-timeout'),
+                        icon: Icons.timer_outlined,
+                        iconColor: colors.primary,
+                        title: l10n.settingsBiometricLockTimeoutTitle,
+                        subtitle: _biometricTimeoutLabel(
+                          biometric.timeout,
+                          l10n,
+                        ),
+                        colors: colors,
+                        trailing: DropdownButton<BiometricLockTimeout>(
+                          key: const ValueKey(
+                              'settings-biometric-timeout-dropdown'),
+                          value: biometric.timeout,
+                          underline: const SizedBox.shrink(),
+                          items: [
+                            for (final timeout in BiometricLockTimeout.values)
+                              DropdownMenuItem(
+                                value: timeout,
+                                child: Text(
+                                  _biometricTimeoutLabel(timeout, l10n),
+                                ),
+                              ),
+                          ],
+                          onChanged: (timeout) {
+                            if (timeout == null) return;
+                            ref
+                                .read(biometricStoreProvider.notifier)
+                                .setTimeout(timeout);
+                          },
+                        ),
+                        onTap: null,
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.sectionGap),
@@ -543,4 +587,20 @@ String _notificationSummary(
     NotificationPreference.mute => l10n.notificationPrefMuteTitle,
   };
   return '$permission \u00b7 $filter';
+}
+
+String _biometricTimeoutLabel(
+  BiometricLockTimeout timeout,
+  AppLocalizations l10n,
+) {
+  return switch (timeout) {
+    BiometricLockTimeout.immediate =>
+      l10n.settingsBiometricLockTimeoutImmediate,
+    BiometricLockTimeout.oneMinute =>
+      l10n.settingsBiometricLockTimeoutOneMinute,
+    BiometricLockTimeout.fiveMinutes =>
+      l10n.settingsBiometricLockTimeoutFiveMinutes,
+    BiometricLockTimeout.fifteenMinutes =>
+      l10n.settingsBiometricLockTimeoutFifteenMinutes,
+  };
 }

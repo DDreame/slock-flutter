@@ -262,7 +262,12 @@ class _SlowBiometricPreferenceRepository
   bool _enabled = false;
 
   @override
-  bool isEnabled() => _enabled;
+  Future<BiometricPreferenceSnapshot> load() async {
+    return BiometricPreferenceSnapshot(
+      enabled: _enabled,
+      timeout: BiometricLockTimeout.fiveMinutes,
+    );
+  }
 
   @override
   Future<void> setEnabled(bool enabled) async {
@@ -271,6 +276,9 @@ class _SlowBiometricPreferenceRepository
     }
     _enabled = enabled;
   }
+
+  @override
+  Future<void> setTimeout(BiometricLockTimeout timeout) async {}
 }
 
 /// Controllable RealtimeService for testing TOCTOU.

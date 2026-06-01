@@ -35,7 +35,6 @@ import 'package:slock_app/features/servers/application/unread_summary_store.dart
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/biometric/biometric_lock_lifecycle_binding.dart';
-import 'package:slock_app/features/settings/data/biometric_preference.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 
 void main() async {
@@ -78,7 +77,7 @@ void main() async {
   );
 
   runZonedGuarded(
-    () {
+    () async {
       final container = ProviderContainer(
         overrides: [
           ...bootstrap.overrides,
@@ -93,13 +92,9 @@ void main() async {
       final themeRepo = container.read(themePreferenceRepositoryProvider);
       container.read(themeModeStoreProvider.notifier).restoreFrom(themeRepo);
 
-      // Restore biometric preference synchronously so the lock screen
-      // appears before the first authenticated frame if enabled.
-      final biometricRepo =
-          container.read(biometricPreferenceRepositoryProvider);
-      container
-          .read(biometricStoreProvider.notifier)
-          .restoreFrom(biometricRepo);
+      // Restore biometric preferences before first frame so the lock screen
+      // appears before authenticated content when enabled.
+      await container.read(biometricStoreProvider.notifier).initialize();
 
       // Check biometric hardware availability (async, non-blocking).
       unawaited(

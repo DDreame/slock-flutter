@@ -7,7 +7,7 @@ import 'package:slock_app/stores/biometric/biometric_store.dart';
 ///
 /// When the app goes to background, it records the timestamp.
 /// When the app returns to foreground, it checks whether the background
-/// duration exceeds [kBiometricLockTimeout] and locks if so.
+/// duration exceeds the configured biometric timeout and locks if so.
 ///
 /// Activate by calling `ref.watch(biometricLockLifecycleBindingProvider)`
 /// in the root app widget.

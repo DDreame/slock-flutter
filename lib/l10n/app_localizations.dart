@@ -1282,6 +1282,36 @@ abstract class AppLocalizations {
   /// **'Disabled — no biometric lock on app access'**
   String get settingsBiometricLockDisabled;
 
+  /// No description provided for @settingsBiometricLockTimeoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock timeout'**
+  String get settingsBiometricLockTimeoutTitle;
+
+  /// No description provided for @settingsBiometricLockTimeoutImmediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Immediately'**
+  String get settingsBiometricLockTimeoutImmediate;
+
+  /// No description provided for @settingsBiometricLockTimeoutOneMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'After 1 minute'**
+  String get settingsBiometricLockTimeoutOneMinute;
+
+  /// No description provided for @settingsBiometricLockTimeoutFiveMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'After 5 minutes'**
+  String get settingsBiometricLockTimeoutFiveMinutes;
+
+  /// No description provided for @settingsBiometricLockTimeoutFifteenMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'After 15 minutes'**
+  String get settingsBiometricLockTimeoutFifteenMinutes;
+
   /// No description provided for @settingsBillingTitle.
   ///
   /// In en, this message translates to:

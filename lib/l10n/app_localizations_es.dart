@@ -664,6 +664,22 @@ class AppLocalizationsEs extends AppLocalizations {
       'Desactivado — sin bloqueo biométrico';
 
   @override
+  String get settingsBiometricLockTimeoutTitle => 'Tiempo de bloqueo';
+
+  @override
+  String get settingsBiometricLockTimeoutImmediate => 'Inmediatamente';
+
+  @override
+  String get settingsBiometricLockTimeoutOneMinute => 'Después de 1 minuto';
+
+  @override
+  String get settingsBiometricLockTimeoutFiveMinutes => 'Después de 5 minutos';
+
+  @override
+  String get settingsBiometricLockTimeoutFifteenMinutes =>
+      'Después de 15 minutos';
+
+  @override
   String get settingsBillingTitle => 'Facturación';
 
   @override
