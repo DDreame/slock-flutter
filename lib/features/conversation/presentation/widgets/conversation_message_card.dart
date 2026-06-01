@@ -153,6 +153,7 @@ class ConversationMessageCardState
     extends ConsumerState<ConversationMessageCard> {
   bool _showPreciseTimestamp = false;
   Timer? _timestampTimer;
+  bool _isLoadingTask = false;
 
   // Sender-name hit-test state for profile popup. (#535)
   // We track the pointer-down position via a Listener (which does NOT
@@ -312,13 +313,21 @@ class ConversationMessageCardState
 
   /// Handles tapping a `task #N` reference in message content.
   /// Resolves the task via API and navigates to the message or tasks tab.
-  void _onTaskRefTap(String taskNumber) {
+  Future<void> _onTaskRefTap(String taskNumber) async {
+    if (_isLoadingTask) return; // PERF-1: re-entry guard for rapid taps.
+
     final target = widget.target;
     final number = int.tryParse(taskNumber);
     if (number == null || number <= 0) return;
 
+    _isLoadingTask = true;
+
+    // Capture messenger before async gap so we can dismiss the snackbar
+    // even if the widget is unmounted (P2-A: stale snackbar fix).
+    final messenger = ScaffoldMessenger.of(context);
+
     // Show brief loading indicator.
-    ScaffoldMessenger.of(context)
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
@@ -337,16 +346,18 @@ class ConversationMessageCardState
         ),
       );
 
-    final repo = ref.read(tasksRepositoryProvider);
-    repo
-        .getTaskByNumber(
-      target.serverId,
-      channelId: target.conversationId,
-      taskNumber: number,
-    )
-        .then((task) {
+    try {
+      final repo = ref.read(tasksRepositoryProvider);
+      final task = await repo.getTaskByNumber(
+        target.serverId,
+        channelId: target.conversationId,
+        taskNumber: number,
+      );
+
+      // P2-A: Always dismiss loading snackbar, even if navigated away.
+      messenger.hideCurrentSnackBar();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
       if (task.isLegacy || task.messageId == null) {
         context.push('/servers/${target.serverId.value}/tasks');
       } else {
@@ -355,20 +366,23 @@ class ConversationMessageCardState
           '?messageId=${task.messageId}',
         );
       }
-    }).catchError((Object error) {
+    } on NotFoundFailure {
+      // P2-B: Specific API error — task does not exist.
+      messenger.hideCurrentSnackBar();
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              error is NotFoundFailure
-                  ? context.l10n.taskRefNotFound
-                  : context.l10n.taskRefLoadFailed,
-            ),
-          ),
-        );
-    });
+      messenger.showSnackBar(
+        SnackBar(content: Text(context.l10n.taskRefNotFound)),
+      );
+    } catch (_) {
+      // P2-B: Generic failure (network, etc.) — distinct from navigation errors.
+      messenger.hideCurrentSnackBar();
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(context.l10n.taskRefLoadFailed)),
+      );
+    } finally {
+      _isLoadingTask = false;
+    }
   }
 
   /// Handles tapping a thread reference (`#channel:hexid` or `dm:@name:hexid`).
