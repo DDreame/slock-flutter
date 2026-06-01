@@ -90,10 +90,13 @@ void main() {
       await tester.pump();
 
       // Add a pending attachment via the store directly.
-      // The real ConversationDetailStore is built by ProviderScope.
-      // We simulate attachment by reading the store and adding one.
-      final scope = tester.element(find.byType(ConversationDetailPage));
-      final container = ProviderScope.containerOf(scope);
+      // Use an element INSIDE the page's inner ProviderScope (which overrides
+      // currentConversationDetailTargetProvider) so containerOf returns the
+      // correct scoped container.
+      final innerElement = tester.element(
+        find.byKey(const ValueKey('composer-input')),
+      );
+      final container = ProviderScope.containerOf(innerElement);
       container
           .read(conversationDetailStoreProvider.notifier)
           .addPendingAttachment(
