@@ -36,8 +36,17 @@ final serverListRepositoryProvider = Provider<ServerListRepository>((ref) {
 Future<List<ServerSummary>> _loadServerList({
   required AppDioClient appDioClient,
 }) async {
-  final response = await appDioClient.get<Object?>(_serversPath);
-  return _parseServerSummaries(response.data);
+  try {
+    final response = await appDioClient.get<Object?>(_serversPath);
+    return _parseServerSummaries(response.data);
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to load server list.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 Future<ServerSummary> _createServer({
@@ -45,11 +54,20 @@ Future<ServerSummary> _createServer({
   required String name,
   required String slug,
 }) async {
-  final response = await appDioClient.post<Object?>(
-    _serversPath,
-    data: {'name': name, 'slug': slug},
-  );
-  return _parseServerSummary(response.data, payloadName: 'server');
+  try {
+    final response = await appDioClient.post<Object?>(
+      _serversPath,
+      data: {'name': name, 'slug': slug},
+    );
+    return _parseServerSummary(response.data, payloadName: 'server');
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to create server.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 Future<String> _renameServer({
@@ -57,37 +75,73 @@ Future<String> _renameServer({
   required String serverId,
   required String name,
 }) async {
-  final response = await appDioClient.request<Object?>(
-    '$_serversPath/$serverId',
-    method: 'PATCH',
-    data: {'name': name},
-  );
-  return _parseServerName(response.data, payloadName: 'server');
+  try {
+    final response = await appDioClient.request<Object?>(
+      '$_serversPath/$serverId',
+      method: 'PATCH',
+      data: {'name': name},
+    );
+    return _parseServerName(response.data, payloadName: 'server');
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to rename server.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 Future<void> _deleteServer({
   required AppDioClient appDioClient,
   required String serverId,
-}) {
-  return appDioClient.delete<Object?>('$_serversPath/$serverId');
+}) async {
+  try {
+    await appDioClient.delete<Object?>('$_serversPath/$serverId');
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to delete server.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 Future<void> _leaveServer({
   required AppDioClient appDioClient,
   required String serverId,
-}) {
-  return appDioClient.post<Object?>('$_serversPath/$serverId/leave');
+}) async {
+  try {
+    await appDioClient.post<Object?>('$_serversPath/$serverId/leave');
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to leave server.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 Future<AcceptInviteResult> _acceptInvite({
   required AppDioClient appDioClient,
   required String token,
 }) async {
-  final response = await appDioClient.post<Object?>(
-    _acceptInvitePath,
-    data: {'token': token},
-  );
-  return _parseAcceptedInviteResult(response.data);
+  try {
+    final response = await appDioClient.post<Object?>(
+      _acceptInvitePath,
+      data: {'token': token},
+    );
+    return _parseAcceptedInviteResult(response.data);
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to accept invite.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 const _inviteInfoPath = '/auth/invite-info';
@@ -96,11 +150,20 @@ Future<InviteInfo> _getInviteInfo({
   required AppDioClient appDioClient,
   required String token,
 }) async {
-  final response = await appDioClient.get<Object?>(
-    _inviteInfoPath,
-    queryParameters: {'token': token},
-  );
-  return _parseInviteInfo(response.data);
+  try {
+    final response = await appDioClient.get<Object?>(
+      _inviteInfoPath,
+      queryParameters: {'token': token},
+    );
+    return _parseInviteInfo(response.data);
+  } on AppFailure {
+    rethrow;
+  } catch (error) {
+    throw UnknownFailure(
+      message: 'Failed to load invite info.',
+      causeType: error.runtimeType.toString(),
+    );
+  }
 }
 
 List<ServerSummary> _parseServerSummaries(Object? payload) {
