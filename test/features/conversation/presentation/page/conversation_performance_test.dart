@@ -77,6 +77,7 @@ void main() {
     '(INV-PERF-1)',
     (tester) async {
       final sessionSpy = _CountingSessionCache();
+      addTearDown(sessionSpy.dispose);
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: ConversationDetailTarget.channel(
