@@ -326,10 +326,14 @@ class ConversationDetailStore
 
     // Register outbox drain callback so drain results reconcile pending
     // messages back into the conversation state.
-    // Capture the notifier reference now — reading providers inside
-    // ref.onDispose is unsafe (container may already be disposed).
+    // Capture notifier references now — reading providers inside
+    // ref.onDispose is unsafe (triggers StateError on container teardown or
+    // ConcurrentModificationError during provider invalidation).
     final outbox = ref.read(outboxStoreProvider.notifier);
     final targetKey = outboxTargetKey(target);
+    final sessionNotifier =
+        ref.read(conversationDetailSessionStoreProvider.notifier);
+    final sessionMap = ref.read(conversationDetailSessionStoreProvider);
     outbox.registerDrainCallback(targetKey, _onOutboxDrain);
 
     // Listen for realtime reconnection to trigger conversation refresh.
@@ -346,15 +350,13 @@ class ConversationDetailStore
 
     ref.onDispose(() {
       // Persist current state (including draft + pending attachments) so it
-      // survives conversation switches.
+      // survives conversation switches. Uses captured refs — no ref.read()
+      // calls during dispose (avoids StateError / ConcurrentModificationError).
       if (state.status == ConversationDetailStatus.success) {
-        try {
-          _persistSession();
-        } on StateError catch (_) {
-          // Container already tearing down — persistence is best-effort.
-          // Provider disposal order is unguaranteed during full container
-          // dispose, so the session store may already be gone.
-        }
+        sessionNotifier.saveSuccessState(
+          state,
+          scrollOffset: sessionMap[state.target]?.scrollOffset ?? 0,
+        );
       }
       _disposed = true;
       _sendMixinDisposed = true;
