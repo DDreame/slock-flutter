@@ -84,7 +84,8 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('loading snackbar is dismissed after API success',
+    testWidgets(
+        'stale loading snackbar is dismissed even when widget unmounts mid-flight',
         (tester) async {
       final repository = _DelayedTasksRepository();
 
@@ -97,19 +98,33 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap — triggers loading snackbar.
+      // Tap — triggers loading snackbar + starts API call.
       await tester.tap(find.byKey(const ValueKey('task-ref-tap-42')));
       await tester.pump();
 
       // Loading snackbar is shown (CircularProgressIndicator + "task #42").
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-      // Complete the API call.
+      // Navigate away while API is still in flight — unmounts the page.
+      final element = tester.element(find.byType(ConversationDetailPage));
+      GoRouter.of(element).go('/servers/srv-1/tasks');
+      await tester.pumpAndSettle();
+
+      // Page is gone, but snackbar stays (root ScaffoldMessenger persists).
+      expect(find.byType(ConversationDetailPage), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget,
+          reason: 'Snackbar must still be visible after unmount');
+
+      // Complete the API call — the captured messenger must dismiss snackbar
+      // even though the widget is no longer mounted (P2-A fix).
       repository.complete();
       await tester.pumpAndSettle();
 
-      // Loading snackbar must be dismissed (navigates to tasks-page stub).
-      expect(find.byType(CircularProgressIndicator), findsNothing);
+      // Assert: loading snackbar is gone. Reverting the P2-A fix (moving
+      // hideCurrentSnackBar after `if (!mounted) return`) would leave the
+      // snackbar stale → this assertion breaks.
+      expect(find.byType(CircularProgressIndicator), findsNothing,
+          reason: 'Captured messenger must dismiss snackbar after unmount');
     });
   });
 }
