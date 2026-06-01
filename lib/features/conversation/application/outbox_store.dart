@@ -432,8 +432,10 @@ class OutboxStore extends Notifier<OutboxState> {
           if (newRetryCount >= maxOutboxRetryAttempts) {
             // Max retries exceeded — mark as permanently failed.
             developer.log(
-              'Outbox item permanently failed after $newRetryCount attempts: '
-              '${e.message}',
+              'Outbox item permanently failed — '
+              'target: $targetKey, '
+              'attempts: $newRetryCount, '
+              'reason: ${e.message}',
               name: 'OutboxStore',
               error: e,
               level: 900, // WARNING
