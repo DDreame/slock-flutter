@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
+import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/features/settings/data/biometric_preference.dart';
 
 /// Whether the device has biometric hardware available.
@@ -87,16 +88,34 @@ class BiometricStore extends Notifier<BiometricState> {
   BiometricState build() => const BiometricState();
 
   /// Restore preferences from secure storage before first authenticated frame.
+  ///
+  /// If secure storage is corrupted or unreadable (e.g. after OS keystore
+  /// reset, device migration, or storage encryption failure), defaults to
+  /// biometrics disabled so the user is never locked out of the app.
   Future<void> initialize() async {
-    final repo = ref.read(biometricPreferenceRepositoryProvider);
-    final snapshot = await repo.load();
-    state = state.copyWith(
-      enabled: snapshot.enabled,
-      timeout: snapshot.timeout,
-      lockStatus: snapshot.enabled
-          ? BiometricLockStatus.locked
-          : BiometricLockStatus.unlocked,
-    );
+    try {
+      final repo = ref.read(biometricPreferenceRepositoryProvider);
+      final snapshot = await repo.load();
+      state = state.copyWith(
+        enabled: snapshot.enabled,
+        timeout: snapshot.timeout,
+        lockStatus: snapshot.enabled
+            ? BiometricLockStatus.locked
+            : BiometricLockStatus.unlocked,
+      );
+    } catch (e, st) {
+      // Corrupted keystore — default to disabled to avoid locking the user
+      // out. Report the error for diagnostics but don't rethrow.
+      ref.read(crashReporterProvider).captureException(
+        e,
+        stackTrace: st,
+        extra: {'source': 'BiometricStore.initialize'},
+      );
+      state = state.copyWith(
+        enabled: false,
+        lockStatus: BiometricLockStatus.unlocked,
+      );
+    }
   }
 
   /// Restore preference snapshot directly for tests/bootstrap helpers.

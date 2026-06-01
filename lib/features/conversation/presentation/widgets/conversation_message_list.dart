@@ -77,7 +77,7 @@ class ConversationMessageList extends ConsumerWidget {
     // Subtract horizontal list padding (16 each side) to match the inner
     // width that LayoutBuilder previously provided.
     final maxBubbleWidth =
-        (MediaQuery.of(context).size.width - 32) * bubbleMaxWidthFraction;
+        (MediaQuery.sizeOf(context).width - 32) * bubbleMaxWidthFraction;
 
     // Compute unread divider position from the production unread projection.
     // The divider separator index is pendingCount + unreadCount - 1, i.e.

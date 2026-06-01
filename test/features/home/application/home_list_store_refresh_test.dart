@@ -381,6 +381,112 @@ void main() {
       },
     );
 
+    // -----------------------------------------------------------------------
+    // INV-PERF-BATCH-1: Supplemental loads emit exactly 1 state update
+    //
+    // _loadAndMergeSupplemental batches all 4 parallel loads into a single
+    // _emitPersonalizedState() call after Future.wait completes.
+    // Reverting to per-loader emits (4 calls) would break this test.
+    // -----------------------------------------------------------------------
+    test(
+      'supplemental loads batch into single state emission (INV-PERF-BATCH-1)',
+      () async {
+        final agentsCompleter = Completer<List<AgentItem>>();
+        final tasksCompleter = Completer<List<TaskItem>>();
+        final machinesCompleter = Completer<int>();
+        final threadsCompleter = Completer<List<ThreadInboxItem>>();
+
+        final repo = _ControllableHomeRepository();
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(serverId),
+            homeRepositoryProvider.overrideWithValue(repo),
+            sidebarOrderRepositoryProvider
+                .overrideWithValue(const _FakeSidebarOrderRepository()),
+            agentsRepositoryProvider
+                .overrideWithValue(_DelayedAgentsRepository(agentsCompleter)),
+            tasksRepositoryProvider
+                .overrideWithValue(_DelayedTasksRepository(tasksCompleter)),
+            threadRepositoryProvider
+                .overrideWithValue(_DelayedThreadRepository(threadsCompleter)),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) => machinesCompleter.future,
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Load workspace (Tier 1 completes immediately).
+        repo.nextWorkspace = snapshot;
+        await container.read(homeListStoreProvider.notifier).load();
+
+        // Tier 1 is done; supplemental loads are pending.
+        expect(
+          container.read(homeListStoreProvider).status,
+          HomeListStatus.success,
+        );
+
+        // Start counting state emissions AFTER Tier 1 success.
+        var supplementalEmissions = 0;
+        final sub = container.listen(
+          homeListStoreProvider,
+          (_, __) => supplementalEmissions++,
+        );
+
+        // Complete all 4 supplemental loads simultaneously.
+        agentsCompleter.complete(const [
+          AgentItem(
+            id: 'agent-1',
+            name: 'bot',
+            displayName: 'Bot',
+            model: 'test',
+            runtime: 'test',
+            status: 'active',
+            activity: 'idle',
+          ),
+        ]);
+        tasksCompleter.complete([
+          TaskItem(
+            id: 'task-1',
+            channelId: 'general',
+            channelType: 'channel',
+            title: 'Test task',
+            status: 'todo',
+            taskNumber: 1,
+            createdById: 'user-1',
+            createdByName: 'Alice',
+            createdByType: 'human',
+            createdAt: DateTime.utc(2026, 5, 16),
+          ),
+        ]);
+        machinesCompleter.complete(2);
+        threadsCompleter.complete(const []);
+
+        // Let all microtasks settle (Future.wait resolves, emit fires).
+        await Future.delayed(Duration.zero);
+        await Future.delayed(Duration.zero);
+
+        sub.close();
+
+        // With batching: exactly 1 emission from the single
+        // _emitPersonalizedState() after Future.wait.
+        // Without batching (4 per-loader emits): 4 emissions.
+        expect(
+          supplementalEmissions,
+          1,
+          reason: 'Supplemental loads must batch into a single state '
+              'emission after Future.wait — not 4 per-loader emits '
+              '(INV-PERF-BATCH-1)',
+        );
+
+        // Verify all supplemental data was actually merged.
+        final finalState = container.read(homeListStoreProvider);
+        expect(finalState.agents, hasLength(1));
+        expect(finalState.taskCount, 1);
+        expect(finalState.machineCount, 2);
+      },
+    );
+
     test(
       'disposal guard: supplemental callbacks no-op after container disposal',
       () async {
@@ -787,6 +893,111 @@ class _FakeThreadRepository implements ThreadRepository {
     ServerScopeId serverId,
   ) async =>
       const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> unfollowThread(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadUndone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+}
+
+/// Tasks repository that gates on a [Completer] for timing control.
+class _DelayedTasksRepository implements TasksRepository {
+  _DelayedTasksRepository(this.completer);
+  final Completer<List<TaskItem>> completer;
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) =>
+      completer.future;
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      const [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> getTaskByNumber(
+    ServerScopeId serverId, {
+    required String channelId,
+    required int taskNumber,
+  }) async {
+    throw UnimplementedError();
+  }
+}
+
+/// Thread repository that gates on a [Completer] for timing control.
+class _DelayedThreadRepository implements ThreadRepository {
+  _DelayedThreadRepository(this.completer);
+  final Completer<List<ThreadInboxItem>> completer;
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) =>
+      completer.future;
 
   @override
   Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
