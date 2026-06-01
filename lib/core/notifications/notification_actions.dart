@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/dio_client.dart';
 import 'package:slock_app/core/network/providers.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 const notificationActionReply = 'reply';
 const notificationActionMarkRead = 'mark_read';
@@ -99,29 +100,117 @@ class DioNotificationActionApi implements NotificationActionApi {
 }
 
 class NotificationActionHandler {
-  const NotificationActionHandler({required NotificationActionApi api})
-      : _api = api;
+  const NotificationActionHandler({
+    required NotificationActionApi api,
+    DiagnosticsCollector? diagnostics,
+    int markReadMaxAttempts = 2,
+  })  : _api = api,
+        _diagnostics = diagnostics,
+        _markReadMaxAttempts = markReadMaxAttempts;
+
+  static const _tag = 'notification-action';
 
   final NotificationActionApi _api;
+  final DiagnosticsCollector? _diagnostics;
+  final int _markReadMaxAttempts;
 
   Future<bool> handlePayload(Map<String, dynamic> payload) async {
     final request = NotificationActionRequest.fromPayload(payload);
     if (request == null) return false;
 
-    if (request.isReply) {
-      final text = request.replyText?.trim();
-      if (text == null || text.isEmpty) return false;
-      await _api.sendReply(request);
-      await _api.markRead(request);
-      return true;
+    try {
+      if (request.isReply) {
+        final text = request.replyText?.trim();
+        if (text == null || text.isEmpty) return false;
+        await _api.sendReply(request);
+        return _markReadWithRetry(request, source: 'reply');
+      }
+
+      if (request.isMarkRead) {
+        return _markReadWithRetry(request, source: 'mark_read');
+      }
+
+      return false;
+    } on Object catch (error, stackTrace) {
+      _diagnostics?.error(
+        _tag,
+        'notification action failed',
+        metadata: _metadata(request, error, stackTrace),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> _markReadWithRetry(
+    NotificationActionRequest request, {
+    required String source,
+  }) async {
+    final attempts = _markReadMaxAttempts < 1 ? 1 : _markReadMaxAttempts;
+    Object? lastError;
+    StackTrace? lastStackTrace;
+
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        await _api.markRead(request);
+        if (attempt > 1) {
+          _diagnostics?.info(
+            _tag,
+            'notification mark-read retry succeeded',
+            metadata: {
+              'source': source,
+              'attempt': attempt,
+              'serverId': request.serverId,
+              'channelId': request.channelId,
+            },
+          );
+        }
+        return true;
+      } on Object catch (error, stackTrace) {
+        lastError = error;
+        lastStackTrace = stackTrace;
+        if (attempt < attempts) {
+          _diagnostics?.warning(
+            _tag,
+            'notification mark-read failed; retrying',
+            metadata: _metadata(
+              request,
+              error,
+              stackTrace,
+              extra: {'source': source, 'attempt': attempt},
+            ),
+          );
+        }
+      }
     }
 
-    if (request.isMarkRead) {
-      await _api.markRead(request);
-      return true;
-    }
-
+    _diagnostics?.error(
+      _tag,
+      'notification mark-read failed after retry',
+      metadata: _metadata(
+        request,
+        lastError ?? StateError('unknown mark-read failure'),
+        lastStackTrace ?? StackTrace.current,
+        extra: {'source': source, 'attempts': attempts},
+      ),
+    );
     return false;
+  }
+
+  Map<String, dynamic> _metadata(
+    NotificationActionRequest request,
+    Object error,
+    StackTrace stackTrace, {
+    Map<String, dynamic> extra = const {},
+  }) {
+    return {
+      'action': request.action,
+      'serverId': request.serverId,
+      'channelId': request.channelId,
+      'errorType': error.runtimeType.toString(),
+      'error': error.toString(),
+      'stackTrace': stackTrace.toString(),
+      ...extra,
+    };
   }
 }
 
@@ -134,5 +223,6 @@ final notificationActionHandlerProvider = Provider<NotificationActionHandler>((
 ) {
   return NotificationActionHandler(
     api: ref.watch(notificationActionApiProvider),
+    diagnostics: ref.watch(diagnosticsCollectorProvider),
   );
 });
