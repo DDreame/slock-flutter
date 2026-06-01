@@ -1132,6 +1132,11 @@
   "filePreviewFallbackBody": "文件预览不可用",
   "filePreviewFallbackBack": "返回",
 
+  "deepLinkAccessDeniedTitle": "你没有访问权限",
+  "deepLinkAccessDeniedMessage": "你没有权限访问此资源。它可能是私有的、已被删除，或不属于当前工作区。",
+  "deepLinkNotFoundTitle": "资源未找到",
+  "deepLinkNotFoundMessage": "找不到此资源。它可能已被删除，或链接已过期。",
+  "deepLinkBackButton": "返回 Slock",
   "errorRetry": "重试",
   "errorShareDiagnostics": "分享诊断信息",
 

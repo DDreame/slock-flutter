@@ -1291,6 +1291,11 @@
   "filePreviewFallbackBody": "Vista previa no disponible",
   "filePreviewFallbackBack": "Volver",
 
+  "deepLinkAccessDeniedTitle": "No tienes acceso",
+  "deepLinkAccessDeniedMessage": "No tienes acceso a este recurso. Puede ser privado, haberse eliminado o estar fuera de tu espacio actual.",
+  "deepLinkNotFoundTitle": "Recurso no encontrado",
+  "deepLinkNotFoundMessage": "No se pudo encontrar este recurso. Puede haberse eliminado o el enlace puede estar desactualizado.",
+  "deepLinkBackButton": "Volver a Slock",
   "errorRetry": "Reintentar",
   "errorShareDiagnostics": "Compartir diagnósticos",
 

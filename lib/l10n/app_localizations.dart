@@ -6257,6 +6257,36 @@ abstract class AppLocalizations {
   /// **'Go back'**
   String get filePreviewFallbackBack;
 
+  /// No description provided for @deepLinkAccessDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access'**
+  String get deepLinkAccessDeniedTitle;
+
+  /// No description provided for @deepLinkAccessDeniedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have access to this resource. It may be private, deleted, or outside your current workspace.'**
+  String get deepLinkAccessDeniedMessage;
+
+  /// No description provided for @deepLinkNotFoundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Resource not found'**
+  String get deepLinkNotFoundTitle;
+
+  /// No description provided for @deepLinkNotFoundMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This resource could not be found. It may have been deleted or the link may be out of date.'**
+  String get deepLinkNotFoundMessage;
+
+  /// No description provided for @deepLinkBackButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Slock'**
+  String get deepLinkBackButton;
+
   /// No description provided for @errorRetry.
   ///
   /// In en, this message translates to:

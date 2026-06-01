@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/deep_link_resource_error_view.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
@@ -151,6 +152,9 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             onNew: _showCreateTaskDialog,
             channels: channels,
           ),
+        TasksStatus.initial ||
+        TasksStatus.failure when DeepLinkResourceErrorView.handles(failure) =>
+          DeepLinkResourceErrorView(failure: failure!),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
             message: failure?.userMessage(context.l10n) ??
                 context.l10n.tasksLoadFailed,

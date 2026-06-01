@@ -523,32 +523,31 @@ class AppLocalizationsEs extends AppLocalizations {
   String get workspaceSettingsLeaveConfirmLabel => 'Abandonar';
 
   @override
-  String get workspaceSettingsOnboarding => 'Onboarding';
+  String get workspaceSettingsOnboarding => 'Configuración de incorporación';
 
   @override
-  String get onboardingSettingsTitle => 'Onboarding Settings';
+  String get onboardingSettingsTitle => 'Configuración de incorporación';
 
   @override
   String get onboardingSettingsDescription =>
-      'Configure how new members experience the workspace onboarding flow.';
+      'Gestionar la experiencia de incorporación de nuevos miembros';
 
   @override
-  String get onboardingSettingsSetupModalLabel => 'Suppress setup reminder';
+  String get onboardingSettingsSetupModalLabel =>
+      'Mostrar recordatorio de configuración';
 
   @override
   String get onboardingSettingsSetupModalDescription =>
-      'When enabled, new members will not see the setup modal reminder.';
+      'Mostrar recordatorio del asistente al unirse nuevos miembros';
 
   @override
-  String get onboardingSettingsLoadError =>
-      'Failed to load onboarding settings.';
+  String get onboardingSettingsLoadError => 'Error al cargar la configuración';
 
   @override
-  String get onboardingSettingsSaveError =>
-      'Failed to save onboarding settings.';
+  String get onboardingSettingsSaveError => 'Error al guardar la configuración';
 
   @override
-  String get onboardingSettingsRetry => 'Retry';
+  String get onboardingSettingsRetry => 'Reintentar';
 
   @override
   String get previewDeleted => 'Mensaje eliminado';
@@ -3364,6 +3363,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get filePreviewFallbackBack => 'Volver';
+
+  @override
+  String get deepLinkAccessDeniedTitle => 'No tienes acceso';
+
+  @override
+  String get deepLinkAccessDeniedMessage =>
+      'No tienes acceso a este recurso. Puede ser privado, haberse eliminado o estar fuera de tu espacio actual.';
+
+  @override
+  String get deepLinkNotFoundTitle => 'Recurso no encontrado';
+
+  @override
+  String get deepLinkNotFoundMessage =>
+      'No se pudo encontrar este recurso. Puede haberse eliminado o el enlace puede estar desactualizado.';
+
+  @override
+  String get deepLinkBackButton => 'Volver a Slock';
 
   @override
   String get errorRetry => 'Reintentar';

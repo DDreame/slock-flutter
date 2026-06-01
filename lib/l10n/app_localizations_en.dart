@@ -3329,6 +3329,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filePreviewFallbackBack => 'Go back';
 
   @override
+  String get deepLinkAccessDeniedTitle => 'You don\'t have access';
+
+  @override
+  String get deepLinkAccessDeniedMessage =>
+      'You don\'t have access to this resource. It may be private, deleted, or outside your current workspace.';
+
+  @override
+  String get deepLinkNotFoundTitle => 'Resource not found';
+
+  @override
+  String get deepLinkNotFoundMessage =>
+      'This resource could not be found. It may have been deleted or the link may be out of date.';
+
+  @override
+  String get deepLinkBackButton => 'Back to Slock';
+
+  @override
   String get errorRetry => 'Retry';
 
   @override
