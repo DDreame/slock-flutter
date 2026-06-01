@@ -11,4 +11,3 @@ export 'notification_deep_link_helper.dart';
 export 'notification_initializer.dart';
 export 'notification_target.dart';
 export 'notification_actions.dart';
-export 'notification_channel_setup.dart';

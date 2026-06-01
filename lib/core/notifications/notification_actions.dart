@@ -12,28 +12,6 @@ const notificationReplyPath = '/messages';
 const notificationChannelsPath = '/channels';
 const notificationReadAllSuffix = '/read-all';
 
-/// User-configurable platform notification buckets.
-///
-/// Android maps these to NotificationChannels so users can tune importance in
-/// system settings. iOS maps the same action category to message notifications.
-enum SlockNotificationChannelType {
-  directMessage,
-  mention,
-  channelMessage;
-
-  String get id => switch (this) {
-        SlockNotificationChannelType.directMessage => 'slock_direct_messages',
-        SlockNotificationChannelType.mention => 'slock_mentions',
-        SlockNotificationChannelType.channelMessage => 'slock_channel_messages',
-      };
-
-  String get payloadType => switch (this) {
-        SlockNotificationChannelType.directMessage => 'direct_message',
-        SlockNotificationChannelType.mention => 'mention',
-        SlockNotificationChannelType.channelMessage => 'channel',
-      };
-}
-
 @immutable
 class NotificationActionRequest {
   const NotificationActionRequest({

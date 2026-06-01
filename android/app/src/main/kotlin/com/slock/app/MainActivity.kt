@@ -80,12 +80,6 @@ class MainActivity : FlutterActivity() {
                     showLocalNotification(payload)
                     result.success(null)
                 }
-                "configureNotificationChannels" -> {
-                    @Suppress("UNCHECKED_CAST")
-                    val channels = call.arguments as? List<Map<String, Any?>> ?: emptyList()
-                    configureNotificationChannels(channels)
-                    result.success(null)
-                }
                 else -> result.notImplemented()
             }
         }
@@ -278,24 +272,6 @@ class MainActivity : FlutterActivity() {
                 description = "Notifications for channel messages and other activity"
             }
             manager.createNotificationChannel(generalChannel)
-        }
-    }
-
-    private fun configureNotificationChannels(channels: List<Map<String, Any?>>) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val manager = getSystemService(NotificationManager::class.java) ?: return
-        for (channel in channels) {
-            val id = channel["id"] as? String ?: continue
-            val name = channel["name"] as? String ?: id
-            val importance = when (channel["importance"] as? String) {
-                "low" -> NotificationManager.IMPORTANCE_LOW
-                "high" -> NotificationManager.IMPORTANCE_HIGH
-                else -> NotificationManager.IMPORTANCE_DEFAULT
-            }
-            val notificationChannel = NotificationChannel(id, name, importance).apply {
-                description = channel["description"] as? String ?: ""
-            }
-            manager.createNotificationChannel(notificationChannel)
         }
     }
 

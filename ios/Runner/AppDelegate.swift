@@ -192,15 +192,12 @@ import BackgroundTasks
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    defer {
+    guard var payload = notificationPayload(from: response.notification.request.content.userInfo) else {
       super.userNotificationCenter(
         center,
         didReceive: response,
         withCompletionHandler: completionHandler
       )
-    }
-
-    guard var payload = notificationPayload(from: response.notification.request.content.userInfo) else {
       return
     }
 
@@ -210,21 +207,28 @@ import BackgroundTasks
       if let textResponse = response as? UNTextInputNotificationResponse {
         payload["replyText"] = textResponse.userText
       }
+      handleNotificationAction(payload: payload, completion: completionHandler)
+      return
     } else if response.actionIdentifier == markReadActionIdentifier {
       payload["action"] = "mark_read"
       payload["slock.action"] = "mark_read"
+      handleNotificationAction(payload: payload, completion: completionHandler)
+      return
     }
 
     if let tapEventSink {
       tapEventSink(payload)
-      return
-    }
-
-    if !didConsumeInitialNotification {
+    } else if !didConsumeInitialNotification {
       initialNotificationPayload = payload
     } else {
       pendingTapPayload = payload
     }
+
+    super.userNotificationCenter(
+      center,
+      didReceive: response,
+      withCompletionHandler: completionHandler
+    )
   }
 
   override func userNotificationCenter(
@@ -447,6 +451,144 @@ import BackgroundTasks
     }
 
     return result
+  }
+
+  // MARK: - Notification Actions
+
+  private func handleNotificationAction(
+    payload: [String: Any],
+    completion: @escaping () -> Void
+  ) {
+    guard
+      let action = payload["action"] as? String,
+      let channelId = payload["channelId"] as? String,
+      let apiBaseUrl = UserDefaults.standard.string(forKey: AppDelegate.syncConfigApiBaseUrlKey),
+      let serverId = payload["serverId"] as? String
+        ?? UserDefaults.standard.string(forKey: AppDelegate.syncConfigServerIdKey),
+      let token = readKeychainToken()
+    else {
+      completion()
+      return
+    }
+
+    switch action {
+    case "reply":
+      let replyText = (payload["replyText"] as? String)?.trimmingCharacters(
+        in: .whitespacesAndNewlines
+      ) ?? ""
+      guard !replyText.isEmpty else {
+        completion()
+        return
+      }
+      sendNotificationReply(
+        apiBaseUrl: apiBaseUrl,
+        serverId: serverId,
+        token: token,
+        channelId: channelId,
+        messageId: payload["messageId"] as? String,
+        replyText: replyText
+      ) { [weak self] in
+        guard let self else {
+          completion()
+          return
+        }
+        self.markNotificationConversationRead(
+          apiBaseUrl: apiBaseUrl,
+          serverId: serverId,
+          token: token,
+          channelId: channelId,
+          completion: completion
+        )
+      }
+    case "mark_read":
+      markNotificationConversationRead(
+        apiBaseUrl: apiBaseUrl,
+        serverId: serverId,
+        token: token,
+        channelId: channelId,
+        completion: completion
+      )
+    default:
+      completion()
+    }
+  }
+
+  private func sendNotificationReply(
+    apiBaseUrl: String,
+    serverId: String,
+    token: String,
+    channelId: String,
+    messageId: String?,
+    replyText: String,
+    completion: @escaping () -> Void
+  ) {
+    guard let url = URL(string: "\(apiBaseUrl)/messages") else {
+      completion()
+      return
+    }
+
+    var body: [String: Any] = [
+      "channelId": channelId,
+      "content": replyText,
+    ]
+    if let messageId {
+      body["replyToId"] = messageId
+    }
+    performNotificationActionRequest(
+      url: url,
+      serverId: serverId,
+      token: token,
+      jsonBody: body,
+      completion: completion
+    )
+  }
+
+  private func markNotificationConversationRead(
+    apiBaseUrl: String,
+    serverId: String,
+    token: String,
+    channelId: String,
+    completion: @escaping () -> Void
+  ) {
+    guard let encodedChannelId = channelId.addingPercentEncoding(
+      withAllowedCharacters: .urlPathAllowed
+    ),
+      let url = URL(string: "\(apiBaseUrl)/channels/\(encodedChannelId)/read-all")
+    else {
+      completion()
+      return
+    }
+
+    performNotificationActionRequest(
+      url: url,
+      serverId: serverId,
+      token: token,
+      jsonBody: nil,
+      completion: completion
+    )
+  }
+
+  private func performNotificationActionRequest(
+    url: URL,
+    serverId: String,
+    token: String,
+    jsonBody: [String: Any]?,
+    completion: @escaping () -> Void
+  ) {
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.timeoutInterval = 20
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+    request.setValue(serverId, forHTTPHeaderField: "X-Server-Id")
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    if let jsonBody {
+      request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+      request.httpBody = try? JSONSerialization.data(withJSONObject: jsonBody)
+    }
+
+    URLSession(configuration: .ephemeral).dataTask(with: request) { _, _, _ in
+      completion()
+    }.resume()
   }
 
   // MARK: - Background Sync
