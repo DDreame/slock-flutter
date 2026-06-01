@@ -348,7 +348,13 @@ class ConversationDetailStore
       // Persist current state (including draft + pending attachments) so it
       // survives conversation switches.
       if (state.status == ConversationDetailStatus.success) {
-        _persistSession();
+        try {
+          _persistSession();
+        } on StateError catch (_) {
+          // Container already tearing down — persistence is best-effort.
+          // Provider disposal order is unguaranteed during full container
+          // dispose, so the session store may already be gone.
+        }
       }
       _disposed = true;
       _sendMixinDisposed = true;
