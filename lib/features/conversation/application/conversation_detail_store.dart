@@ -350,13 +350,20 @@ class ConversationDetailStore
 
     ref.onDispose(() {
       // Persist current state (including draft + pending attachments) so it
-      // survives conversation switches. Uses captured refs — no ref.read()
-      // calls during dispose (avoids StateError / ConcurrentModificationError).
+      // survives conversation switches. Deferred via Future.microtask to escape
+      // the synchronous build/dispose phase — mutating provider state inside
+      // onDispose during widget tree build throws ConcurrentModificationError.
       if (state.status == ConversationDetailStatus.success) {
-        sessionNotifier.saveSuccessState(
-          state,
-          scrollOffset: sessionMap[state.target]?.scrollOffset ?? 0,
-        );
+        final capturedState = state;
+        final offset = sessionMap[capturedState.target]?.scrollOffset ?? 0;
+        Future.microtask(() {
+          try {
+            sessionNotifier.saveSuccessState(capturedState,
+                scrollOffset: offset);
+          } catch (_) {
+            // Best-effort — container may be fully disposed by now.
+          }
+        });
       }
       _disposed = true;
       _sendMixinDisposed = true;
