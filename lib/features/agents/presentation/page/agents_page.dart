@@ -396,11 +396,10 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       return;
     }
     try {
-      final channelId =
-          await ref.read(openAgentDmUseCaseProvider)(
-                ServerScopeId(serverId),
-                agentId: agent.id,
-              );
+      final channelId = await ref.read(openAgentDmUseCaseProvider)(
+        ServerScopeId(serverId),
+        agentId: agent.id,
+      );
       if (!mounted) return;
       context.push('/servers/$serverId/dms/$channelId');
     } on AppFailure catch (failure) {

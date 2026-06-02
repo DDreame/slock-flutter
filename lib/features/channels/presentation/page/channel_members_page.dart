@@ -231,11 +231,10 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
   Future<void> _openDirectMessage(ChannelMember member) async {
     if (member.userId == null) return;
     try {
-      final channelId =
-          await ref.read(openDmUseCaseProvider)(
-                ServerScopeId(widget.serverId),
-                userId: member.userId!,
-              );
+      final channelId = await ref.read(openDmUseCaseProvider)(
+        ServerScopeId(widget.serverId),
+        userId: member.userId!,
+      );
       if (!mounted) return;
       context.push('/servers/${widget.serverId}/dms/$channelId');
     } on AppFailure catch (failure) {

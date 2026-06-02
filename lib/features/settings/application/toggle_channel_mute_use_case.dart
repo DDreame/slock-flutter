@@ -23,11 +23,10 @@ final toggleChannelMuteUseCaseProvider = Provider<
     final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
     await repo.setChannelMuted(serverId, channelId, muted: muted);
 
-    final key =
-        ChannelNotificationPreferenceRepository.compositeKey(serverId, channelId);
+    final key = ChannelNotificationPreferenceRepository.compositeKey(
+        serverId, channelId);
     final mutedIds = ref.read(channelMutedIdsProvider);
-    ref.read(channelMutedIdsProvider.notifier).state = muted
-        ? {...mutedIds, key}
-        : mutedIds.where((id) => id != key).toSet();
+    ref.read(channelMutedIdsProvider.notifier).state =
+        muted ? {...mutedIds, key} : mutedIds.where((id) => id != key).toSet();
   };
 });
