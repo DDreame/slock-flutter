@@ -36,15 +36,19 @@ final dmSortPreferenceProvider =
 class DmSortPreferenceNotifier extends Notifier<DmSortPreference> {
   @override
   DmSortPreference build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final stored = prefs.getString(DmSortPreference.prefsKey);
-    if (stored == 'alphabetical') {
-      return DmSortPreference.alphabetical;
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final stored = prefs.getString(DmSortPreference.prefsKey);
+      if (stored == 'alphabetical') {
+        return DmSortPreference.alphabetical;
+      }
+      if (stored == 'custom') {
+        return DmSortPreference.custom;
+      }
+      return DmSortPreference.recentActivity;
+    } on UnimplementedError {
+      return DmSortPreference.recentActivity;
     }
-    if (stored == 'custom') {
-      return DmSortPreference.custom;
-    }
-    return DmSortPreference.recentActivity;
   }
 
   /// Update the sort preference and persist to SharedPreferences.

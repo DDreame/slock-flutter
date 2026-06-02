@@ -27,9 +27,13 @@ class SearchHistoryNotifier extends AutoDisposeNotifier<SearchHistoryState> {
 
   @override
   SearchHistoryState build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final stored = prefs.getStringList(_prefsKey);
-    return stored ?? <String>[];
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final stored = prefs.getStringList(_prefsKey);
+      return stored ?? <String>[];
+    } on UnimplementedError {
+      return <String>[];
+    }
   }
 
   /// Add a query to the history (most recent first, LRU eviction).

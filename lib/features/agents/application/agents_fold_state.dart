@@ -12,9 +12,13 @@ final agentsFoldStateProvider =
 class AgentsFoldState extends AutoDisposeNotifier<Set<String>> {
   @override
   Set<String> build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final stored = prefs.getStringList(_key);
-    return stored?.toSet() ?? const {};
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final stored = prefs.getStringList(_key);
+      return stored?.toSet() ?? const {};
+    } on UnimplementedError {
+      return const {};
+    }
   }
 
   /// Toggles the collapsed state for [groupKey].
