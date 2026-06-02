@@ -1322,5 +1322,7 @@
       }
     }
   },
-  "undoAction": "撤销"
+  "undoAction": "撤销",
+  "shareUploadProgressSingle": "正在上传...",
+  "shareUploadProgressMulti": "正在上传第 {current} 个文件，共 {total} 个..."
 }

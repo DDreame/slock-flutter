@@ -1500,5 +1500,7 @@
       }
     }
   },
-  "undoAction": "Deshacer"
+  "undoAction": "Deshacer",
+  "shareUploadProgressSingle": "Subiendo...",
+  "shareUploadProgressMulti": "Subiendo archivo {current} de {total}..."
 }

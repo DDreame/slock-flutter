@@ -3814,4 +3814,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get undoAction => 'Deshacer';
+
+  @override
+  String get shareUploadProgressSingle => 'Subiendo...';
+
+  @override
+  String shareUploadProgressMulti(int current, int total) {
+    return 'Subiendo archivo $current de $total...';
+  }
 }

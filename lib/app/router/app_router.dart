@@ -57,6 +57,7 @@ import 'package:slock_app/features/servers/presentation/page/workspace_settings_
 import 'package:slock_app/features/servers/presentation/page/onboarding_settings_page.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/application/share_send_service.dart';
+import 'package:slock_app/features/share/application/share_upload_state.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
@@ -736,15 +737,34 @@ class _ShareTargetRoute extends StatelessWidget {
           if (context.mounted) context.go('/home');
           return;
         }
+        // Signal upload start.
+        ref.read(shareUploadStateProvider.notifier).state = ShareUploadState(
+          isUploading: true,
+          totalFiles: content.attachmentItems.length,
+        );
         try {
-          await ref
-              .read(shareSendServiceProvider)
-              .send(target: target, content: content);
+          await ref.read(shareSendServiceProvider).send(
+                target: target,
+                content: content,
+                onProgress: (fileIndex, totalFiles, fileProgress) {
+                  ref.read(shareUploadStateProvider.notifier).state =
+                      ShareUploadState(
+                    isUploading: true,
+                    currentFileIndex: fileIndex,
+                    totalFiles: totalFiles,
+                    currentFileProgress: fileProgress,
+                  );
+                },
+              );
           // Only consume on success — content is preserved on failure
           // so the user can retry.
           ref.read(shareIntentStoreProvider.notifier).consume();
+          ref.read(shareUploadStateProvider.notifier).state =
+              const ShareUploadState();
           if (context.mounted) context.go('/home');
         } on Exception catch (e) {
+          ref.read(shareUploadStateProvider.notifier).state =
+              const ShareUploadState();
           ref
               .read(diagnosticsCollectorProvider)
               .error('ShareIntent', 'Share send failed: $e');

@@ -3659,4 +3659,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get undoAction => '撤销';
+
+  @override
+  String get shareUploadProgressSingle => '正在上传...';
+
+  @override
+  String shareUploadProgressMulti(int current, int total) {
+    return '正在上传第 $current 个文件，共 $total 个...';
+  }
 }

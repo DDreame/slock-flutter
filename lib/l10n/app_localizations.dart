@@ -7030,6 +7030,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Undo'**
   String get undoAction;
+
+  /// No description provided for @shareUploadProgressSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get shareUploadProgressSingle;
+
+  /// No description provided for @shareUploadProgressMulti.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading file {current} of {total}...'**
+  String shareUploadProgressMulti(int current, int total);
 }
 
 class _AppLocalizationsDelegate

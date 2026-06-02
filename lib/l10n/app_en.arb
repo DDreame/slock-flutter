@@ -1784,5 +1784,17 @@
       }
     }
   },
-  "undoAction": "Undo"
+  "undoAction": "Undo",
+  "shareUploadProgressSingle": "Uploading...",
+  "shareUploadProgressMulti": "Uploading file {current} of {total}...",
+  "@shareUploadProgressMulti": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }
