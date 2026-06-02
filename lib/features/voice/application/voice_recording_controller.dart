@@ -141,6 +141,7 @@ class VoiceRecordingController
       });
 
       await rec.start();
+      if (_disposed) return StartRecordingResult.error;
       store.setRecordingState(VoiceRecorderState.recording);
       return StartRecordingResult.success;
     } on Exception {

@@ -39,8 +39,6 @@ class LinkPreviewCacheNotifier
 
   @override
   Map<String, AsyncValue<LinkMetadata?>> build() {
-    final service = ref.read(linkPreviewServiceProvider);
-    ref.onDispose(service.close);
     return {};
   }
 
@@ -73,11 +71,14 @@ class LinkPreviewCacheNotifier
     try {
       final service = ref.read(linkPreviewServiceProvider);
       final metadata = await service.fetchMetadata(url);
+      // Guard: bail if provider was disposed during the async gap.
+      if (!ref.exists(linkPreviewCacheProvider)) return;
       state = _trimToMax(
         {...state, url: AsyncValue.data(metadata)},
         inFlight: _inFlight,
       );
     } on Exception catch (e, st) {
+      if (!ref.exists(linkPreviewCacheProvider)) return;
       ref
           .read(diagnosticsCollectorProvider)
           .error('LinkPreview', 'Metadata fetch failed for $url: $e');

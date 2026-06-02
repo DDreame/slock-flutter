@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/settings/application/toggle_channel_mute_use_case.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -58,11 +59,11 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
   @override
   void initState() {
     super.initState();
-    final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
-    _isMuted = repo.isChannelMuted(
+    final compositeKey = ChannelNotificationPreferenceRepository.compositeKey(
       widget.target.serverId.value,
       widget.target.conversationId,
     );
+    _isMuted = ref.read(channelMutedIdsProvider).contains(compositeKey);
   }
 
   @override
@@ -96,31 +97,11 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
             ),
             value: _isMuted,
             onChanged: (value) async {
-              final repo =
-                  ref.read(channelNotificationPreferenceRepositoryProvider);
-              await repo.setChannelMuted(
-                widget.target.serverId.value,
-                widget.target.conversationId,
+              await ref.read(toggleChannelMuteUseCaseProvider)(
+                serverId: widget.target.serverId.value,
+                channelId: widget.target.conversationId,
                 muted: value,
               );
-              // Update in-memory muted IDs for suppression bindings.
-              // Use composite key to avoid cross-server collisions.
-              final compositeKey =
-                  ChannelNotificationPreferenceRepository.compositeKey(
-                widget.target.serverId.value,
-                widget.target.conversationId,
-              );
-              final mutedIds = ref.read(channelMutedIdsProvider.notifier).state;
-              if (value) {
-                ref.read(channelMutedIdsProvider.notifier).state = {
-                  ...mutedIds,
-                  compositeKey,
-                };
-              } else {
-                ref.read(channelMutedIdsProvider.notifier).state = {
-                  ...mutedIds,
-                }..remove(compositeKey);
-              }
               setState(() => _isMuted = value);
             },
           ),

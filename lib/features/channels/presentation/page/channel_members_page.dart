@@ -10,7 +10,7 @@ import 'package:slock_app/features/channels/application/channel_member_state.dar
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/presentation/widgets/add_member_dialog.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/application/open_dm_use_case.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -231,11 +231,10 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
   Future<void> _openDirectMessage(ChannelMember member) async {
     if (member.userId == null) return;
     try {
-      final channelId =
-          await ref.read(memberRepositoryProvider).openDirectMessage(
-                ServerScopeId(widget.serverId),
-                userId: member.userId!,
-              );
+      final channelId = await ref.read(openDmUseCaseProvider)(
+        ServerScopeId(widget.serverId),
+        userId: member.userId!,
+      );
       if (!mounted) return;
       context.push('/servers/${widget.serverId}/dms/$channelId');
     } on AppFailure catch (failure) {
