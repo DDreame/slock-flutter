@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/share/application/share_send_service.dart';
@@ -15,7 +16,10 @@ void main() {
 
   setUp(() {
     mockRepo = _MockConversationRepository();
-    service = ShareSendService(repository: mockRepo);
+    service = ShareSendService(
+      repository: mockRepo,
+      imageCompressor: const _NoOpImageCompressor(),
+    );
   });
 
   group('ShareSendService', () {
@@ -293,4 +297,24 @@ class _MockConversationRepository implements ConversationRepository {
   // -- Unused stubs --
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
+}
+
+/// No-op compressor that never compresses (all files appear below threshold).
+class _NoOpImageCompressor implements ImageCompressor {
+  const _NoOpImageCompressor();
+
+  @override
+  Future<int> getFileSize(String path) async => 0;
+
+  @override
+  Future<String> compress(String path, {int quality = 80}) async => path;
+
+  @override
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  }) async {}
+
+  @override
+  bool isCompressibleImage(String mimeType) => false;
 }

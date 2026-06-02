@@ -11,6 +11,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/share/presentation/widgets/share_preview_card.dart';
+import 'package:slock_app/features/share/presentation/widgets/share_upload_progress_indicator.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 /// Whitespace splitter for avatar-initials extraction in the share picker.
@@ -198,6 +199,7 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
       children: [
         if (sharedContent != null && sharedContent.isNotEmpty)
           SharePreviewCard(content: sharedContent),
+        const ShareUploadProgressIndicator(),
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.pageHorizontal,

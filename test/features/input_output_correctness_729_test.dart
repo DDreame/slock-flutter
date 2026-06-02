@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -83,7 +84,10 @@ void main() {
   group('#729B — ShareSend empty text handling', () {
     test('send with only attachments passes empty content to repo', () async {
       final repo = _TrackingConversationRepository();
-      final service = ShareSendService(repository: repo);
+      final service = ShareSendService(
+        repository: repo,
+        imageCompressor: const _NoOpImageCompressor729(),
+      );
 
       await service.send(
         target: ShareTarget.channel(
@@ -107,7 +111,10 @@ void main() {
 
     test('send with whitespace-only text trims to empty', () async {
       final repo = _TrackingConversationRepository();
-      final service = ShareSendService(repository: repo);
+      final service = ShareSendService(
+        repository: repo,
+        imageCompressor: const _NoOpImageCompressor729(),
+      );
 
       await service.send(
         target: ShareTarget.channel(
@@ -136,7 +143,10 @@ void main() {
 
     test('send with actual text preserves content', () async {
       final repo = _TrackingConversationRepository();
-      final service = ShareSendService(repository: repo);
+      final service = ShareSendService(
+        repository: repo,
+        imageCompressor: const _NoOpImageCompressor729(),
+      );
 
       await service.send(
         target: ShareTarget.channel(
@@ -365,4 +375,24 @@ class _CapturingInterceptor extends Interceptor {
 class _NoOpConversationLocalStore implements ConversationLocalStore {
   @override
   dynamic noSuchMethod(Invocation invocation) => Future<dynamic>.value(null);
+}
+
+/// No-op compressor that never compresses — preserves existing test behavior.
+class _NoOpImageCompressor729 implements ImageCompressor {
+  const _NoOpImageCompressor729();
+
+  @override
+  Future<int> getFileSize(String path) async => 0;
+
+  @override
+  Future<String> compress(String path, {int quality = 80}) async => path;
+
+  @override
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  }) async {}
+
+  @override
+  bool isCompressibleImage(String mimeType) => false;
 }

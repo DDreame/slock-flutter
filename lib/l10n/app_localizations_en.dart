@@ -3775,4 +3775,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get undoAction => 'Undo';
+
+  @override
+  String get shareUploadProgressSingle => 'Uploading...';
+
+  @override
+  String shareUploadProgressMulti(int current, int total) {
+    return 'Uploading file $current of $total...';
+  }
 }
