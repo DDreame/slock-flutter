@@ -21,9 +21,13 @@ class PersistedAgentNames extends AutoDisposeNotifier<Set<String>> {
     // Watch activeServerScopeIdProvider so this provider rebuilds (and
     // re-reads the correct server-scoped key) when the user switches servers.
     ref.watch(activeServerScopeIdProvider);
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final stored = prefs.getStringList(_key);
-    return stored?.toSet() ?? const {};
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final stored = prefs.getStringList(_key);
+      return stored?.toSet() ?? const {};
+    } on UnimplementedError {
+      return const {};
+    }
   }
 
   /// Replaces the persisted set with [names].

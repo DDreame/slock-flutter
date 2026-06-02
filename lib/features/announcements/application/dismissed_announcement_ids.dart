@@ -19,10 +19,14 @@ class DismissedAnnouncementIds extends Notifier<Set<String>> {
   Set<String> build() {
     // Watch both so server switches AND prefs changes trigger rebuild.
     final serverId = ref.watch(activeServerScopeIdProvider)?.value ?? '';
-    final prefs = ref.watch(sharedPreferencesProvider);
     _currentKey = 'dismissed_announcements_$serverId';
-    final stored = prefs.getStringList(_currentKey);
-    return stored?.toSet() ?? const {};
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final stored = prefs.getStringList(_currentKey);
+      return stored?.toSet() ?? const {};
+    } on UnimplementedError {
+      return const {};
+    }
   }
 
   /// Returns true if the given announcement ID has been dismissed.

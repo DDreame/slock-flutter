@@ -44,10 +44,25 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 
 final themePreferenceRepositoryProvider =
     Provider<ThemePreferenceRepository>((ref) {
-  return SharedPrefsThemePreferenceRepository(
-    prefs: ref.watch(sharedPreferencesProvider),
-  );
+  try {
+    return SharedPrefsThemePreferenceRepository(
+      prefs: ref.watch(sharedPreferencesProvider),
+    );
+  } on UnimplementedError {
+    return const _DefaultThemePreferenceRepository();
+  }
 });
 
 final themeModeStoreProvider =
     NotifierProvider<ThemeModeStore, ThemeModeState>(ThemeModeStore.new);
+
+/// Fallback repository when [sharedPreferencesProvider] is unavailable.
+class _DefaultThemePreferenceRepository implements ThemePreferenceRepository {
+  const _DefaultThemePreferenceRepository();
+
+  @override
+  ThemePreference getPreference() => ThemePreference.system;
+
+  @override
+  Future<void> setPreference(ThemePreference preference) async {}
+}

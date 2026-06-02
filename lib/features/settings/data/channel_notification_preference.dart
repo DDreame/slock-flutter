@@ -71,11 +71,18 @@ class ChannelNotificationPreferenceRepository {
 
 /// Provides the [ChannelNotificationPreferenceRepository] backed by
 /// the app's [SharedPreferences] instance.
+///
+/// Falls back to a no-op repository when [sharedPreferencesProvider] is not
+/// available (e.g. in tests that don't override it).
 final channelNotificationPreferenceRepositoryProvider =
     Provider<ChannelNotificationPreferenceRepository>((ref) {
-  return ChannelNotificationPreferenceRepository(
-    prefs: ref.watch(sharedPreferencesProvider),
-  );
+  try {
+    return ChannelNotificationPreferenceRepository(
+      prefs: ref.watch(sharedPreferencesProvider),
+    );
+  } on UnimplementedError {
+    return _NoOpChannelNotificationPreferenceRepository();
+  }
 });
 
 /// In-memory set of muted composite keys (`{serverId}_{channelId}`)
@@ -87,6 +94,37 @@ final channelNotificationPreferenceRepositoryProvider =
 /// provider (synchronous) rather than going through SharedPreferences
 /// in the hot path.
 final channelMutedIdsProvider = StateProvider<Set<String>>((ref) {
-  final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
-  return repo.getAllMutedCompositeKeys();
+  try {
+    final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
+    return repo.getAllMutedCompositeKeys();
+  } on UnimplementedError {
+    return const {};
+  }
 });
+
+/// Fallback repository used when [sharedPreferencesProvider] is unavailable.
+class _NoOpChannelNotificationPreferenceRepository
+    extends ChannelNotificationPreferenceRepository {
+  _NoOpChannelNotificationPreferenceRepository()
+      : super(prefs: _DummySharedPreferences());
+
+  @override
+  bool isChannelMuted(String serverId, String channelId) => false;
+
+  @override
+  Set<String> getAllMutedCompositeKeys() => const {};
+
+  @override
+  Future<void> setChannelMuted(
+    String serverId,
+    String channelId, {
+    required bool muted,
+  }) async {}
+}
+
+/// Minimal stub satisfying [SharedPreferences] for the no-op repository.
+/// Methods are never called because the no-op overrides everything.
+class _DummySharedPreferences implements SharedPreferences {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}

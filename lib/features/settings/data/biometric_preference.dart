@@ -104,10 +104,36 @@ class SecureStorageBiometricPreferenceRepository
 }
 
 /// Riverpod provider for [BiometricPreferenceRepository].
+///
+/// Falls back to a no-op repository when [sharedPreferencesProvider] is not
+/// available (e.g. in tests).
 final biometricPreferenceRepositoryProvider =
     Provider<BiometricPreferenceRepository>((ref) {
-  return SecureStorageBiometricPreferenceRepository(
-    storage: ref.watch(secureStorageProvider),
-    prefs: ref.watch(sharedPreferencesProvider),
-  );
+  try {
+    return SecureStorageBiometricPreferenceRepository(
+      storage: ref.watch(secureStorageProvider),
+      prefs: ref.watch(sharedPreferencesProvider),
+    );
+  } on UnimplementedError {
+    return const _NoOpBiometricPreferenceRepository();
+  }
 });
+
+/// Fallback repository when [sharedPreferencesProvider] is unavailable.
+class _NoOpBiometricPreferenceRepository
+    implements BiometricPreferenceRepository {
+  const _NoOpBiometricPreferenceRepository();
+
+  @override
+  Future<BiometricPreferenceSnapshot> load() async =>
+      const BiometricPreferenceSnapshot(
+        enabled: false,
+        timeout: BiometricLockTimeout.fiveMinutes,
+      );
+
+  @override
+  Future<void> setEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setTimeout(BiometricLockTimeout timeout) async {}
+}

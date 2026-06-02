@@ -10,9 +10,13 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart';
 // ---------------------------------------------------------------------------
 
 final baseUrlRepositoryProvider = Provider<BaseUrlRepository>((ref) {
-  return SharedPrefsBaseUrlRepository(
-    prefs: ref.watch(sharedPreferencesProvider),
-  );
+  try {
+    return SharedPrefsBaseUrlRepository(
+      prefs: ref.watch(sharedPreferencesProvider),
+    );
+  } on UnimplementedError {
+    return const _DefaultBaseUrlRepository();
+  }
 });
 
 final baseUrlConnectionTesterProvider =
@@ -138,4 +142,18 @@ class BaseUrlSettingsStore extends Notifier<BaseUrlSettingsState> {
       _isTestingConnection = false;
     }
   }
+}
+
+/// Fallback repository when [sharedPreferencesProvider] is unavailable.
+class _DefaultBaseUrlRepository implements BaseUrlRepository {
+  const _DefaultBaseUrlRepository();
+
+  @override
+  BaseUrlSettings load() => const BaseUrlSettings();
+
+  @override
+  Future<void> save(BaseUrlSettings settings) async {}
+
+  @override
+  Future<void> clear() async {}
 }

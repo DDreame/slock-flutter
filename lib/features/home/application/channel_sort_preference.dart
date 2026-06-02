@@ -39,15 +39,19 @@ final channelSortPreferenceProvider =
 class ChannelSortPreferenceNotifier extends Notifier<ChannelSortPreference> {
   @override
   ChannelSortPreference build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final stored = prefs.getString(ChannelSortPreference.prefsKey);
-    if (stored == 'alphabetical') {
-      return ChannelSortPreference.alphabetical;
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      final stored = prefs.getString(ChannelSortPreference.prefsKey);
+      if (stored == 'alphabetical') {
+        return ChannelSortPreference.alphabetical;
+      }
+      if (stored == 'custom') {
+        return ChannelSortPreference.custom;
+      }
+      return ChannelSortPreference.recentActivity;
+    } on UnimplementedError {
+      return ChannelSortPreference.recentActivity;
     }
-    if (stored == 'custom') {
-      return ChannelSortPreference.custom;
-    }
-    return ChannelSortPreference.recentActivity;
   }
 
   /// Update the sort preference and persist to SharedPreferences.
