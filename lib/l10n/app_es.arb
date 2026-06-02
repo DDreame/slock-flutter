@@ -1292,23 +1292,32 @@
   },
   "filePreviewDismissSemantics": "Deslizar hacia abajo para cerrar",
   "messageLinkChipSemantics": "Abrir enlace: {url}",
-  "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
+  "@messageLinkChipSemantics": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "attachmentImageFallbackSemantics": "Imagen adjunta",
-
   "navInbox": "Bandeja",
   "homeAppBarFallbackTitle": "Slock",
   "homeTypePillThread": "HILO",
   "homeTypePillChannel": "CANAL",
   "homeTypePillDm": "MD",
   "unreadOtherSources": "Otras fuentes no leídas",
-
   "routerPageNotFound": "Página no encontrada: {uri}",
-  "@routerPageNotFound": { "placeholders": { "uri": { "type": "String" } } },
+  "@routerPageNotFound": {
+    "placeholders": {
+      "uri": {
+        "type": "String"
+      }
+    }
+  },
   "shareSendFailed": "Error al enviar. Inténtalo de nuevo.",
   "filePreviewFallbackTitle": "Vista previa",
   "filePreviewFallbackBody": "Vista previa no disponible",
   "filePreviewFallbackBack": "Volver",
-
   "deepLinkAccessDeniedTitle": "No tienes acceso",
   "deepLinkAccessDeniedMessage": "No tienes acceso a este recurso. Puede ser privado, haberse eliminado o estar fuera de tu espacio actual.",
   "deepLinkNotFoundTitle": "Recurso no encontrado",
@@ -1316,7 +1325,6 @@
   "deepLinkBackButton": "Volver a Slock",
   "errorRetry": "Reintentar",
   "errorShareDiagnostics": "Compartir diagnósticos",
-
   "fatalTitle": "No se puede iniciar",
   "fatalBodyMissingConfig": "La aplicación carece de la configuración necesaria y no puede iniciarse. Esto suele significar que se compiló sin las variables de entorno requeridas.",
   "fatalBodyGeneric": "Algo salió mal durante el inicio. Por favor, reinicia la aplicación.",
@@ -1324,7 +1332,6 @@
   "fatalHintGeneric": "Si el problema persiste, reinstala la aplicación o contacta con soporte.",
   "fatalCopyDiagnostics": "Copiar diagnósticos",
   "fatalDiagnosticsCopied": "Diagnósticos copiados al portapapeles",
-
   "diagExportTitle": "Exportar diagnósticos",
   "diagExportSubtitle": "Comparte los registros de diagnóstico con el equipo de desarrollo.",
   "diagCopyToClipboard": "Copiar al portapapeles",
@@ -1335,9 +1342,14 @@
   "diagShared": "Compartido correctamente",
   "diagShareFailed": "Error al compartir",
   "diagSaved": "Guardado en {path}",
-  "@diagSaved": { "placeholders": { "path": { "type": "String" } } },
+  "@diagSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "diagSaveFailed": "Error al guardar",
-
   "filePreviewNoUrl": "No hay URL de descarga disponible.",
   "filePreviewLoadFailed": "Error al cargar el archivo adjunto.",
   "filePreviewPdfDownloadFailed": "Error al descargar el PDF.",
@@ -1346,36 +1358,65 @@
   "filePreviewPdfUnavailable": "Archivo PDF no disponible.",
   "filePreviewPdfRenderFailed": "Error al renderizar el PDF.",
   "filePreviewImageLoadFailed": "No se puede cargar la imagen.",
-
   "avatarUploadInvalidResponse": "Respuesta inválida del servidor.",
   "avatarUploadFailed": "Error de subida.",
   "avatarUploadFailedRetry": "Error de subida. Inténtalo de nuevo.",
-
   "timeJustNow": "ahora mismo",
   "timeMinutesAgo": "hace {count}m",
-  "@timeMinutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeHoursAgo": "hace {count}h",
-  "@timeHoursAgo": { "placeholders": { "count": { "type": "int" } } },
-
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "billingResourceAgents": "Agentes",
   "billingResourceMachines": "Máquinas",
   "billingResourceChannels": "Canales",
-
   "notificationNewMessageFallback": "Mensaje nuevo",
   "notificationActionReply": "Responder",
   "notificationActionMarkRead": "Marcar como leído",
   "notificationActionReplyHint": "Escribe una respuesta",
-
   "typingIndicatorOne": "{name} está escribiendo...",
-  "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },
+  "@typingIndicatorOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "typingIndicatorTwo": "{first} y {second} están escribiendo...",
-  "@typingIndicatorTwo": { "placeholders": { "first": { "type": "String" }, "second": { "type": "String" } } },
+  "@typingIndicatorTwo": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
   "typingIndicatorSeveral": "Varias personas están escribiendo...",
   "typingIndicatorThreeOrMore": "{allButLast} y {last} están escribiendo...",
-  "@typingIndicatorThreeOrMore": { "placeholders": { "allButLast": { "type": "String" }, "last": { "type": "String" } } },
-
+  "@typingIndicatorThreeOrMore": {
+    "placeholders": {
+      "allButLast": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
   "connectionReconnecting": "Reconectando...",
-
   "conversationDefaultTitleDm": "Mensaje directo",
   "userFallbackDisplayName": "Usuario",
   "agentsActivityLogOnline": "En línea",
@@ -1384,13 +1425,10 @@
   "agentsActivityLogError": "Error",
   "agentsActivityLogErrorDetail": "Error: {detail}",
   "agentsActivityLogOffline": "Sin conexión",
-
   "senderLabelAgent": "Agente",
   "senderLabelMember": "Miembro",
   "senderLabelSystem": "Sistema",
-
   "sharePreviewAttachmentCount": "{count, plural, =1{1 archivo adjunto} other{{count} archivos adjuntos}}",
-
   "inboxFallbackDmName": "Desconocido",
   "inboxFallbackMemberName": "Miembro",
   "diagnosticsExportFabTooltip": "Exportar diagnósticos",
@@ -1439,5 +1477,28 @@
         "type": "int"
       }
     }
-  }
+  },
+  "settingsAppearanceSwipeSection": "Deslizamientos de conversaciones",
+  "settingsSwipeLeftTitle": "Deslizar a la izquierda",
+  "settingsSwipeRightTitle": "Deslizar a la derecha",
+  "settingsSwipeLeftDescription": "Elige qué ocurre al deslizar una conversación a la izquierda.",
+  "settingsSwipeRightDescription": "Elige qué ocurre al deslizar una conversación a la derecha.",
+  "conversationSwipeActionNone": "Ninguna",
+  "conversationSwipeActionArchive": "Archivar",
+  "conversationSwipeActionPin": "Fijar / desfijar",
+  "conversationSwipeActionMute": "Silenciar / reactivar",
+  "conversationSwipeArchive": "Archivar",
+  "conversationSwipePin": "Fijar",
+  "conversationSwipeUnpin": "Desfijar",
+  "conversationSwipeMute": "Silenciar",
+  "conversationSwipeUnmute": "Reactivar",
+  "conversationSwipeArchived": "Archivado {name}",
+  "@conversationSwipeArchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "undoAction": "Deshacer"
 }

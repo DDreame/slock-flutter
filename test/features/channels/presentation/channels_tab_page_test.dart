@@ -205,6 +205,35 @@ void main() {
     );
   });
 
+  testWidgets('left swipe archives channel and undo unarchives it', (
+    tester,
+  ) async {
+    final channelMgmt = _FakeChannelManagementRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        channelManagementRepository: channelMgmt,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('channels-tab-general')),
+      const Offset(-500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(channelMgmt.archivedChannelIds, ['general']);
+    expect(find.text('Archived general'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(channelMgmt.unarchivedChannelIds, ['general']);
+  });
+
   testWidgets('shows Mark as Unread for read channel and calls store path',
       (tester) async {
     final inboxRepository = _FakeInboxRepository(
@@ -1256,6 +1285,8 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   _FakeChannelManagementRepository();
 
   final List<String> createdNames = [];
+  final List<String> archivedChannelIds = [];
+  final List<String> unarchivedChannelIds = [];
 
   @override
   Future<List<AvailableChannel>> loadAvailableChannels(
@@ -1317,13 +1348,17 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   Future<void> archiveChannel(
     ServerScopeId serverId, {
     required String channelId,
-  }) async {}
+  }) async {
+    archivedChannelIds.add(channelId);
+  }
 
   @override
   Future<void> unarchiveChannel(
     ServerScopeId serverId, {
     required String channelId,
-  }) async {}
+  }) async {
+    unarchivedChannelIds.add(channelId);
+  }
 }
 
 class _FakeConversationUnreadRepository

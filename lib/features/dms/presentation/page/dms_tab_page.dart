@@ -6,20 +6,22 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
-import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/home/application/dm_sort_preference.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/presentation/widgets/conversation_swipe_wrapper.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
@@ -321,6 +323,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       ...persistedNames,
     };
 
+    final mutedIds = ref.watch(channelMutedIdsProvider);
+
     // INV-SELECT-809: Memoized sort — only re-sort when the stable provider
     // list references, sort preference, or search query actually change.
     // Uses the provider-sourced lists directly (stable identity between
@@ -418,6 +422,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
               agentActivity: agentStatusByName[dm.title],
               homeStore: homeStore,
               dmUnreadCounts: dmUnreadCounts,
+              mutedIds: mutedIds,
             ),
           );
         },
@@ -464,6 +469,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             agentActivity: agentStatusByName[dm.title],
             homeStore: homeStore,
             dmUnreadCounts: dmUnreadCounts,
+            mutedIds: mutedIds,
           );
         }
         // Last item: hidden DMs tile
@@ -587,18 +593,35 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     required bool isAgent,
     required HomeListStore homeStore,
     required Map<DirectMessageScopeId, int> dmUnreadCounts,
+    required Set<String> mutedIds,
     AgentDisplayStatus? agentActivity,
   }) {
     final unreadCount = dmUnreadCounts[dm.scopeId] ?? 0;
+    final isMuted = mutedIds.contains(
+      ChannelNotificationPreferenceRepository.compositeKey(
+        dm.scopeId.serverId.value,
+        dm.scopeId.value,
+      ),
+    );
+    final swipePreference = ref.watch(conversationSwipePreferenceProvider);
 
     // Move actions are suppressed in this tab because the unread-first
     // merged view does not match the persisted sidebar order.
-    return SwipeToMarkRead(
+    return ConversationSwipeWrapper(
       itemKey: dm.scopeId.routeParam,
-      enabled: unreadCount > 0,
-      onMarkRead: () {
-        ref.read(markDmReadUseCaseProvider)(dm.scopeId);
-      },
+      actions: ConversationSwipeActions(
+        left: swipePreference.left,
+        right: swipePreference.right,
+      ),
+      isPinned: isPinned,
+      isMuted: isMuted,
+      callbacks: ConversationSwipeCallbacks(
+        onArchive: () => _archiveDmFromSwipe(dm, homeStore),
+        onTogglePin: () => isPinned
+            ? homeStore.unpinDirectMessage(dm.scopeId)
+            : homeStore.pinDirectMessage(dm.scopeId),
+        onToggleMute: () => _toggleDmMute(dm, isMuted: isMuted),
+      ),
       child: HomeDirectMessageRow(
         key: ValueKey('dms-tab-${dm.scopeId.routeParam}'),
         directMessage: dm,
@@ -651,6 +674,40 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         failure.userMessage(context.l10n),
       );
     }
+  }
+
+  Future<void> _archiveDmFromSwipe(
+    HomeDirectMessageSummary dm,
+    HomeListStore homeStore,
+  ) async {
+    await homeStore.hideDm(dm.scopeId);
+    if (!mounted) return;
+    showAppSnackBarWithAction(
+      context,
+      context.l10n.conversationSwipeArchived(dm.title),
+      actionLabel: context.l10n.undoAction,
+      onAction: () => homeStore.unhideDm(dm.scopeId),
+    );
+  }
+
+  Future<void> _toggleDmMute(
+    HomeDirectMessageSummary dm, {
+    required bool isMuted,
+  }) async {
+    final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
+    await repo.setChannelMuted(
+      dm.scopeId.serverId.value,
+      dm.scopeId.value,
+      muted: !isMuted,
+    );
+    final key = ChannelNotificationPreferenceRepository.compositeKey(
+      dm.scopeId.serverId.value,
+      dm.scopeId.value,
+    );
+    final mutedIds = ref.read(channelMutedIdsProvider);
+    ref.read(channelMutedIdsProvider.notifier).state = !isMuted
+        ? {...mutedIds, key}
+        : mutedIds.where((id) => id != key).toSet();
   }
 
   Widget _buildHiddenDmsTile({

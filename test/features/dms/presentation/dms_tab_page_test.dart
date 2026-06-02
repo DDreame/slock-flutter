@@ -201,6 +201,34 @@ void main() {
     );
   });
 
+  testWidgets('left swipe hides DM and undo restores it', (tester) async {
+    final sidebarRepo = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        sidebarOrderRepository: sidebarRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('dms-tab-dm-alice')),
+      const Offset(-500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(sidebarRepo.patches, isNotEmpty);
+    expect(sidebarRepo.patches.last['hiddenDmIds'], ['dm-alice']);
+    expect(find.text('Archived Alice'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(sidebarRepo.patches.last['hiddenDmIds'], isEmpty);
+  });
+
   testWidgets('shows Mark as Unread for read DM and calls store path',
       (tester) async {
     final inboxRepository = _FakeInboxRepository(

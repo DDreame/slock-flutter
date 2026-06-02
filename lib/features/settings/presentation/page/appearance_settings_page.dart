@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
@@ -14,6 +15,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeModeStoreProvider);
+    final swipePreference = ref.watch(conversationSwipePreferenceProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
@@ -45,6 +47,41 @@ class AppearanceSettingsPage extends ConsumerWidget {
                     },
                   ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            context.l10n.settingsAppearanceSwipeSection,
+            key: const ValueKey('appearance-section-swipes'),
+            style: AppTypography.title.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _SwipeActionOptionTile(
+                  key: const ValueKey('swipe-left-option'),
+                  title: context.l10n.settingsSwipeLeftTitle,
+                  description: context.l10n.settingsSwipeLeftDescription,
+                  action: swipePreference.left,
+                  colors: colors,
+                  onChanged: ref
+                      .read(conversationSwipePreferenceProvider.notifier)
+                      .setLeftAction,
+                ),
+                Divider(height: 1, color: colors.border),
+                _SwipeActionOptionTile(
+                  key: const ValueKey('swipe-right-option'),
+                  title: context.l10n.settingsSwipeRightTitle,
+                  description: context.l10n.settingsSwipeRightDescription,
+                  action: swipePreference.right,
+                  colors: colors,
+                  onChanged: ref
+                      .read(conversationSwipePreferenceProvider.notifier)
+                      .setRightAction,
+                ),
               ],
             ),
           ),
@@ -148,6 +185,77 @@ class _ThemeOptionTile extends StatelessWidget {
       ThemePreference.system => l10n.settingsThemeSystemDescription,
       ThemePreference.light => l10n.settingsThemeLightDescription,
       ThemePreference.dark => l10n.settingsThemeDarkDescription,
+    };
+  }
+}
+
+class _SwipeActionOptionTile extends StatelessWidget {
+  const _SwipeActionOptionTile({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.action,
+    required this.colors,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String description;
+  final ConversationSwipeAction action;
+  final AppColors colors;
+  final ValueChanged<ConversationSwipeAction> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title:
+          Text(title, style: AppTypography.body.copyWith(color: colors.text)),
+      subtitle: Text(
+        description,
+        style: AppTypography.caption.copyWith(color: colors.textSecondary),
+      ),
+      trailing: Text(
+        _labelForAction(action, context.l10n),
+        style: AppTypography.label.copyWith(color: colors.primary),
+      ),
+      onTap: () => _showPicker(context),
+    );
+  }
+
+  Future<void> _showPicker(BuildContext context) async {
+    final selected = await showModalBottomSheet<ConversationSwipeAction>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final option in ConversationSwipeAction.values)
+                ListTile(
+                  key: ValueKey('swipe-action-${option.name}'),
+                  leading: option == action
+                      ? const Icon(Icons.check_circle)
+                      : const Icon(Icons.circle_outlined),
+                  title: Text(_labelForAction(option, context.l10n)),
+                  onTap: () => Navigator.of(context).pop(option),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null) onChanged(selected);
+  }
+
+  static String _labelForAction(
+    ConversationSwipeAction action,
+    AppLocalizations l10n,
+  ) {
+    return switch (action) {
+      ConversationSwipeAction.none => l10n.conversationSwipeActionNone,
+      ConversationSwipeAction.archive => l10n.conversationSwipeActionArchive,
+      ConversationSwipeAction.togglePin => l10n.conversationSwipeActionPin,
+      ConversationSwipeAction.toggleMute => l10n.conversationSwipeActionMute,
     };
   }
 }
