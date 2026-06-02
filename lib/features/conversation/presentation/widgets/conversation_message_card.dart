@@ -876,15 +876,13 @@ class ConversationMessageCardState
       child: shellContent,
     );
 
-    // Read selection state from the store — narrowed to 2 fields so that
-    // mutations to draft, uploadProgress, messages, etc. do NOT rebuild cards.
-    final (:isSelectionMode, :isSelected) = ref.watch(
-      conversationDetailStoreProvider.select(
-        (s) => (
-          isSelectionMode: s.isSelectionMode,
-          isSelected: s.selectedMessageIds.contains(message.id),
-        ),
-      ),
+    // INV-PERF-SELECT-1: Watch selection state via derived providers.
+    // isSelectionModeActiveProvider fires only on mode toggle.
+    // selectedMessageIdsProvider.select fires only when THIS card's
+    // membership changes, preventing O(n) card rebuilds per selection.
+    final isSelectionMode = ref.watch(isSelectionModeActiveProvider);
+    final isSelected = ref.watch(
+      selectedMessageIdsProvider.select((ids) => ids.contains(message.id)),
     );
 
     // In selection mode, show a checkmark overlay on selected messages.

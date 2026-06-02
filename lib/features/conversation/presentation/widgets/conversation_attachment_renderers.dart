@@ -227,6 +227,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
                   child: CachedNetworkImage(
                     imageUrl: attachment.thumbnailUrl ?? attachment.url!,
                     memCacheWidth: 280,
+                    memCacheHeight: 200,
                     fit: BoxFit.cover,
                     progressIndicatorBuilder: (context, url, progress) {
                       return SizedBox(

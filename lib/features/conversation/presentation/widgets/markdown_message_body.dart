@@ -180,6 +180,12 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
   late MarkdownStyleSheet _cachedStyleSheet;
   late Map<String, MarkdownElementBuilder> _cachedBuilders;
 
+  // INV-PERF-MD-CACHE-1: Memoize the MarkdownBody widget instance.
+  // Only recreate when content changes — avoids re-parse on parent rebuilds
+  // caused by search keystrokes, selection toggles, etc.
+  Widget? _cachedWidget;
+  String? _cachedContent;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -223,11 +229,20 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
         onTaskRefTap: widget.onTaskRefTap,
       ),
     };
+    // Invalidate widget cache when style/builders change.
+    _cachedWidget = null;
+    _cachedContent = null;
   }
 
   @override
   Widget build(BuildContext context) {
-    return MarkdownBody(
+    // INV-PERF-MD-CACHE-1: Return cached widget if content unchanged.
+    // Avoids MarkdownBody re-parse on parent rebuilds from search keystrokes.
+    if (_cachedWidget != null && _cachedContent == widget.content) {
+      return _cachedWidget!;
+    }
+    _cachedContent = widget.content;
+    _cachedWidget = MarkdownBody(
       key: const ValueKey('markdown-body'),
       data: widget.content,
       styleSheet: _cachedStyleSheet,
@@ -240,6 +255,7 @@ class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
       shrinkWrap: true,
       softLineBreak: true,
     );
+    return _cachedWidget!;
   }
 
   MarkdownStyleSheet _buildStyleSheet(AppColors colors) {
