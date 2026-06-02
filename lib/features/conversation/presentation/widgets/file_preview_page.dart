@@ -13,8 +13,8 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart'
-    show attachmentRepositoryProvider;
+import 'package:slock_app/features/conversation/application/attachment_url_resolver.dart'
+    show attachmentSignedUrlProvider;
 import 'package:slock_app/features/conversation/data/conversation_repository.dart'
     show MessageAttachment;
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
@@ -122,9 +122,8 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
     }
 
     try {
-      final repo = ref.read(attachmentRepositoryProvider);
       final serverId = _extractServerId();
-      final url = await repo.getSignedUrl(
+      final url = await ref.read(attachmentSignedUrlProvider)(
         serverId,
         attachmentId: att.id!,
       );

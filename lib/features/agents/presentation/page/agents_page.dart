@@ -22,7 +22,7 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/presentation/widgets/agent_form_dialog.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/application/open_dm_use_case.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -397,7 +397,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     }
     try {
       final channelId =
-          await ref.read(memberRepositoryProvider).openAgentDirectMessage(
+          await ref.read(openAgentDmUseCaseProvider)(
                 ServerScopeId(serverId),
                 agentId: agent.id,
               );

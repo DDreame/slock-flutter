@@ -23,7 +23,11 @@ import 'package:slock_app/features/home/presentation/widgets/conversation_swipe_
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
-import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
+import 'package:slock_app/features/settings/application/toggle_channel_mute_use_case.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart'
+    show
+        ChannelNotificationPreferenceRepository,
+        channelMutedIdsProvider;
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
@@ -759,20 +763,11 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     HomeChannelSummary channel, {
     required bool isMuted,
   }) async {
-    final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
-    await repo.setChannelMuted(
-      channel.scopeId.serverId.value,
-      channel.scopeId.value,
+    await ref.read(toggleChannelMuteUseCaseProvider)(
+      serverId: channel.scopeId.serverId.value,
+      channelId: channel.scopeId.value,
       muted: !isMuted,
     );
-    final key = ChannelNotificationPreferenceRepository.compositeKey(
-      channel.scopeId.serverId.value,
-      channel.scopeId.value,
-    );
-    final mutedIds = ref.read(channelMutedIdsProvider);
-    ref.read(channelMutedIdsProvider.notifier).state = !isMuted
-        ? {...mutedIds, key}
-        : mutedIds.where((id) => id != key).toSet();
   }
 
   Future<void> _archiveChannel(HomeChannelSummary channel) async {

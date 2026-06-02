@@ -1,14 +1,11 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agent_form_use_cases.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
-import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
-
-const _serverHeaderName = 'X-Server-Id';
 
 const _runtimeLabels = <String, String>{
   'claude': 'Claude Code',
@@ -152,9 +149,6 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
     return null;
   }
 
-  Options get _serverOptions =>
-      Options(headers: {_serverHeaderName: widget.serverId});
-
   Future<void> _loadMachines() async {
     setState(() {
       _isLoadingMachines = true;
@@ -162,11 +156,9 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
     });
 
     try {
-      final response = await ref.read(appDioClientProvider).get<Object?>(
-            '/servers/${widget.serverId}/machines',
-            options: _serverOptions,
-          );
-      final snapshot = parseMachinesSnapshot(response.data);
+      final snapshot = await ref.read(agentFormLoadMachinesUseCaseProvider)(
+        widget.serverId,
+      );
       if (!mounted) {
         return;
       }
@@ -239,12 +231,15 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
     });
 
     try {
-      final response = await ref.read(appDioClientProvider).get<Object?>(
-            '/servers/${widget.serverId}/machines/$machineId/runtime-models/$runtime',
-            options: _serverOptions,
-          );
-      final payload = _RuntimeModelPayload.fromObject(response.data);
-      final suggestions = payload.models.isEmpty ? fallback : payload.models;
+      final result = await ref.read(agentFormLoadRuntimeModelsUseCaseProvider)(
+        serverId: widget.serverId,
+        machineId: machineId,
+        runtime: runtime,
+      );
+      final apiModels = result.models
+          .map((m) => _AgentModelOption(id: m.id, label: m.label))
+          .toList(growable: false);
+      final suggestions = apiModels.isEmpty ? fallback : apiModels;
       if (!mounted) {
         return;
       }
@@ -253,7 +248,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
         _isLoadingModels = false;
         _modelSuggestions = suggestions;
         final defaultModel =
-            payload.defaultModelId ?? _defaultModelForRuntime(runtime);
+            result.defaultModelId ?? _defaultModelForRuntime(runtime);
         final currentModel = _modelController.text.trim();
         if (currentModel.isEmpty ||
             currentModel == _defaultModelForRuntime(runtime)) {
@@ -677,67 +672,11 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
   }
 }
 
-class _RuntimeModelPayload {
-  const _RuntimeModelPayload({this.models = const [], this.defaultModelId});
-
-  final List<_AgentModelOption> models;
-  final String? defaultModelId;
-
-  factory _RuntimeModelPayload.fromObject(Object? payload) {
-    final map = switch (payload) {
-      final Map<String, dynamic> value => value,
-      final Map value => Map<String, dynamic>.from(value),
-      _ => const <String, dynamic>{},
-    };
-
-    final models = switch (map['models']) {
-      final List raw => raw
-          .whereType<Object>()
-          .map(_AgentModelOption.fromObject)
-          .whereType<_AgentModelOption>()
-          .toList(growable: false),
-      _ => const <_AgentModelOption>[],
-    };
-
-    return _RuntimeModelPayload(
-      models: models,
-      defaultModelId: _optionalString(map['default']),
-    );
-  }
-}
-
 class _AgentModelOption {
   const _AgentModelOption({required this.id, required this.label});
 
   final String id;
   final String label;
-
-  static _AgentModelOption? fromObject(Object? payload) {
-    final map = switch (payload) {
-      final Map<String, dynamic> value => value,
-      final Map value => Map<String, dynamic>.from(value),
-      _ => null,
-    };
-    if (map == null) {
-      return null;
-    }
-
-    final id = _optionalString(map['id']);
-    if (id == null) {
-      return null;
-    }
-    return _AgentModelOption(
-      id: id,
-      label: _optionalString(map['label']) ?? id,
-    );
-  }
-}
-
-String? _optionalString(Object? value) {
-  if (value is String && value.isNotEmpty) {
-    return value;
-  }
-  return null;
 }
 
 /// Mutable controller pair for a single environment variable entry.

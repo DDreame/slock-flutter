@@ -7,7 +7,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/application/open_dm_use_case.dart';
 import 'package:slock_app/features/search/application/search_history_store.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/application/search_store.dart';
@@ -422,10 +422,9 @@ Future<void> _openContactDm(
 ) async {
   final container = ProviderScope.containerOf(context);
   final serverId = container.read(currentSearchServerIdProvider);
-  final memberRepo = container.read(memberRepositoryProvider);
 
   try {
-    final channelId = await memberRepo.openDirectMessage(
+    final channelId = await container.read(openDmUseCaseProvider)(
       serverId,
       userId: contact.identityId,
     );
