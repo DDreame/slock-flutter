@@ -398,22 +398,38 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/file-preview',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final attachment = state.extra as MessageAttachment?;
           if (attachment == null) {
-            return const _FilePreviewFallback();
+            return _slideTransitionPage(
+              key: state.pageKey,
+              name: state.name ?? state.uri.path,
+              child: const _FilePreviewFallback(),
+            );
           }
-          return FilePreviewPage(attachment: attachment);
+          return _slideTransitionPage(
+            key: state.pageKey,
+            name: state.name ?? state.uri.path,
+            child: FilePreviewPage(attachment: attachment),
+          );
         },
       ),
       GoRoute(
         path: '/image-gallery',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final args = state.extra as ImageGalleryArgs?;
           if (args == null || args.images.isEmpty) {
-            return const _FilePreviewFallback();
+            return _slideTransitionPage(
+              key: state.pageKey,
+              name: state.name ?? state.uri.path,
+              child: const _FilePreviewFallback(),
+            );
           }
-          return ImageGalleryPage(args: args);
+          return _slideTransitionPage(
+            key: state.pageKey,
+            name: state.name ?? state.uri.path,
+            child: ImageGalleryPage(args: args),
+          );
         },
       ),
       GoRoute(
@@ -432,14 +448,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/threads',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            ThreadsPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: ThreadsPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/unread',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            UnreadListPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: UnreadListPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/threads/:threadId/replies',
@@ -465,27 +487,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/agents',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            AgentsPage(serverId: state.pathParameters['serverId']),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: AgentsPage(serverId: state.pathParameters['serverId']),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/agents/:agentId',
         redirect: syncServerSelection,
-        builder: (context, state) => AgentsPage(
-          serverId: state.pathParameters['serverId'],
-          agentId: state.pathParameters['agentId'],
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: AgentsPage(
+            serverId: state.pathParameters['serverId'],
+            agentId: state.pathParameters['agentId'],
+          ),
         ),
       ),
       GoRoute(
         path: '/agents/:agentId',
-        builder: (context, state) =>
-            AgentsPage(agentId: state.pathParameters['agentId']),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: AgentsPage(agentId: state.pathParameters['agentId']),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/machines',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            MachinesPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: MachinesPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/search',
@@ -499,28 +534,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/settings',
         redirect: syncServerSelection,
-        builder: (context, state) => WorkspaceSettingsPage(
-          serverId: state.pathParameters['serverId']!,
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: WorkspaceSettingsPage(
+            serverId: state.pathParameters['serverId']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/servers/:serverId/onboarding-settings',
         redirect: syncServerSelection,
-        builder: (context, state) => OnboardingSettingsPage(
-          serverId: state.pathParameters['serverId']!,
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: OnboardingSettingsPage(
+            serverId: state.pathParameters['serverId']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/servers/:serverId/members',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            MembersPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: MembersPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/saved',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            SavedMessagesPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: SavedMessagesPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/profile',
@@ -540,49 +589,88 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/profile/:userId',
-        builder: (context, state) =>
-            ProfilePage(userId: state.pathParameters['userId']),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: ProfilePage(userId: state.pathParameters['userId']),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/profile/:userId',
         redirect: syncServerSelection,
-        builder: (context, state) => ProfilePage(
-          serverId: state.pathParameters['serverId'],
-          userId: state.pathParameters['userId'],
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: ProfilePage(
+            serverId: state.pathParameters['serverId'],
+            userId: state.pathParameters['userId'],
+          ),
         ),
       ),
       GoRoute(
         path: '/billing',
-        builder: (context, state) => const BillingPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const BillingPage(),
+        ),
       ),
       GoRoute(
         path: '/settings/appearance',
-        builder: (context, state) => const AppearanceSettingsPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const AppearanceSettingsPage(),
+        ),
       ),
       GoRoute(
         path: '/settings/translation',
-        builder: (context, state) => const TranslationSettingsPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const TranslationSettingsPage(),
+        ),
       ),
       GoRoute(
         path: '/settings/notifications',
-        builder: (context, state) => const NotificationSettingsPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const NotificationSettingsPage(),
+        ),
       ),
       GoRoute(
         path: '/settings/diagnostics',
-        builder: (context, state) => const DiagnosticsPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const DiagnosticsPage(),
+        ),
       ),
       GoRoute(
         path: '/settings/base-url',
-        builder: (context, state) => const BaseUrlSettingsPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const BaseUrlSettingsPage(),
+        ),
       ),
       GoRoute(
         path: '/release-notes',
-        builder: (context, state) => const ReleaseNotesPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const ReleaseNotesPage(),
+        ),
       ),
       GoRoute(
         path: '/invite/:token',
-        builder: (context, state) => InviteLandingPage(
-          token: state.pathParameters['token']!,
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: InviteLandingPage(
+            token: state.pathParameters['token']!,
+          ),
         ),
       ),
     ],

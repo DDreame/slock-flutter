@@ -228,24 +228,30 @@ class _ProfileSuccessBody extends ConsumerWidget {
                       child: Semantics(
                         button: true,
                         label: context.l10n.profileAvatarEditSemantics,
-                        child: GestureDetector(
-                          key: const ValueKey('profile-avatar-edit-button'),
-                          onTap: () => _handleAvatarEdit(context, ref),
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: colors.primary,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color:
-                                    Theme.of(context).scaffoldBackgroundColor,
-                                width: 2,
+                        child: Material(
+                          color: Colors.transparent,
+                          shape: const CircleBorder(),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            key: const ValueKey('profile-avatar-edit-button'),
+                            onTap: () => _handleAvatarEdit(context, ref),
+                            customBorder: const CircleBorder(),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: colors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color:
+                                      Theme.of(context).scaffoldBackgroundColor,
+                                  width: 2,
+                                ),
                               ),
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 16,
-                              color: colors.primaryForeground,
+                              child: Icon(
+                                Icons.camera_alt,
+                                size: 16,
+                                color: colors.primaryForeground,
+                              ),
                             ),
                           ),
                         ),

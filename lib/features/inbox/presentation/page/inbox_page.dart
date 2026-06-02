@@ -550,29 +550,33 @@ class _FilterTab extends StatelessWidget {
     return Semantics(
       button: true,
       label: context.l10n.inboxFilterTabSemantics(label),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.xs,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? colors.primary.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: _kBorderRadius,
-            border: Border.all(
-              color: isSelected ? colors.primary : colors.border,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: _kBorderRadius,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
             ),
-          ),
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: AppTypography.label.copyWith(
-              color: isSelected ? colors.primary : colors.textSecondary,
-              fontWeight: FontWeight.w500,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? colors.primary.withValues(alpha: 0.1)
+                  : Colors.transparent,
+              borderRadius: _kBorderRadius,
+              border: Border.all(
+                color: isSelected ? colors.primary : colors.border,
+              ),
+            ),
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: AppTypography.label.copyWith(
+                color: isSelected ? colors.primary : colors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ),
