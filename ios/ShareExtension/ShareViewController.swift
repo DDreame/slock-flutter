@@ -6,6 +6,14 @@ private let userDefaultsKey = "ShareKey"
 private let userDefaultsMessageKey = "ShareMessageKey"
 private let hostBundleIdentifier = "com.slock.slockApp"
 
+/// Maximum file size allowed for share (80 MB). iOS extensions have ~120 MB
+/// memory limit; this margin prevents OOM crashes during copy.
+private let maxFileSizeBytes: UInt64 = 80 * 1024 * 1024
+
+/// Timeout for loadItem calls (seconds). Prevents indefinite hangs when
+/// iCloud files aren't downloaded or providers are unresponsive.
+private let loadItemTimeoutSeconds: TimeInterval = 15
+
 private struct SharedMediaFile: Codable {
     let path: String
     let mimeType: String?
@@ -26,12 +34,49 @@ private enum SharedMediaType: String, Codable {
 class ShareViewController: UIViewController {
     private let sharedItemsQueue = DispatchQueue(label: "app.slock.share-extension.items")
     private var sharedItems: [SharedMediaFile] = []
+    private var errors: [String] = []
+
+    // MARK: - Loading UI (P2-1)
+
+    private lazy var loadingIndicator: UIActivityIndicatorView = {
+        let indicator = UIActivityIndicatorView(style: .large)
+        indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.hidesWhenStopped = true
+        return indicator
+    }()
+
+    private lazy var loadingLabel: UILabel = {
+        let label = UILabel()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = "Preparing to share…"
+        label.textColor = .secondaryLabel
+        label.font = .preferredFont(forTextStyle: .subheadline)
+        label.textAlignment = .center
+        return label
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        setupLoadingUI()
         handleSharedContent()
     }
+
+    private func setupLoadingUI() {
+        view.addSubview(loadingIndicator)
+        view.addSubview(loadingLabel)
+        NSLayoutConstraint.activate([
+            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
+            loadingLabel.topAnchor.constraint(equalTo: loadingIndicator.bottomAnchor, constant: 12),
+            loadingLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+            loadingLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
+        ])
+        loadingIndicator.startAnimating()
+    }
+
+    // MARK: - Content handling
 
     private func handleSharedContent() {
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem] else {
@@ -63,12 +108,46 @@ class ShareViewController: UIViewController {
 
         group.notify(queue: .main) { [weak self] in
             guard let self else { return }
+            self.loadingIndicator.stopAnimating()
             let items = self.sharedItemsQueue.sync { self.sharedItems }
-            self.saveSharedItems(items)
-            self.openMainApp()
-            self.completeRequest()
+            let errors = self.sharedItemsQueue.sync { self.errors }
+
+            if items.isEmpty && !errors.isEmpty {
+                // All items failed — show error and dismiss.
+                self.showErrorAlert(errors)
+            } else if !errors.isEmpty {
+                // Partial success — share what we have but warn user.
+                self.saveSharedItems(items)
+                self.openMainApp()
+                self.completeRequest()
+            } else {
+                // Full success.
+                self.saveSharedItems(items)
+                self.openMainApp()
+                self.completeRequest()
+            }
         }
     }
+
+    // MARK: - Error UI (P2-1)
+
+    private func showErrorAlert(_ errors: [String]) {
+        let message = errors.count == 1
+            ? errors[0]
+            : errors.enumerated().map { "• \($0.element)" }.joined(separator: "\n")
+
+        let alert = UIAlertController(
+            title: "Unable to Share",
+            message: message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            self?.completeRequest()
+        })
+        present(alert, animated: true)
+    }
+
+    // MARK: - Load literal (text/URL)
 
     private func loadLiteral(
         _ provider: NSItemProvider,
@@ -77,8 +156,15 @@ class ShareViewController: UIViewController {
         group: DispatchGroup
     ) {
         group.enter()
-        provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] data, _ in
+        loadItemWithTimeout(provider, typeIdentifier: typeIdentifier) { [weak self] data, error in
             defer { group.leave() }
+            guard let self else { return }
+
+            if let error {
+                self.appendError("Could not load content: \(error.localizedDescription)")
+                return
+            }
+
             let value: String?
             if let text = data as? String {
                 value = text
@@ -88,7 +174,7 @@ class ShareViewController: UIViewController {
                 value = nil
             }
             guard let value, !value.isEmpty else { return }
-            self?.append(
+            self.append(
                 SharedMediaFile(
                     path: value,
                     mimeType: type == .text ? "text/plain" : nil,
@@ -101,6 +187,8 @@ class ShareViewController: UIViewController {
         }
     }
 
+    // MARK: - Load file (image/video/file)
+
     private func loadFile(
         _ provider: NSItemProvider,
         typeIdentifier: String,
@@ -109,12 +197,27 @@ class ShareViewController: UIViewController {
         group: DispatchGroup
     ) {
         group.enter()
-        provider.loadItem(forTypeIdentifier: typeIdentifier) { [weak self] data, _ in
+        loadItemWithTimeout(provider, typeIdentifier: typeIdentifier) { [weak self] data, error in
             defer { group.leave() }
             guard let self else { return }
 
-            if let url = data as? URL,
-               let copied = self.copyToSharedContainer(url) {
+            if let error {
+                self.appendError("Could not load file: \(error.localizedDescription)")
+                return
+            }
+
+            if let url = data as? URL {
+                // P1-1: File size check before copy.
+                if let fileSize = self.fileSize(at: url), fileSize > maxFileSizeBytes {
+                    let sizeMB = fileSize / (1024 * 1024)
+                    self.appendError("File too large (\(sizeMB) MB). Maximum is 80 MB.")
+                    return
+                }
+                // P2-2: Handle nil copy result with error feedback.
+                guard let copied = self.copyToSharedContainer(url) else {
+                    self.appendError("Failed to prepare "\(url.lastPathComponent)" for sharing.")
+                    return
+                }
                 self.append(
                     SharedMediaFile(
                         path: copied.path,
@@ -128,8 +231,11 @@ class ShareViewController: UIViewController {
                 return
             }
 
-            if let image = data as? UIImage,
-               let copied = self.writeImageToSharedContainer(image) {
+            if let image = data as? UIImage {
+                guard let copied = self.writeImageToSharedContainer(image) else {
+                    self.appendError("Failed to prepare image for sharing.")
+                    return
+                }
                 self.append(
                     SharedMediaFile(
                         path: copied.path,
@@ -140,13 +246,77 @@ class ShareViewController: UIViewController {
                         type: .image
                     )
                 )
+                return
             }
+
+            // Neither URL nor UIImage — unsupported format.
+            self.appendError("Unsupported file format.")
         }
     }
+
+    // MARK: - Timeout wrapper (P1-2)
+
+    /// Wraps `NSItemProvider.loadItem` with a timeout. Calls completion with
+    /// a timeout error if the provider doesn't respond within `loadItemTimeoutSeconds`.
+    private func loadItemWithTimeout(
+        _ provider: NSItemProvider,
+        typeIdentifier: String,
+        completion: @escaping (NSSecureCoding?, Error?) -> Void
+    ) {
+        var completed = false
+        let lock = NSLock()
+
+        // Start the actual load.
+        provider.loadItem(forTypeIdentifier: typeIdentifier) { data, error in
+            lock.lock()
+            guard !completed else {
+                lock.unlock()
+                return
+            }
+            completed = true
+            lock.unlock()
+            completion(data, error)
+        }
+
+        // Timeout after configured duration.
+        DispatchQueue.global().asyncAfter(deadline: .now() + loadItemTimeoutSeconds) {
+            lock.lock()
+            guard !completed else {
+                lock.unlock()
+                return
+            }
+            completed = true
+            lock.unlock()
+            let timeoutError = NSError(
+                domain: "app.slock.share-extension",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Loading timed out. The file may not be downloaded."]
+            )
+            completion(nil, timeoutError)
+        }
+    }
+
+    // MARK: - File size check (P1-1)
+
+    private func fileSize(at url: URL) -> UInt64? {
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+              let size = attrs[.size] as? UInt64 else {
+            return nil
+        }
+        return size
+    }
+
+    // MARK: - Helpers
 
     private func append(_ item: SharedMediaFile) {
         sharedItemsQueue.sync {
             sharedItems.append(item)
+        }
+    }
+
+    private func appendError(_ message: String) {
+        sharedItemsQueue.sync {
+            errors.append(message)
         }
     }
 
