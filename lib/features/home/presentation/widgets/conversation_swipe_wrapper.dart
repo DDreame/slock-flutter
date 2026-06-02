@@ -63,8 +63,7 @@ class ConversationSwipeWrapper extends ConsumerWidget {
 
     return SwipeActionWrapper(
       itemKey: 'conversation-$itemKey',
-      enabled:
-          leftAction != ConversationSwipeAction.none ||
+      enabled: leftAction != ConversationSwipeAction.none ||
           rightAction != ConversationSwipeAction.none,
       startToEndAction: _configFor(context, rightAction),
       endToStartAction: _configFor(context, leftAction),
@@ -84,26 +83,26 @@ class ConversationSwipeWrapper extends ConsumerWidget {
     return switch (action) {
       ConversationSwipeAction.none => null,
       ConversationSwipeAction.archive => SwipeActionConfig(
-        label: l10n.conversationSwipeArchive,
-        icon: Icons.archive_outlined,
-        color: colors.warning,
-      ),
+          label: l10n.conversationSwipeArchive,
+          icon: Icons.archive_outlined,
+          color: colors.warning,
+        ),
       ConversationSwipeAction.togglePin => SwipeActionConfig(
-        label: isPinned
-            ? l10n.conversationSwipeUnpin
-            : l10n.conversationSwipePin,
-        icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
-        color: colors.primary,
-      ),
+          label: isPinned
+              ? l10n.conversationSwipeUnpin
+              : l10n.conversationSwipePin,
+          icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+          color: colors.primary,
+        ),
       ConversationSwipeAction.toggleMute => SwipeActionConfig(
-        label: isMuted
-            ? l10n.conversationSwipeUnmute
-            : l10n.conversationSwipeMute,
-        icon: isMuted
-            ? Icons.notifications_active_outlined
-            : Icons.notifications_off_outlined,
-        color: colors.textSecondary,
-      ),
+          label: isMuted
+              ? l10n.conversationSwipeUnmute
+              : l10n.conversationSwipeMute,
+          icon: isMuted
+              ? Icons.notifications_active_outlined
+              : Icons.notifications_off_outlined,
+          color: colors.textSecondary,
+        ),
     };
   }
 }
