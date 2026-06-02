@@ -163,7 +163,9 @@ class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
   /// Fires haptic feedback once when either horizontal drag distance exceeds
   /// 15% of the widget width.
   void _onPointerMove(PointerMoveEvent event) {
-    if (_hapticFired || !widget.enabled || _dragStartX == null) return;
+    if (!mounted || _hapticFired || !widget.enabled || _dragStartX == null) {
+      return;
+    }
 
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;

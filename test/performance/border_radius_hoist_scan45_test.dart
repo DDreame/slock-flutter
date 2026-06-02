@@ -68,12 +68,20 @@ void main() {
           ),
         );
 
-        // Extract the Dismissible's secondaryBackground Container directly.
-        final dismissible1 = tester.widget<Dismissible>(
-          find.byKey(const ValueKey('swipe-action-item-1')),
+        // Initiate a left swipe to render the secondaryBackground.
+        final target1 = find.byKey(const ValueKey('swipe-action-item-1'));
+        final gesture1 = await tester.startGesture(tester.getCenter(target1));
+        await gesture1.moveBy(const Offset(-100, 0));
+        await tester.pump();
+
+        // Extract the Container from the rendered background by key.
+        final bg1 = tester.widget<Container>(
+          find.byKey(const ValueKey('swipe-action-background')),
         );
-        final bg1 = dismissible1.secondaryBackground! as Container;
         final br1 = (bg1.decoration as BoxDecoration).borderRadius;
+
+        await gesture1.up();
+        await tester.pumpAndSettle();
 
         // Rebuild with different action config.
         await tester.pumpWidget(
@@ -95,11 +103,19 @@ void main() {
           ),
         );
 
-        final dismissible2 = tester.widget<Dismissible>(
-          find.byKey(const ValueKey('swipe-action-item-1')),
+        // Initiate a left swipe to render the secondaryBackground.
+        final target2 = find.byKey(const ValueKey('swipe-action-item-1'));
+        final gesture2 = await tester.startGesture(tester.getCenter(target2));
+        await gesture2.moveBy(const Offset(-100, 0));
+        await tester.pump();
+
+        final bg2 = tester.widget<Container>(
+          find.byKey(const ValueKey('swipe-action-background')),
         );
-        final bg2 = dismissible2.secondaryBackground! as Container;
         final br2 = (bg2.decoration as BoxDecoration).borderRadius;
+
+        await gesture2.up();
+        await tester.pumpAndSettle();
 
         expect(
           identical(br1, br2),
