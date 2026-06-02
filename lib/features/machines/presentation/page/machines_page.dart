@@ -6,8 +6,8 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/application/machines_realtime_binding.dart';
 import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/application/machines_store.dart';
+import 'package:slock_app/features/machines/application/current_machines_server_id_provider.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
-import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
 import 'package:slock_app/features/machines/presentation/page/workspaces_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 

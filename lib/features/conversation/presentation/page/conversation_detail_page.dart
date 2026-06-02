@@ -19,7 +19,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
-import 'package:slock_app/features/conversation/data/typing_realtime_binding.dart';
+import 'package:slock_app/features/conversation/application/typing_realtime_binding_provider.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_helpers.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_info_page.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_scroll_coordinator.dart';
