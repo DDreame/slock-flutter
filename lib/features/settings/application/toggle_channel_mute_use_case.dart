@@ -23,10 +23,9 @@ final toggleChannelMuteUseCaseProvider = Provider<
     final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
     await repo.setChannelMuted(serverId, channelId, muted: muted);
 
-    final key = ChannelNotificationPreferenceRepository.compositeKey(
-        serverId, channelId);
-    final mutedIds = ref.read(channelMutedIdsProvider);
-    ref.read(channelMutedIdsProvider.notifier).state =
-        muted ? {...mutedIds, key} : mutedIds.where((id) => id != key).toSet();
+    // Re-derive the full muted set from the repository (source of truth) to
+    // avoid read-modify-write races when concurrent toggles overlap.
+    final freshMutedIds = repo.getAllMutedCompositeKeys();
+    ref.read(channelMutedIdsProvider.notifier).state = freshMutedIds;
   };
 });

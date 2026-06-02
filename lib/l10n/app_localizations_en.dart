@@ -2042,6 +2042,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get agentsActivityLogEmpty => 'No activity log entries.';
 
   @override
+  String get agentsActivityLogLoadFailed => 'Failed to load activity log.';
+
+  @override
   String get agentsConfigMachine => 'Machine';
 
   @override

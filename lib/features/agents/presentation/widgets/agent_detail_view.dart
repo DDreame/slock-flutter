@@ -126,7 +126,8 @@ class AgentDetailBody extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     // Trigger REST load of historical activity log entries.
-    ref.watch(agentActivityLogLoaderProvider(agent.id));
+    final activityLogAsync =
+        ref.watch(agentActivityLogLoaderProvider(agent.id));
 
     final activityLog = ref.watch(
       agentsStoreProvider.select((state) => state.activityLogFor(agent.id)),
@@ -214,7 +215,15 @@ class AgentDetailBody extends ConsumerWidget {
           style: AppTypography.title.copyWith(color: colors.text),
         ),
         const SizedBox(height: AppSpacing.sm),
-        if (activityLog.isEmpty)
+        if (activityLogAsync.hasError && activityLog.isEmpty)
+          Text(
+            context.l10n.agentsActivityLogLoadFailed,
+            key: const ValueKey('agent-activity-log-error'),
+            style: AppTypography.bodySmall.copyWith(
+              color: colors.textSecondary,
+            ),
+          )
+        else if (activityLog.isEmpty)
           Text(
             context.l10n.agentsActivityLogEmpty,
             style: AppTypography.bodySmall.copyWith(

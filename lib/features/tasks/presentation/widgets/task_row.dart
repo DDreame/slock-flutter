@@ -378,6 +378,8 @@ class _TaskRowState extends ConsumerState<TaskRow> {
       onOpenHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
     );
 
+    if (!mounted) return;
+
     switch (result) {
       case 'task-action-done':
         widget.onStatusUpdate(task, 'done');

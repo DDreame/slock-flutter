@@ -937,6 +937,7 @@
   "agentsNotFound": "Agent not found.",
   "agentsActivityLogTitle": "Activity Log",
   "agentsActivityLogEmpty": "No activity log entries.",
+  "agentsActivityLogLoadFailed": "Failed to load activity log.",
   "agentsConfigMachine": "Machine",
   "agentsConfigRuntime": "Runtime",
   "agentsConfigModel": "Model",

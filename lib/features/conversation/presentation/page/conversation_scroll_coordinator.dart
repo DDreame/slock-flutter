@@ -46,8 +46,6 @@ class ConversationScrollCoordinator {
   Timer? _scrollThrottleTimer;
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
-  Timer? _highlightTimer;
-  Timer? _quoteJumpNotFoundTimer;
   final Map<String, GlobalKey> _messageGlobalKeys = {};
   int lastRegisteredMessageCount = 0;
 
@@ -199,9 +197,6 @@ class ConversationScrollCoordinator {
   ///
   /// Returns `true` (state changed — caller should setState).
   bool scrollToAndHighlight(String messageId) {
-    _highlightTimer?.cancel();
-    _quoteJumpNotFoundTimer?.cancel();
-
     highlightedMessageId = messageId;
     quoteJumpState = QuoteJumpState.idle;
 
@@ -230,51 +225,34 @@ class ConversationScrollCoordinator {
       }
     });
 
-    // Auto-dismiss highlight after 1.5 seconds.
-    _highlightTimer = Timer(const Duration(milliseconds: 1500), () {
-      highlightedMessageId = null;
-      // Caller must poll or use a callback for this.
-    });
+    // Auto-dismiss is handled by the page's _scheduleHighlightExpiry timer
+    // which has mounted guard + setState. No duplicate timer here.
 
     return true;
   }
 
   /// Sets quote-jump state to loading. Returns `true` (state changed).
   bool setQuoteJumpLoading() {
-    _quoteJumpNotFoundTimer?.cancel();
     quoteJumpState = QuoteJumpState.loading;
     return true;
   }
 
-  /// Sets quote-jump state to not-found with auto-dismiss timer.
-  /// Returns `true` (state changed).
+  /// Sets quote-jump state to not-found. Auto-dismiss is handled by the
+  /// page's _scheduleQuoteJumpNotFoundExpiry timer. Returns `true`.
   bool setQuoteJumpNotFound() {
     quoteJumpState = QuoteJumpState.notFound;
-    _scheduleNotFoundDismiss();
     return true;
   }
 
   /// Dismiss the not-found overlay. Returns `true` if state changed.
   bool dismissQuoteJumpNotFound() {
     if (quoteJumpState != QuoteJumpState.notFound) return false;
-    _quoteJumpNotFoundTimer?.cancel();
     quoteJumpState = QuoteJumpState.idle;
     return true;
   }
 
-  void _scheduleNotFoundDismiss() {
-    _quoteJumpNotFoundTimer?.cancel();
-    _quoteJumpNotFoundTimer = Timer(const Duration(seconds: 4), () {
-      if (quoteJumpState != QuoteJumpState.notFound) return;
-      quoteJumpState = QuoteJumpState.idle;
-      // Caller must poll or use a callback for this.
-    });
-  }
-
   void dispose() {
     _scrollThrottleTimer?.cancel();
-    _highlightTimer?.cancel();
-    _quoteJumpNotFoundTimer?.cancel();
     _messageGlobalKeys.clear();
   }
 }

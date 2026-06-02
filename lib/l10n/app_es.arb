@@ -829,6 +829,7 @@
   "agentsNotFound": "Agente no encontrado.",
   "agentsActivityLogTitle": "Registro de actividad",
   "agentsActivityLogEmpty": "Sin entradas en el registro de actividad.",
+  "agentsActivityLogLoadFailed": "Error al cargar el registro de actividad.",
   "agentsConfigMachine": "Máquina",
   "agentsConfigRuntime": "Entorno",
   "agentsConfigModel": "Modelo",

@@ -502,8 +502,10 @@ class AgentsStore extends Notifier<AgentsState> {
       state = state.copyWith(
         activityLogs: {...state.activityLogs, agentId: merged},
       );
-    } on AppFailure catch (_) {
-      // Silently fail — live events still work.
+    } on AppFailure {
+      // Re-throw so the FutureProvider surfaces AsyncError to the UI.
+      // Live socket events still populate the log independently.
+      rethrow;
     }
   }
 
