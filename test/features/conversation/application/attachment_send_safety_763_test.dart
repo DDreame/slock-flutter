@@ -679,6 +679,7 @@ class _ControllableConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) {
     lastSendAttachmentIds = attachmentIds;

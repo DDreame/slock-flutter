@@ -326,6 +326,7 @@ class _TrackingConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     sendMessageCalls.add(_SendMessageCall(

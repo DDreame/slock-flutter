@@ -26,6 +26,7 @@ class FakeConversationRepository implements ConversationRepository {
   final List<String> sentContents = [];
   final List<String?> sentReplyToIds = [];
   final List<bool?> sentAsTaskFlags = [];
+  final List<String?> sentClientIds = [];
   final List<String> deletedMessageIds = [];
   final List<String> pinnedMessageIds = [];
   final List<String> unpinnedMessageIds = [];
@@ -104,11 +105,13 @@ class FakeConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     sentContents.add(content);
     sentReplyToIds.add(replyToId);
     sentAsTaskFlags.add(asTask);
+    sentClientIds.add(clientId);
     if (sendFailure != null) throw sendFailure!;
     return ConversationMessageSummary(
       id: 'msg-${sentContents.length}',

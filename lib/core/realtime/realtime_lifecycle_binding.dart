@@ -6,6 +6,7 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
 import 'package:slock_app/core/realtime/realtime_socket_client.dart';
 import 'package:slock_app/core/realtime/providers.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 final realtimeLifecycleBindingProvider = Provider<void>((ref) {
@@ -23,37 +24,52 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
     final connectionState = ref.read(realtimeServiceProvider);
     final service = ref.read(realtimeServiceProvider.notifier);
 
-    if (shouldConnect) {
-      // #775: When the socket client provider rebuilt (token refresh or
-      // server switch), the old connection is dead regardless of what
-      // service state currently says. Disconnect stale state first, then
-      // reconnect with the new client.
-      if (clientChanged &&
-          connectionState.status != RealtimeConnectionStatus.disconnected) {
-        await service.disconnect();
-        if (generation != syncGeneration) return;
-        await service.connect();
-        if (generation != syncGeneration) {
+    try {
+      if (shouldConnect) {
+        // #775: When the socket client provider rebuilt (token refresh or
+        // server switch), the old connection is dead regardless of what
+        // service state currently says. Disconnect stale state first, then
+        // reconnect with the new client.
+        if (clientChanged &&
+            connectionState.status != RealtimeConnectionStatus.disconnected) {
           await service.disconnect();
-          return;
+          if (generation != syncGeneration) return;
+          await service.connect();
+          if (generation != syncGeneration) {
+            await service.disconnect();
+            return;
+          }
+        } else if (connectionState.status ==
+            RealtimeConnectionStatus.disconnected) {
+          await service.connect();
+          // Stale — a newer sync has superseded this one; undo the connect
+          // so the stale connection doesn't linger in "connected" state (#732).
+          if (generation != syncGeneration) {
+            await service.disconnect();
+            return;
+          }
         }
-      } else if (connectionState.status ==
-          RealtimeConnectionStatus.disconnected) {
-        await service.connect();
-        // Stale — a newer sync has superseded this one; undo the connect
-        // so the stale connection doesn't linger in "connected" state (#732).
-        if (generation != syncGeneration) {
-          await service.disconnect();
-          return;
-        }
+        return;
       }
-      return;
-    }
 
-    if (connectionState.status != RealtimeConnectionStatus.disconnected) {
-      await service.disconnect();
-      // Bail out if a newer sync was triggered during disconnect().
+      if (connectionState.status != RealtimeConnectionStatus.disconnected) {
+        await service.disconnect();
+        // Bail out if a newer sync was triggered during disconnect().
+        if (generation != syncGeneration) return;
+      }
+    } catch (e) {
+      // P2-5: If syncConnection() throws (network error during connect or
+      // disconnect), the connection state may be left in limbo. Trigger
+      // forceReconnect() to transition cleanly through disconnected →
+      // reconnecting → connected cycle.
+      ref.read(diagnosticsCollectorProvider).error(
+            'RealtimeLifecycleBinding',
+            'syncConnection error, triggering forceReconnect: $e',
+          );
       if (generation != syncGeneration) return;
+      unawaited(
+        service.forceReconnect(reason: 'syncConnection error: $e'),
+      );
     }
   }
 
