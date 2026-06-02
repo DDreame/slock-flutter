@@ -1521,23 +1521,32 @@
   },
   "filePreviewDismissSemantics": "Swipe down to close",
   "messageLinkChipSemantics": "Open link: {url}",
-  "@messageLinkChipSemantics": { "placeholders": { "url": { "type": "String" } } },
+  "@messageLinkChipSemantics": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "attachmentImageFallbackSemantics": "Image attachment",
-
   "navInbox": "Inbox",
   "homeAppBarFallbackTitle": "Slock",
   "homeTypePillThread": "THREAD",
   "homeTypePillChannel": "CHANNEL",
   "homeTypePillDm": "DM",
   "unreadOtherSources": "Other unread sources",
-
   "routerPageNotFound": "Page not found: {uri}",
-  "@routerPageNotFound": { "placeholders": { "uri": { "type": "String" } } },
+  "@routerPageNotFound": {
+    "placeholders": {
+      "uri": {
+        "type": "String"
+      }
+    }
+  },
   "shareSendFailed": "Failed to send. Please try again.",
   "filePreviewFallbackTitle": "File Preview",
   "filePreviewFallbackBody": "File preview unavailable",
   "filePreviewFallbackBack": "Go back",
-
   "deepLinkAccessDeniedTitle": "You don't have access",
   "deepLinkAccessDeniedMessage": "You don't have access to this resource. It may be private, deleted, or outside your current workspace.",
   "deepLinkNotFoundTitle": "Resource not found",
@@ -1545,7 +1554,6 @@
   "deepLinkBackButton": "Back to Slock",
   "errorRetry": "Retry",
   "errorShareDiagnostics": "Share diagnostics",
-
   "fatalTitle": "Unable to Start",
   "fatalBodyMissingConfig": "The app is missing required configuration and cannot start. This usually means it was built without the necessary environment settings.",
   "fatalBodyGeneric": "Something went wrong during startup. Please try restarting the app.",
@@ -1553,7 +1561,6 @@
   "fatalHintGeneric": "If the problem persists, reinstall the app or contact support.",
   "fatalCopyDiagnostics": "Copy diagnostics",
   "fatalDiagnosticsCopied": "Diagnostics copied to clipboard",
-
   "diagExportTitle": "Export Diagnostics",
   "diagExportSubtitle": "Share diagnostic logs with the development team.",
   "diagCopyToClipboard": "Copy to Clipboard",
@@ -1564,9 +1571,14 @@
   "diagShared": "Shared successfully",
   "diagShareFailed": "Share failed",
   "diagSaved": "Saved to {path}",
-  "@diagSaved": { "placeholders": { "path": { "type": "String" } } },
+  "@diagSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "diagSaveFailed": "Save failed",
-
   "filePreviewNoUrl": "No download URL available.",
   "filePreviewLoadFailed": "Failed to load attachment.",
   "filePreviewPdfDownloadFailed": "Failed to download PDF.",
@@ -1575,36 +1587,65 @@
   "filePreviewPdfUnavailable": "PDF file not available.",
   "filePreviewPdfRenderFailed": "Failed to render PDF.",
   "filePreviewImageLoadFailed": "Unable to load image.",
-
   "avatarUploadInvalidResponse": "Invalid response from server.",
   "avatarUploadFailed": "Upload failed.",
   "avatarUploadFailedRetry": "Upload failed. Please try again.",
-
   "timeJustNow": "just now",
   "timeMinutesAgo": "{count}m ago",
-  "@timeMinutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeHoursAgo": "{count}h ago",
-  "@timeHoursAgo": { "placeholders": { "count": { "type": "int" } } },
-
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "billingResourceAgents": "Agents",
   "billingResourceMachines": "Machines",
   "billingResourceChannels": "Channels",
-
   "notificationNewMessageFallback": "New message",
   "notificationActionReply": "Reply",
   "notificationActionMarkRead": "Mark as read",
   "notificationActionReplyHint": "Type a reply",
-
   "typingIndicatorOne": "{name} is typing...",
-  "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },
+  "@typingIndicatorOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "typingIndicatorTwo": "{first} and {second} are typing...",
-  "@typingIndicatorTwo": { "placeholders": { "first": { "type": "String" }, "second": { "type": "String" } } },
+  "@typingIndicatorTwo": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
   "typingIndicatorSeveral": "Several people are typing...",
   "typingIndicatorThreeOrMore": "{allButLast}, and {last} are typing...",
-  "@typingIndicatorThreeOrMore": { "placeholders": { "allButLast": { "type": "String" }, "last": { "type": "String" } } },
-
+  "@typingIndicatorThreeOrMore": {
+    "placeholders": {
+      "allButLast": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
   "connectionReconnecting": "Reconnecting...",
-
   "conversationDefaultTitleDm": "Direct message",
   "userFallbackDisplayName": "User",
   "agentsActivityLogOnline": "Online",
@@ -1620,11 +1661,9 @@
     }
   },
   "agentsActivityLogOffline": "Offline",
-
   "senderLabelAgent": "Agent",
   "senderLabelMember": "Member",
   "senderLabelSystem": "System",
-
   "sharePreviewAttachmentCount": "{count, plural, =1{1 attachment} other{{count} attachments}}",
   "@sharePreviewAttachmentCount": {
     "placeholders": {
@@ -1633,7 +1672,6 @@
       }
     }
   },
-
   "inboxFallbackDmName": "Unknown",
   "inboxFallbackMemberName": "Member",
   "diagnosticsExportFabTooltip": "Export diagnostics",
@@ -1650,15 +1688,23 @@
   "agentsStatusGroupSemantics": "{status}, {count} agents",
   "@agentsStatusGroupSemantics": {
     "placeholders": {
-      "status": { "type": "String" },
-      "count": { "type": "int" }
+      "status": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "agentsRowSemantics": "{name}, {activity}",
   "@agentsRowSemantics": {
     "placeholders": {
-      "name": { "type": "String" },
-      "activity": { "type": "String" }
+      "name": {
+        "type": "String"
+      },
+      "activity": {
+        "type": "String"
+      }
     }
   },
   "agentsRowActionsHint": "Show actions",
@@ -1666,14 +1712,18 @@
   "mentionSuggestionItemSemantics": "Mention {name}",
   "@mentionSuggestionItemSemantics": {
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "oauthDividerLabel": "or continue with",
   "oauthProviderButton": "Continue with {provider}",
   "@oauthProviderButton": {
     "placeholders": {
-      "provider": { "type": "String" }
+      "provider": {
+        "type": "String"
+      }
     }
   },
   "oauthCancelledMessage": "Sign-in was cancelled.",
@@ -1711,5 +1761,28 @@
         "type": "int"
       }
     }
-  }
+  },
+  "settingsAppearanceSwipeSection": "Conversation swipes",
+  "settingsSwipeLeftTitle": "Left swipe",
+  "settingsSwipeRightTitle": "Right swipe",
+  "settingsSwipeLeftDescription": "Choose what happens when you swipe a conversation left.",
+  "settingsSwipeRightDescription": "Choose what happens when you swipe a conversation right.",
+  "conversationSwipeActionNone": "None",
+  "conversationSwipeActionArchive": "Archive",
+  "conversationSwipeActionPin": "Pin / unpin",
+  "conversationSwipeActionMute": "Mute / unmute",
+  "conversationSwipeArchive": "Archive",
+  "conversationSwipePin": "Pin",
+  "conversationSwipeUnpin": "Unpin",
+  "conversationSwipeMute": "Mute",
+  "conversationSwipeUnmute": "Unmute",
+  "conversationSwipeArchived": "Archived {name}",
+  "@conversationSwipeArchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "undoAction": "Undo"
 }

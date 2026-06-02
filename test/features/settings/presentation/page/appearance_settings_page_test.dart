@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/settings/presentation/page/appearance_settings_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
@@ -204,4 +205,46 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+      'AppearanceSettingsPage: swipe action picker persists left action',
+      (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('swipe-left-option')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('swipe-action-toggleMute')));
+    await tester.pumpAndSettle();
+
+    expect(
+      prefs.getString(ConversationSwipePreference.leftPrefsKey),
+      ConversationSwipeAction.toggleMute.name,
+    );
+    expect(find.text('Mute / unmute'), findsOneWidget);
+  });
+
+  testWidgets(
+      'AppearanceSettingsPage: swipe action picker can disable right action',
+      (tester) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('swipe-right-option')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('swipe-action-none')));
+    await tester.pumpAndSettle();
+
+    expect(
+      prefs.getString(ConversationSwipePreference.rightPrefsKey),
+      ConversationSwipeAction.none.name,
+    );
+    expect(find.text('None'), findsOneWidget);
+  });
 }

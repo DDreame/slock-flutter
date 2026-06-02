@@ -320,6 +320,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            channelMutedIdsProvider.overrideWith((ref) => <String>{}),
           ],
         );
         addTearDown(container.dispose);

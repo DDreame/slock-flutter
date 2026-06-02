@@ -3609,4 +3609,54 @@ class AppLocalizationsZh extends AppLocalizations {
   String composerCharacterCount(int current, int max) {
     return '$current/$max';
   }
+
+  @override
+  String get settingsAppearanceSwipeSection => '会话滑动';
+
+  @override
+  String get settingsSwipeLeftTitle => '向左滑动';
+
+  @override
+  String get settingsSwipeRightTitle => '向右滑动';
+
+  @override
+  String get settingsSwipeLeftDescription => '选择向左滑动会话时执行的操作。';
+
+  @override
+  String get settingsSwipeRightDescription => '选择向右滑动会话时执行的操作。';
+
+  @override
+  String get conversationSwipeActionNone => '无';
+
+  @override
+  String get conversationSwipeActionArchive => '归档';
+
+  @override
+  String get conversationSwipeActionPin => '置顶 / 取消置顶';
+
+  @override
+  String get conversationSwipeActionMute => '静音 / 取消静音';
+
+  @override
+  String get conversationSwipeArchive => '归档';
+
+  @override
+  String get conversationSwipePin => '置顶';
+
+  @override
+  String get conversationSwipeUnpin => '取消置顶';
+
+  @override
+  String get conversationSwipeMute => '静音';
+
+  @override
+  String get conversationSwipeUnmute => '取消静音';
+
+  @override
+  String conversationSwipeArchived(String name) {
+    return '已归档 $name';
+  }
+
+  @override
+  String get undoAction => '撤销';
 }

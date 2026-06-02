@@ -12,6 +12,7 @@ import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -21,6 +22,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/inbox/data/conversation_unread_repository.dart';
 import 'package:slock_app/features/inbox/data/conversation_unread_repository_provider.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -198,6 +200,78 @@ void main() {
     expect(
       find.byKey(const ValueKey('dms-tab-dm-bob')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('left swipe hides DM and undo restores it', (tester) async {
+    final sidebarRepo = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        sidebarOrderRepository: sidebarRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('dms-tab-dm-alice')),
+      const Offset(-500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(sidebarRepo.patches, isNotEmpty);
+    expect(sidebarRepo.patches.last['hiddenDmIds'], ['dm-alice']);
+    expect(find.text('Archived Alice'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(sidebarRepo.patches.last['hiddenDmIds'], isEmpty);
+  });
+
+  testWidgets('right swipe honors DM mute preference wiring', (tester) async {
+    await prefs.setString(
+      ConversationSwipePreference.leftPrefsKey,
+      ConversationSwipeAction.none.name,
+    );
+    await prefs.setString(
+      ConversationSwipePreference.rightPrefsKey,
+      ConversationSwipeAction.toggleMute.name,
+    );
+    final sidebarRepo = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        sidebarOrderRepository: sidebarRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('dms-tab-dm-alice')),
+      const Offset(500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      prefs.getString(
+        ChannelNotificationPreferenceRepository.storageKey(
+          serverId.value,
+          'dm-alice',
+        ),
+      ),
+      'mute',
+      reason: 'Right swipe must dispatch the configured tab-level mute action.',
+    );
+    expect(
+      sidebarRepo.patches,
+      isEmpty,
+      reason:
+          'Reverting to the hard-coded right-swipe pin action persists pin state instead.',
     );
   });
 

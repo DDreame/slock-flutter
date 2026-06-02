@@ -6,7 +6,6 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
-import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
@@ -15,9 +14,11 @@ import 'package:slock_app/features/channels/presentation/page/browse_channels_pa
 import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/channel_sort_preference.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/presentation/widgets/conversation_swipe_wrapper.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -476,15 +477,27 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       ),
     );
 
+    final swipePreference = ref.watch(conversationSwipePreferenceProvider);
+
     // Move actions are suppressed in this tab because the unread-first
     // merged view does not match the persisted sidebar order that
     // moveChannel() / movePinnedConversation() operate on.
-    return SwipeToMarkRead(
+    return ConversationSwipeWrapper(
       itemKey: channel.scopeId.routeParam,
-      enabled: unreadCount > 0,
-      onMarkRead: () {
-        ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
-      },
+      actions: ConversationSwipeActions(
+        left: swipePreference.left,
+        right: swipePreference.right,
+      ),
+      isPinned: isPinned,
+      isMuted: isMuted,
+      callbacks: ConversationSwipeCallbacks(
+        onArchive:
+            channel.isArchived ? null : () => _archiveChannelFromSwipe(channel),
+        onTogglePin: () => isPinned
+            ? homeStore.unpinChannel(channel.scopeId)
+            : homeStore.pinChannel(channel.scopeId),
+        onToggleMute: () => _toggleChannelMute(channel, isMuted: isMuted),
+      ),
       child: HomeChannelRow(
         key: ValueKey('channels-tab-${channel.scopeId.routeParam}'),
         channel: channel,
@@ -715,6 +728,49 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         );
       },
     );
+  }
+
+  Future<void> _archiveChannelFromSwipe(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
+    try {
+      final archived = await ref
+          .read(channelManagementStoreProvider.notifier)
+          .archiveChannel(channel.scopeId);
+      if (!archived || !mounted) return;
+      showAppSnackBarWithAction(
+        context,
+        l10n.conversationSwipeArchived(channel.name),
+        actionLabel: l10n.undoAction,
+        onAction: () {
+          ref
+              .read(channelManagementStoreProvider.notifier)
+              .unarchiveChannel(channel.scopeId);
+        },
+      );
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      showAppSnackBar(context, failure.userMessage(l10n), isError: true);
+    }
+  }
+
+  Future<void> _toggleChannelMute(
+    HomeChannelSummary channel, {
+    required bool isMuted,
+  }) async {
+    final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
+    await repo.setChannelMuted(
+      channel.scopeId.serverId.value,
+      channel.scopeId.value,
+      muted: !isMuted,
+    );
+    final key = ChannelNotificationPreferenceRepository.compositeKey(
+      channel.scopeId.serverId.value,
+      channel.scopeId.value,
+    );
+    final mutedIds = ref.read(channelMutedIdsProvider);
+    ref.read(channelMutedIdsProvider.notifier).state = !isMuted
+        ? {...mutedIds, key}
+        : mutedIds.where((id) => id != key).toSet();
   }
 
   Future<void> _archiveChannel(HomeChannelSummary channel) async {

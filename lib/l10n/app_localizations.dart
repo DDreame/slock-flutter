@@ -6934,6 +6934,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{current}/{max}'**
   String composerCharacterCount(int current, int max);
+
+  /// No description provided for @settingsAppearanceSwipeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation swipes'**
+  String get settingsAppearanceSwipeSection;
+
+  /// No description provided for @settingsSwipeLeftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Left swipe'**
+  String get settingsSwipeLeftTitle;
+
+  /// No description provided for @settingsSwipeRightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Right swipe'**
+  String get settingsSwipeRightTitle;
+
+  /// No description provided for @settingsSwipeLeftDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what happens when you swipe a conversation left.'**
+  String get settingsSwipeLeftDescription;
+
+  /// No description provided for @settingsSwipeRightDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what happens when you swipe a conversation right.'**
+  String get settingsSwipeRightDescription;
+
+  /// No description provided for @conversationSwipeActionNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get conversationSwipeActionNone;
+
+  /// No description provided for @conversationSwipeActionArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get conversationSwipeActionArchive;
+
+  /// No description provided for @conversationSwipeActionPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin / unpin'**
+  String get conversationSwipeActionPin;
+
+  /// No description provided for @conversationSwipeActionMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute / unmute'**
+  String get conversationSwipeActionMute;
+
+  /// No description provided for @conversationSwipeArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get conversationSwipeArchive;
+
+  /// No description provided for @conversationSwipePin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get conversationSwipePin;
+
+  /// No description provided for @conversationSwipeUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get conversationSwipeUnpin;
+
+  /// No description provided for @conversationSwipeMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get conversationSwipeMute;
+
+  /// No description provided for @conversationSwipeUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get conversationSwipeUnmute;
+
+  /// No description provided for @conversationSwipeArchived.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived {name}'**
+  String conversationSwipeArchived(String name);
+
+  /// No description provided for @undoAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undoAction;
 }
 
 class _AppLocalizationsDelegate

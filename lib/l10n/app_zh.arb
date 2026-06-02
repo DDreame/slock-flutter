@@ -1136,20 +1136,17 @@
   "filePreviewDismissSemantics": "下滑关闭",
   "messageLinkChipSemantics": "打开链接：{url}",
   "attachmentImageFallbackSemantics": "图片附件",
-
   "navInbox": "收件箱",
   "homeAppBarFallbackTitle": "Slock",
   "homeTypePillThread": "话题",
   "homeTypePillChannel": "频道",
   "homeTypePillDm": "私信",
   "unreadOtherSources": "其他未读来源",
-
   "routerPageNotFound": "页面未找到：{uri}",
   "shareSendFailed": "发送失败，请重试。",
   "filePreviewFallbackTitle": "文件预览",
   "filePreviewFallbackBody": "文件预览不可用",
   "filePreviewFallbackBack": "返回",
-
   "deepLinkAccessDeniedTitle": "你没有访问权限",
   "deepLinkAccessDeniedMessage": "你没有权限访问此资源。它可能是私有的、已被删除，或不属于当前工作区。",
   "deepLinkNotFoundTitle": "资源未找到",
@@ -1157,7 +1154,6 @@
   "deepLinkBackButton": "返回 Slock",
   "errorRetry": "重试",
   "errorShareDiagnostics": "分享诊断信息",
-
   "fatalTitle": "无法启动",
   "fatalBodyMissingConfig": "应用缺少必要的配置，无法启动。这通常意味着构建时未提供必要的环境设置。",
   "fatalBodyGeneric": "启动过程中出现问题，请尝试重新启动应用。",
@@ -1165,7 +1161,6 @@
   "fatalHintGeneric": "如果问题持续存在，请重新安装应用或联系支持。",
   "fatalCopyDiagnostics": "复制诊断信息",
   "fatalDiagnosticsCopied": "诊断信息已复制到剪贴板",
-
   "diagExportTitle": "导出诊断信息",
   "diagExportSubtitle": "将诊断日志分享给开发团队。",
   "diagCopyToClipboard": "复制到剪贴板",
@@ -1177,7 +1172,6 @@
   "diagShareFailed": "分享失败",
   "diagSaved": "已保存到 {path}",
   "diagSaveFailed": "保存失败",
-
   "filePreviewNoUrl": "没有可用的下载链接。",
   "filePreviewLoadFailed": "加载附件失败。",
   "filePreviewPdfDownloadFailed": "下载 PDF 失败。",
@@ -1186,36 +1180,65 @@
   "filePreviewPdfUnavailable": "PDF 文件不可用。",
   "filePreviewPdfRenderFailed": "PDF 渲染失败。",
   "filePreviewImageLoadFailed": "无法加载图片。",
-
   "avatarUploadInvalidResponse": "服务器返回无效响应。",
   "avatarUploadFailed": "上传失败。",
   "avatarUploadFailedRetry": "上传失败，请重试。",
-
   "timeJustNow": "刚刚",
   "timeMinutesAgo": "{count}分钟前",
-  "@timeMinutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "timeHoursAgo": "{count}小时前",
-  "@timeHoursAgo": { "placeholders": { "count": { "type": "int" } } },
-
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "billingResourceAgents": "智能体",
   "billingResourceMachines": "机器",
   "billingResourceChannels": "频道",
-
   "notificationNewMessageFallback": "新消息",
   "notificationActionReply": "回复",
   "notificationActionMarkRead": "标为已读",
   "notificationActionReplyHint": "输入回复",
-
   "typingIndicatorOne": "{name} 正在输入...",
-  "@typingIndicatorOne": { "placeholders": { "name": { "type": "String" } } },
+  "@typingIndicatorOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "typingIndicatorTwo": "{first} 和 {second} 正在输入...",
-  "@typingIndicatorTwo": { "placeholders": { "first": { "type": "String" }, "second": { "type": "String" } } },
+  "@typingIndicatorTwo": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
   "typingIndicatorSeveral": "多人正在输入...",
   "typingIndicatorThreeOrMore": "{allButLast} 和 {last} 正在输入...",
-  "@typingIndicatorThreeOrMore": { "placeholders": { "allButLast": { "type": "String" }, "last": { "type": "String" } } },
-
+  "@typingIndicatorThreeOrMore": {
+    "placeholders": {
+      "allButLast": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
   "connectionReconnecting": "重新连接中...",
-
   "conversationDefaultTitleDm": "私信",
   "userFallbackDisplayName": "用户",
   "agentsActivityLogOnline": "在线",
@@ -1224,13 +1247,10 @@
   "agentsActivityLogError": "错误",
   "agentsActivityLogErrorDetail": "错误：{detail}",
   "agentsActivityLogOffline": "离线",
-
   "senderLabelAgent": "智能体",
   "senderLabelMember": "成员",
   "senderLabelSystem": "系统",
-
   "sharePreviewAttachmentCount": "{count, plural, =1{1 个附件} other{{count} 个附件}}",
-
   "inboxFallbackDmName": "未知",
   "inboxFallbackMemberName": "成员",
   "diagnosticsExportFabTooltip": "导出诊断信息",
@@ -1279,5 +1299,28 @@
         "type": "int"
       }
     }
-  }
+  },
+  "settingsAppearanceSwipeSection": "会话滑动",
+  "settingsSwipeLeftTitle": "向左滑动",
+  "settingsSwipeRightTitle": "向右滑动",
+  "settingsSwipeLeftDescription": "选择向左滑动会话时执行的操作。",
+  "settingsSwipeRightDescription": "选择向右滑动会话时执行的操作。",
+  "conversationSwipeActionNone": "无",
+  "conversationSwipeActionArchive": "归档",
+  "conversationSwipeActionPin": "置顶 / 取消置顶",
+  "conversationSwipeActionMute": "静音 / 取消静音",
+  "conversationSwipeArchive": "归档",
+  "conversationSwipePin": "置顶",
+  "conversationSwipeUnpin": "取消置顶",
+  "conversationSwipeMute": "静音",
+  "conversationSwipeUnmute": "取消静音",
+  "conversationSwipeArchived": "已归档 {name}",
+  "@conversationSwipeArchived": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "undoAction": "撤销"
 }

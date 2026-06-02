@@ -12,6 +12,7 @@ import 'package:slock_app/features/channels/data/channel_management_repository.d
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -202,6 +203,81 @@ void main() {
     expect(
       find.byKey(const ValueKey('channels-tab-random')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('left swipe archives channel and undo unarchives it', (
+    tester,
+  ) async {
+    final channelMgmt = _FakeChannelManagementRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        channelManagementRepository: channelMgmt,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('channels-tab-general')),
+      const Offset(-500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(channelMgmt.archivedChannelIds, ['general']);
+    expect(find.text('Archived general'), findsOneWidget);
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect(channelMgmt.unarchivedChannelIds, ['general']);
+  });
+
+  testWidgets('right swipe honors channel mute preference wiring', (
+    tester,
+  ) async {
+    await prefs.setString(
+      ConversationSwipePreference.leftPrefsKey,
+      ConversationSwipeAction.none.name,
+    );
+    await prefs.setString(
+      ConversationSwipePreference.rightPrefsKey,
+      ConversationSwipeAction.toggleMute.name,
+    );
+    final sidebarRepo = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        sidebarOrderRepository: sidebarRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('channels-tab-general')),
+      const Offset(500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      prefs.getString(
+        ChannelNotificationPreferenceRepository.storageKey(
+          serverId.value,
+          'general',
+        ),
+      ),
+      'mute',
+      reason: 'Right swipe must dispatch the configured tab-level mute action.',
+    );
+    expect(
+      sidebarRepo.patches,
+      isEmpty,
+      reason:
+          'Reverting to the hard-coded right-swipe pin action persists pin state instead.',
     );
   });
 
@@ -1256,6 +1332,8 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   _FakeChannelManagementRepository();
 
   final List<String> createdNames = [];
+  final List<String> archivedChannelIds = [];
+  final List<String> unarchivedChannelIds = [];
 
   @override
   Future<List<AvailableChannel>> loadAvailableChannels(
@@ -1317,13 +1395,17 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   Future<void> archiveChannel(
     ServerScopeId serverId, {
     required String channelId,
-  }) async {}
+  }) async {
+    archivedChannelIds.add(channelId);
+  }
 
   @override
   Future<void> unarchiveChannel(
     ServerScopeId serverId, {
     required String channelId,
-  }) async {}
+  }) async {
+    unarchivedChannelIds.add(channelId);
+  }
 }
 
 class _FakeConversationUnreadRepository

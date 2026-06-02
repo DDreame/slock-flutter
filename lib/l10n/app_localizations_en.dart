@@ -3723,4 +3723,56 @@ class AppLocalizationsEn extends AppLocalizations {
   String composerCharacterCount(int current, int max) {
     return '$current/$max';
   }
+
+  @override
+  String get settingsAppearanceSwipeSection => 'Conversation swipes';
+
+  @override
+  String get settingsSwipeLeftTitle => 'Left swipe';
+
+  @override
+  String get settingsSwipeRightTitle => 'Right swipe';
+
+  @override
+  String get settingsSwipeLeftDescription =>
+      'Choose what happens when you swipe a conversation left.';
+
+  @override
+  String get settingsSwipeRightDescription =>
+      'Choose what happens when you swipe a conversation right.';
+
+  @override
+  String get conversationSwipeActionNone => 'None';
+
+  @override
+  String get conversationSwipeActionArchive => 'Archive';
+
+  @override
+  String get conversationSwipeActionPin => 'Pin / unpin';
+
+  @override
+  String get conversationSwipeActionMute => 'Mute / unmute';
+
+  @override
+  String get conversationSwipeArchive => 'Archive';
+
+  @override
+  String get conversationSwipePin => 'Pin';
+
+  @override
+  String get conversationSwipeUnpin => 'Unpin';
+
+  @override
+  String get conversationSwipeMute => 'Mute';
+
+  @override
+  String get conversationSwipeUnmute => 'Unmute';
+
+  @override
+  String conversationSwipeArchived(String name) {
+    return 'Archived $name';
+  }
+
+  @override
+  String get undoAction => 'Undo';
 }
