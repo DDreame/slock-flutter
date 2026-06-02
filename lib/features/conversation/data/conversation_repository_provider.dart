@@ -15,7 +15,6 @@ const _sendMessagePath = '/messages';
 const _uploadPath = '/attachments/upload';
 const _messagesPathPrefix = '/messages/channel/';
 const _channelsPath = '/channels';
-const _directMessageChannelsPath = '/channels/dm';
 const _serverHeaderName = 'X-Server-Id';
 const _channelSurface = 'channel';
 const _directMessageSurface = 'direct_message';
@@ -84,25 +83,35 @@ class _ApiConversationRepository implements ConversationRepository {
       // #861: Fetch per-channel metadata instead of full channel list.
       // Uses GET /channels/{id} (or /channels/dm/{id}) — scoped to the
       // single channel being opened, eliminating redundant payload.
-      final responses = await Future.wait([
-        _appDioClient.get<Object?>(
-          '$_messagesPathPrefix${target.conversationId}',
-          queryParameters: const {'limit': _messagePageSize},
-          options: _serverScopedOptions(target.serverId),
-        ),
-        _appDioClient.get<Object?>(
-          _perChannelMetadataPath(target),
-          options: _serverScopedOptions(target.serverId),
-        ),
-      ]);
+      //
+      // Metadata fetch is non-fatal: if the endpoint returns 404 (DMs on
+      // some server versions), fall back gracefully. Messages are critical.
+      final messagesResponse = _appDioClient.get<Object?>(
+        '$_messagesPathPrefix${target.conversationId}',
+        queryParameters: const {'limit': _messagePageSize},
+        options: _serverScopedOptions(target.serverId),
+      );
+      final metadataResponse = _appDioClient.get<Object?>(
+        _perChannelMetadataPath(target),
+        options: _serverScopedOptions(target.serverId),
+      );
+
+      // Await both in parallel but tolerate metadata failure.
+      final messages = await messagesResponse;
+      Object? metadataPayload;
+      try {
+        metadataPayload = (await metadataResponse).data;
+      } catch (_) {
+        // Metadata 404 or network error — non-fatal, fall back to defaults.
+      }
 
       final messagesPayload = _parseMessagesPayload(
-        responses[0].data,
+        messages.data,
         serverId: target.serverId.value,
         conversationId: target.conversationId,
       );
       final metadata = _resolveMetadataFromSingle(
-        responses[1].data,
+        metadataPayload,
         target: target,
         fallbackChannelTitle: storedChannelTitle,
       );
@@ -701,14 +710,10 @@ Options _serverScopedOptions(ServerScopeId serverId) {
 }
 
 /// #861: Per-channel metadata endpoint — scoped to a single channel.
-/// Returns GET /channels/{id} or GET /channels/dm/{id} instead of the
-/// full list endpoint.
+/// Returns GET /channels/{id} for both channels and DMs. DMs are still
+/// channels on the backend — the /channels/dm/ path does not exist.
 String _perChannelMetadataPath(ConversationDetailTarget target) {
-  return switch (target.surface) {
-    ConversationSurface.channel => '$_channelsPath/${target.conversationId}',
-    ConversationSurface.directMessage =>
-      '$_directMessageChannelsPath/${target.conversationId}',
-  };
+  return '$_channelsPath/${target.conversationId}';
 }
 
 /// #861: Parse metadata from a single-channel response object.

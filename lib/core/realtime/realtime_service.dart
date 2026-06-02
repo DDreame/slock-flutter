@@ -230,6 +230,10 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
       reconnectAttempts: state.reconnectAttempts + 1,
       disconnectReason: error.toString(),
     );
+    // Trigger reconnection — without this, the state machine is stuck in
+    // 'reconnecting' indefinitely since watchdog/syncConnection only act
+    // on 'disconnected' state.
+    unawaited(forceReconnect(reason: 'socket error: $error'));
   }
 
   void _onRawEvent(RealtimeSocketRawEvent signal) {

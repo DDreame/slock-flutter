@@ -173,7 +173,11 @@ final domainRuntimeEventRouterProvider = Provider<void>(
     // -----------------------------------------------------------------------
     // Inbox refresh helpers (local to this provider)
     // -----------------------------------------------------------------------
-    void scheduleInboxRefresh(String reason, {bool isBatchEvent = false}) {
+    void scheduleInboxRefresh(
+      String reason, {
+      bool isBatchEvent = false,
+      String? conversationId,
+    }) {
       // INV-856: During sync batch, defer refresh. A single coalesced
       // refresh fires when syncBatchCompleteEvent arrives.
       if (isBatchEvent) {
@@ -184,6 +188,17 @@ final domainRuntimeEventRouterProvider = Provider<void>(
       if (syncBatchRefreshPending) {
         syncBatchRefreshPending = false;
       }
+
+      // Suppress refresh for messages in the currently-open conversation.
+      // The user is actively viewing it — markRead handles the unread state.
+      // A stale server response would overwrite the optimistic zero.
+      if (conversationId != null) {
+        final openTarget = ref.read(currentOpenConversationTargetProvider);
+        if (openTarget != null && openTarget.conversationId == conversationId) {
+          return;
+        }
+      }
+
       final inboxState = ref.read(inboxStoreProvider);
       if (inboxState.status != InboxStatus.success) return;
 
@@ -228,7 +243,8 @@ final domainRuntimeEventRouterProvider = Provider<void>(
             },
           );
           scheduleInboxRefresh('messageNew',
-              isBatchEvent: event.isSyncBatchEvent);
+              isBatchEvent: event.isSyncBatchEvent,
+              conversationId: (event.payload as Map?)?['channelId'] as String?);
 
         case _messageUpdatedEvent:
           _handleMessageUpdated(ref, event);
@@ -239,7 +255,9 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         // — DM domain —
         case _dmNewEvent:
           _handleDmNew(ref, event, pendingDmBuffer);
-          scheduleInboxRefresh('dmNew', isBatchEvent: event.isSyncBatchEvent);
+          scheduleInboxRefresh('dmNew',
+              isBatchEvent: event.isSyncBatchEvent,
+              conversationId: (event.payload as Map?)?['channelId'] as String?);
 
         // — Connect domain —
         case _connectEvent:
