@@ -12,6 +12,7 @@ import 'package:slock_app/features/channels/data/channel_management_repository.d
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -232,6 +233,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(channelMgmt.unarchivedChannelIds, ['general']);
+  });
+
+  testWidgets('right swipe honors channel mute preference wiring', (
+    tester,
+  ) async {
+    await prefs.setString(
+      ConversationSwipePreference.leftPrefsKey,
+      ConversationSwipeAction.none.name,
+    );
+    await prefs.setString(
+      ConversationSwipePreference.rightPrefsKey,
+      ConversationSwipeAction.toggleMute.name,
+    );
+    final sidebarRepo = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        sidebarOrderRepository: sidebarRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.fling(
+      find.byKey(const ValueKey('channels-tab-general')),
+      const Offset(500, 0),
+      1000,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      prefs.getString(
+        ChannelNotificationPreferenceRepository.storageKey(
+          serverId.value,
+          'general',
+        ),
+      ),
+      'mute',
+      reason: 'Right swipe must dispatch the configured tab-level mute action.',
+    );
+    expect(
+      sidebarRepo.patches,
+      isEmpty,
+      reason:
+          'Reverting to the hard-coded right-swipe pin action persists pin state instead.',
+    );
   });
 
   testWidgets('shows Mark as Unread for read channel and calls store path',
