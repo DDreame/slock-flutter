@@ -5,10 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
-import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/app/widgets/relative_time_text.dart';
@@ -24,11 +22,14 @@ import 'package:slock_app/features/conversation/presentation/widgets/inline_ref_
 import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_linked_task_badge.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_sender_profile_sheet.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/quoted_message_block.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/url_launcher_confirm.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
 import 'package:slock_app/features/conversation/presentation/utils/mention_profile_resolver.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
-import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -116,33 +117,25 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
   final ValueChanged<String>? onScrollToMessage;
 
   // ---------------------------------------------------------------------------
-  // #655: Exposed base style constants for test identity assertions.
-  //
-  // Tests use `identical(ConversationMessageCard.senderNameBaseStyle,
-  //   AppTypography.labelBold)` to prove the precomputed constant is used,
-  // not a fresh copyWith allocation.
+  // #655: Exposed base style constants shared with extracted sub-widgets.
   // ---------------------------------------------------------------------------
 
   /// Base TextStyle for sender name labels — precomputed with w600.
-  @visibleForTesting
   static const senderNameBaseStyle = AppTypography.labelBold;
 
   /// Base TextStyle for AI badge labels — precomputed with w600.
-  @visibleForTesting
   static const aiBadgeBaseStyle = AppTypography.captionBold;
 
   /// Hoisted BorderRadius for system-variant messages — avoids per-build
   /// allocation (#853).
-  @visibleForTesting
   static final systemBorderRadius =
       BorderRadius.circular(BubbleTokens.radiusLarge);
 
   /// Hoisted BorderRadius for linked task badges — pill shape (#853).
-  @visibleForTesting
   static final taskBadgeBorderRadius = BorderRadius.circular(999);
 
   /// Hoisted BorderRadius for agent AI badge (Scan #45).
-  static final _agentBadgeBorderRadius =
+  static final agentBadgeBorderRadius =
       BorderRadius.circular(AppSpacing.radiusSm);
 
   @override
@@ -202,14 +195,14 @@ class ConversationMessageCardState
         .loadProfile(target.serverId, userId: senderId);
 
     // Prevent unhandled-future-error: the bottom-sheet route transition spans
-    // multiple frames, so _ProfileLoadingSheet.initState may not attach its
+    // multiple frames, so MessageSenderProfileSheet.initState may not attach its
     // .catchError() handler before this future completes with an error.
     profileFuture.ignore();
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => _ProfileLoadingSheet(
+      builder: (sheetContext) => MessageSenderProfileSheet(
         key: const ValueKey('profile-loading-sheet'),
         profileFuture: profileFuture,
         onMessageTap: (profile) {
@@ -601,7 +594,7 @@ class ConversationMessageCardState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (message.replyTo != null)
-            _QuotedMessageBlock(
+            QuotedMessageBlock(
               key: ValueKey('quoted-${message.id}'),
               replyTo: message.replyTo!,
               isSelf: visualKind == _ConversationMessageVisualKind.self,
@@ -649,7 +642,7 @@ class ConversationMessageCardState
                       target.surface == ConversationSurface.channel) ...[
                     const SizedBox(width: 8),
                     Flexible(
-                      child: _MessageLinkedTaskBadge(
+                      child: MessageLinkedTaskBadge(
                         task: message.linkedTask!,
                         serverId: target.serverId.value,
                       ),
@@ -695,7 +688,7 @@ class ConversationMessageCardState
                       target.surface == ConversationSurface.channel) ...[
                     const SizedBox(width: 8),
                     Flexible(
-                      child: _MessageLinkedTaskBadge(
+                      child: MessageLinkedTaskBadge(
                         task: message.linkedTask!,
                         serverId: target.serverId.value,
                       ),
@@ -713,7 +706,7 @@ class ConversationMessageCardState
             colors: colors,
             currentUserName: currentUserName,
             onLinkTap: (text, href, title) =>
-                _confirmAndLaunchUrl(context, href),
+                confirmAndLaunchUrl(context, href),
           ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
             AttachmentSection(attachments: message.attachments!),
@@ -739,7 +732,7 @@ class ConversationMessageCardState
                 ),
                 decoration: BoxDecoration(
                   color: colors.agentAccent,
-                  borderRadius: ConversationMessageCard._agentBadgeBorderRadius,
+                  borderRadius: ConversationMessageCard.agentBadgeBorderRadius,
                 ),
                 child: Text(
                   context.l10n.conversationMessageAiBadge,
@@ -1326,423 +1319,4 @@ class ConversationMessageCardState
         );
     }
   }
-}
-
-class _MessageLinkedTaskBadge extends StatelessWidget {
-  const _MessageLinkedTaskBadge({
-    required this.task,
-    required this.serverId,
-  });
-
-  final ConversationLinkedTaskSummary task;
-  final String serverId;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final (icon, tone) = switch (task.status) {
-      'todo' => (Icons.radio_button_unchecked, AppStatusTone.neutral),
-      'in_progress' => (Icons.timelapse, AppStatusTone.info),
-      'in_review' => (Icons.rate_review, AppStatusTone.warning),
-      'done' => (Icons.check_circle, AppStatusTone.success),
-      _ => (Icons.circle_outlined, AppStatusTone.neutral),
-    };
-    final colors = appStatusColors(theme.colorScheme, tone);
-    final label = StringBuffer('#${task.taskNumber}');
-    if (task.claimedByName != null && task.claimedByName!.isNotEmpty) {
-      label.write(' @${task.claimedByName}');
-    }
-
-    // Absorb taps and navigate to the tasks page so they don't
-    // bubble up to the message card's thread-navigation
-    // GestureDetector.
-    return Semantics(
-      button: true,
-      label: context.l10n.linkedTaskBadgeSemantics,
-      child: GestureDetector(
-        onTap: () => context.push('/servers/$serverId/tasks'),
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          key: ValueKey('message-linked-task-${task.id}'),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: colors.container,
-            border: Border.all(color: colors.foreground),
-            borderRadius: ConversationMessageCard.taskBadgeBorderRadius,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 12, color: colors.onContainer),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label.toString(),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colors.onContainer,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Launches an external URL. For http/https links, launches directly without
-/// confirmation dialog. Non-http schemes show a confirmation dialog first.
-Future<void> _confirmAndLaunchUrl(BuildContext context, String? href) async {
-  if (href == null || href.isEmpty) return;
-  final uri = Uri.tryParse(href);
-  if (uri == null) return;
-
-  // http/https links launch directly — no confirmation needed.
-  if (uri.scheme == 'http' || uri.scheme == 'https') {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-    return;
-  }
-
-  // Non-http schemes (mailto:, tel:, custom://) show confirmation.
-  final colors = Theme.of(context).extension<AppColors>()!;
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(_conversationL10n(context).conversationOpenLinkTitle),
-      content: Text(
-        _conversationL10n(context).conversationOpenLinkContent(href),
-        style: TextStyle(color: colors.textSecondary),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(_conversationL10n(context).conversationOpenLinkCancel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: Text(_conversationL10n(context).conversationOpenLinkConfirm),
-        ),
-      ],
-    ),
-  );
-
-  if (confirmed == true && context.mounted) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-}
-
-/// Quoted message block rendered inside a message bubble.
-class _QuotedMessageBlock extends StatelessWidget {
-  const _QuotedMessageBlock({
-    super.key,
-    required this.replyTo,
-    required this.isSelf,
-    this.onTap,
-  });
-
-  final ReplyToSummary replyTo;
-  final bool isSelf;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final accentColor = isSelf
-        ? colors.primaryForeground.withValues(alpha: 0.7)
-        : colors.primary;
-    final bgColor = isSelf
-        ? colors.primaryForeground.withValues(alpha: 0.12)
-        : colors.primary.withValues(alpha: 0.08);
-    final labelColor = accentColor;
-    final bodyColor = isSelf
-        ? colors.primaryForeground.withValues(alpha: 0.85)
-        : colors.textSecondary;
-
-    return Semantics(
-      button: onTap != null,
-      label: onTap != null ? context.l10n.quotedMessageTapSemantics : null,
-      child: GestureDetector(
-        key: const ValueKey('quoted-message-tap'),
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
-          ),
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: accentColor, width: 3),
-            ),
-            color: bgColor,
-            borderRadius: ConversationMessageCard._agentBadgeBorderRadius,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                replyTo.localizedSenderLabel(context.l10n),
-                // #655: Use pre-computed labelBold.
-                style: ConversationMessageCard.senderNameBaseStyle.copyWith(
-                  color: labelColor,
-                ),
-              ),
-              Text(
-                replyTo.content.isEmpty
-                    ? context.l10n.conversationQuoteFallback
-                    : replyTo.content,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.caption.copyWith(
-                  color: bodyColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// #656: Profile loading sheet — shows a loading indicator immediately,
-// then transitions to the full profile content once data arrives.
-// ---------------------------------------------------------------------------
-
-class _ProfileLoadingSheet extends StatefulWidget {
-  const _ProfileLoadingSheet({
-    super.key,
-    required this.profileFuture,
-    this.onMessageTap,
-    this.onError,
-  });
-
-  final Future<MemberProfile> profileFuture;
-  final void Function(MemberProfile)? onMessageTap;
-  final void Function(Object, StackTrace)? onError;
-
-  @override
-  State<_ProfileLoadingSheet> createState() => _ProfileLoadingSheetState();
-}
-
-class _ProfileLoadingSheetState extends State<_ProfileLoadingSheet> {
-  MemberProfile? _profile;
-  bool _hasError = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProfile();
-  }
-
-  Future<void> _loadProfile() async {
-    try {
-      final profile = await widget.profileFuture;
-      if (!mounted) return;
-      setState(() => _profile = profile);
-    } catch (e, st) {
-      if (!mounted) return;
-      setState(() => _hasError = true);
-      widget.onError?.call(e, st);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    if (_hasError) {
-      // Close the sheet on error (fail-soft).
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.of(context).pop();
-      });
-      return const SizedBox.shrink();
-    }
-
-    if (_profile == null) {
-      // Loading state — show spinner with drag handle.
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.lg,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 32,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: colors.textTertiary,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              const CircularProgressIndicator(
-                key: ValueKey('profile-loading-indicator'),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Profile loaded — delegate to the existing member profile sheet widget.
-    final member = _profile!;
-    return _MemberProfileSheetContent(
-      member: member,
-      onMessageTap: widget.onMessageTap != null
-          ? () => widget.onMessageTap!(member)
-          : null,
-    );
-  }
-}
-
-/// Renders the member profile content (same layout as _MemberProfileSheet
-/// in member_profile_sheet.dart but inlined here to avoid double-sheet nesting).
-class _MemberProfileSheetContent extends StatelessWidget {
-  const _MemberProfileSheetContent({
-    required this.member,
-    this.onMessageTap,
-  });
-
-  final MemberProfile member;
-  final VoidCallback? onMessageTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl,
-          vertical: AppSpacing.lg,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Drag handle
-            Container(
-              key: const ValueKey('profile-sheet-handle'),
-              width: 32,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-              decoration: BoxDecoration(
-                color: colors.textTertiary,
-                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-              ),
-            ),
-
-            // Display name
-            Text(
-              member.displayName,
-              key: const ValueKey('profile-sheet-name'),
-              style: AppTypography.headline.copyWith(color: colors.text),
-              textAlign: TextAlign.center,
-            ),
-
-            // Username
-            if (member.username != null) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '@${member.username}',
-                key: const ValueKey('profile-sheet-username'),
-                style: AppTypography.bodySmall.copyWith(
-                  color: colors.textSecondary,
-                ),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.sm),
-
-            // Role badge
-            if (member.role != null) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Container(
-                key: const ValueKey('profile-sheet-role'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: colors.surfaceAlt,
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                ),
-                child: Text(
-                  _capitalizeProfilePresence(member.role!),
-                  style: AppTypography.caption.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-
-            // Presence
-            if (member.presence != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    key: const ValueKey('profile-sheet-presence-dot'),
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _profilePresenceColor(colors, member.presence),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    _capitalizeProfilePresence(member.presence!),
-                    key: const ValueKey('profile-sheet-presence'),
-                    style: AppTypography.caption.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-
-            // Message / DM button
-            if (onMessageTap != null)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  key: const ValueKey('member-profile-dm-action'),
-                  onPressed: onMessageTap,
-                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: Text(context.l10n.conversationProfileMessage),
-                ),
-              ),
-            if (onMessageTap != null) const SizedBox(height: AppSpacing.lg),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-Color _profilePresenceColor(AppColors colors, String? presence) {
-  return switch (presence) {
-    'online' => colors.success,
-    'thinking' => colors.warning,
-    'working' => colors.primary,
-    'error' => colors.error,
-    _ => colors.textTertiary,
-  };
-}
-
-String _capitalizeProfilePresence(String presence) {
-  if (presence.isEmpty) return presence;
-  return presence[0].toUpperCase() + presence.substring(1);
 }

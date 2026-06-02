@@ -142,19 +142,15 @@ class VoiceMessageStore extends AutoDisposeNotifier<VoiceMessageState> {
 /// (Phase B) can be added at the insertion point without callers
 /// needing to change.
 class VoiceWaveformCacheNotifier
-    extends StateNotifier<Map<String, List<double>>> {
-  VoiceWaveformCacheNotifier([Map<String, List<double>>? initialData])
-      : super(initialData ?? {}) {
-    for (final key in state.keys) {
-      _lastAccessByName[key] = _nextAccessTick();
-    }
-  }
+    extends AutoDisposeNotifier<Map<String, List<double>>> {
+  final Map<String, int> _lastAccessByName = {};
+  int _accessClock = 0;
 
   /// Maximum number of cached waveform entries.
   static const maxSize = 50;
 
-  final Map<String, int> _lastAccessByName = {};
-  int _accessClock = 0;
+  @override
+  Map<String, List<double>> build() => {};
 
   /// Read a cached waveform entry and mark it as recently used.
   List<double>? get(String name) {
@@ -206,7 +202,7 @@ class VoiceWaveformCacheNotifier
 /// AutoDispose: scoped to conversation page lifecycle. Cleared when the
 /// user navigates away, preventing 50-entry permanent memory leak.
 /// LRU eviction (maxSize=50) still applies while the cache is alive.
-final voiceWaveformCacheProvider = AutoDisposeStateNotifierProvider<
+final voiceWaveformCacheProvider = AutoDisposeNotifierProvider<
     VoiceWaveformCacheNotifier, Map<String, List<double>>>(
-  (ref) => VoiceWaveformCacheNotifier(),
+  VoiceWaveformCacheNotifier.new,
 );
