@@ -627,7 +627,7 @@ class _ConversationDetailScreenState
 
   void _scheduleQuoteJumpNotFoundExpiry() {
     _quoteJumpExpiryTimer?.cancel();
-    _quoteJumpExpiryTimer = Timer(const Duration(seconds: 5), () {
+    _quoteJumpExpiryTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) setState(() {});
     });
   }
