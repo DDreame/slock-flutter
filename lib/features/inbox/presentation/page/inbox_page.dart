@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
@@ -138,12 +137,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
           ),
         ),
       ),
-      body: Column(
-        children: [
-          const ConnectionStatusBanner(),
-          Expanded(child: _buildBody(colors, bodyState)),
-        ],
-      ),
+      body: _buildBody(colors, bodyState),
     );
   }
 

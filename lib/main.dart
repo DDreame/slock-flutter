@@ -8,6 +8,7 @@ import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/app/bootstrap/fatal_bootstrap_screen.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/app/widgets/root_scaffold_messenger.dart';
 import 'package:slock_app/core/notifications/background_sync_lifecycle_binding.dart';
 import 'package:slock_app/core/notifications/foreground_service_lifecycle_binding.dart';
@@ -138,8 +139,14 @@ class SlockApp extends ConsumerWidget {
         darkTheme: AppTheme.dark,
         themeMode: themeState.themeMode,
         routerConfig: router,
-        builder: (context, child) =>
-            CrashRecoveryWrapper(child: child ?? const SizedBox.shrink()),
+        builder: (context, child) => CrashRecoveryWrapper(
+          child: Column(
+            children: [
+              const ConnectionStatusBanner(),
+              Expanded(child: child ?? const SizedBox.shrink()),
+            ],
+          ),
+        ),
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: const [
           AppLocalizations.delegate,
