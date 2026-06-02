@@ -46,7 +46,7 @@ final isSelectionModeActiveProvider = Provider.autoDispose<bool>((ref) {
   return ref.watch(
     conversationDetailStoreProvider.select((s) => s.isSelectionMode),
   );
-});
+}, dependencies: [conversationDetailStoreProvider]);
 
 /// INV-PERF-SELECT-2: Derived provider for selected message IDs.
 /// Individual cards watch this via .select((ids) => ids.contains(id))
@@ -55,7 +55,7 @@ final selectedMessageIdsProvider = Provider.autoDispose<Set<String>>((ref) {
   return ref.watch(
     conversationDetailStoreProvider.select((s) => s.selectedMessageIds),
   );
-});
+}, dependencies: [conversationDetailStoreProvider]);
 
 const _realtimeMessageCreatedEventType = 'message:new';
 const _realtimeMessageUpdatedEventType = 'message:updated';
