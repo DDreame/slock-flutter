@@ -215,7 +215,7 @@ class ShareViewController: UIViewController {
                 }
                 // P2-2: Handle nil copy result with error feedback.
                 guard let copied = self.copyToSharedContainer(url) else {
-                    self.appendError("Failed to prepare "\(url.lastPathComponent)" for sharing.")
+                    self.appendError("Failed to prepare \"\(url.lastPathComponent)\" for sharing.")
                     return
                 }
                 self.append(
