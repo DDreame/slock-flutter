@@ -7,7 +7,7 @@ import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/data/available_channel.dart';
-import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
+import 'package:slock_app/features/channels/application/load_available_channels_use_case.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -45,9 +45,8 @@ class _BrowseChannelsPageState extends ConsumerState<BrowseChannelsPage> {
     });
 
     try {
-      final channels = await ref
-          .read(channelManagementRepositoryProvider)
-          .loadAvailableChannels(serverId);
+      final channels =
+          await ref.read(loadAvailableChannelsUseCaseProvider).call(serverId);
       if (!mounted) return;
       setState(() {
         _channels = channels;

@@ -18,7 +18,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/csv_preview
 import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/image_gallery_page.dart';
-import 'package:slock_app/features/voice/data/audio_player_service.dart';
+import 'package:slock_app/features/voice/application/audio_player_pool_provider.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 

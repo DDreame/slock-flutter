@@ -23,8 +23,7 @@ import 'package:slock_app/features/home/presentation/widgets/home_direct_message
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/settings/application/toggle_channel_mute_use_case.dart';
-import 'package:slock_app/features/settings/data/channel_notification_preference.dart'
-    show ChannelNotificationPreferenceRepository, channelMutedIdsProvider;
+import 'package:slock_app/features/settings/application/channel_muted_ids_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
