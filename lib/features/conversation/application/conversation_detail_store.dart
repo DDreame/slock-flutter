@@ -39,6 +39,24 @@ final conversationDetailStoreProvider = NotifierProvider.autoDispose<
   dependencies: [currentConversationDetailTargetProvider],
 );
 
+/// INV-PERF-SELECT-1: Derived provider for selection mode state.
+/// Cards and the bottom area watch this independently, preventing the
+/// scaffold from rebuilding when selection mode toggles.
+final isSelectionModeActiveProvider = Provider.autoDispose<bool>((ref) {
+  return ref.watch(
+    conversationDetailStoreProvider.select((s) => s.isSelectionMode),
+  );
+});
+
+/// INV-PERF-SELECT-2: Derived provider for selected message IDs.
+/// Individual cards watch this via .select((ids) => ids.contains(id))
+/// so only the affected card rebuilds on selection toggle.
+final selectedMessageIdsProvider = Provider.autoDispose<Set<String>>((ref) {
+  return ref.watch(
+    conversationDetailStoreProvider.select((s) => s.selectedMessageIds),
+  );
+});
+
 const _realtimeMessageCreatedEventType = 'message:new';
 const _realtimeMessageUpdatedEventType = 'message:updated';
 const _realtimeMessageDeletedEventType = 'message:deleted';

@@ -201,7 +201,13 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       );
     }
 
-    final projections = ref.watch(inboxProjectionProvider);
+    // INV-PERF-INBOX-1: Watch only the projection count for itemCount.
+    // Individual items watch their own projection via .select() below,
+    // leveraging UnreadSourceProjection's custom == to prevent rebuilds
+    // when only other items change.
+    final projectionCount = ref.watch(
+      inboxProjectionProvider.select((p) => p.length),
+    );
     final items = inboxState.items;
 
     return Column(
@@ -226,9 +232,9 @@ class _InboxPageState extends ConsumerState<InboxPage> {
               child: ListView.builder(
                 key: const ValueKey('inbox-list-view'),
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                itemCount: projections.length + (inboxState.hasMore ? 1 : 0),
+                itemCount: projectionCount + (inboxState.hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
-                  if (index >= projections.length) {
+                  if (index >= projectionCount) {
                     return const Center(
                       child: Padding(
                         padding: EdgeInsets.all(AppSpacing.md),
@@ -236,35 +242,46 @@ class _InboxPageState extends ConsumerState<InboxPage> {
                       ),
                     );
                   }
-                  final projection = projections[index];
-                  final channelId = projection.channelId ?? projection.id;
-                  // Look up isMentioned from the original InboxItem.
-                  final isMentioned =
-                      index < items.length ? items[index].isMentioned : false;
+                  // INV-PERF-INBOX-2: Per-item Consumer watches only this
+                  // item's projection. UnreadSourceProjection has custom ==
+                  // so the select only fires when this item actually changes.
+                  return Consumer(
+                    builder: (context, itemRef, _) {
+                      final projection = itemRef.watch(
+                        inboxProjectionProvider
+                            .select((p) => index < p.length ? p[index] : null),
+                      );
+                      if (projection == null) return const SizedBox.shrink();
+                      final channelId = projection.channelId ?? projection.id;
+                      final isMentioned = index < items.length
+                          ? items[index].isMentioned
+                          : false;
 
-                  return _SwipeableInboxItem(
-                    key: ValueKey('inbox-item-$channelId'),
-                    channelId: channelId,
-                    projection: projection,
-                    isMentioned: isMentioned,
-                    onMarkRead: () {
-                      ref
-                          .read(inboxStoreProvider.notifier)
-                          .markRead(channelId: channelId);
+                      return _SwipeableInboxItem(
+                        key: ValueKey('inbox-item-$channelId'),
+                        channelId: channelId,
+                        projection: projection,
+                        isMentioned: isMentioned,
+                        onMarkRead: () {
+                          ref
+                              .read(inboxStoreProvider.notifier)
+                              .markRead(channelId: channelId);
+                        },
+                        onMarkDone: () {
+                          ref
+                              .read(inboxStoreProvider.notifier)
+                              .markDone(channelId: channelId);
+                        },
+                        onTap: () {
+                          ref
+                              .read(inboxStoreProvider.notifier)
+                              .markRead(channelId: channelId);
+                          _navigateToProjection(projection);
+                        },
+                        onLongPress: () =>
+                            _showActionSheet(context, projection, channelId),
+                      );
                     },
-                    onMarkDone: () {
-                      ref
-                          .read(inboxStoreProvider.notifier)
-                          .markDone(channelId: channelId);
-                    },
-                    onTap: () {
-                      ref
-                          .read(inboxStoreProvider.notifier)
-                          .markRead(channelId: channelId);
-                      _navigateToProjection(projection);
-                    },
-                    onLongPress: () =>
-                        _showActionSheet(context, projection, channelId),
                   );
                 },
               ),

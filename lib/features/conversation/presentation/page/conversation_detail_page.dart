@@ -225,6 +225,8 @@ class _ConversationDetailScreenState
     ref.watch(downloadSchedulerProvider);
 
     // INV-SCAFFOLD-SELECT-1: Watch only scaffold-relevant fields.
+    // Selection mode is watched separately via Consumer boundary below
+    // to prevent full scaffold rebuild on selection toggle.
     ref.watch(conversationDetailStoreProvider.select((s) => (
           status: s.status,
           failure: s.failure,
@@ -235,7 +237,6 @@ class _ConversationDetailScreenState
           isSearchActive: s.isSearchActive,
           isEmpty: s.isEmpty,
           isRefreshing: s.isRefreshing,
-          isSelectionMode: s.isSelectionMode,
           sendFailure: s.sendFailure,
           pendingAttachments: s.pendingAttachments,
           replyToMessage: s.replyToMessage,
@@ -316,7 +317,14 @@ class _ConversationDetailScreenState
                 members: _mentionController.filteredMembers,
                 onSelect: _insertMention,
               ),
-            _buildBottomArea(state, isRecording),
+            // INV-PERF-SELECT-1: Consumer boundary isolates selection mode
+            // rebuild from the scaffold. Only the bottom area rebuilds when
+            // selection mode toggles.
+            Consumer(builder: (context, bottomRef, _) {
+              final isSelectionMode =
+                  bottomRef.watch(isSelectionModeActiveProvider);
+              return _buildBottomArea(state, isRecording, isSelectionMode);
+            }),
           ],
         ),
       ),
@@ -468,11 +476,12 @@ class _ConversationDetailScreenState
     };
   }
 
-  Widget _buildBottomArea(ConversationDetailState state, bool isRecording) {
+  Widget _buildBottomArea(
+      ConversationDetailState state, bool isRecording, bool isSelectionMode) {
     if (state.status != ConversationDetailStatus.success) {
       return const SizedBox.shrink();
     }
-    if (state.isSelectionMode) return const SelectionActionBar();
+    if (isSelectionMode) return const SelectionActionBar();
     if (state.isArchived) return const ArchivedChannelBanner();
     return ConversationComposer(
       controller: _composerController,
