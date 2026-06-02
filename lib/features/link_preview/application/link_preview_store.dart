@@ -38,7 +38,11 @@ class LinkPreviewCacheNotifier
   static const maxSize = 100;
 
   @override
-  Map<String, AsyncValue<LinkMetadata?>> build() => {};
+  Map<String, AsyncValue<LinkMetadata?>> build() {
+    final service = ref.read(linkPreviewServiceProvider);
+    ref.onDispose(service.close);
+    return {};
+  }
 
   /// Fetch metadata for [url] if not already cached or in progress.
   ///
