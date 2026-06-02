@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
@@ -686,7 +687,10 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       context,
       context.l10n.conversationSwipeArchived(dm.title),
       actionLabel: context.l10n.undoAction,
-      onAction: () => homeStore.unhideDm(dm.scopeId),
+      onAction: () {
+        ref.read(hapticServiceProvider).lightImpact();
+        homeStore.unhideDm(dm.scopeId);
+      },
     );
   }
 

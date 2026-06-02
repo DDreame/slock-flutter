@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -35,7 +37,7 @@ class ConversationSwipeCallbacks {
   }
 }
 
-class ConversationSwipeWrapper extends StatelessWidget {
+class ConversationSwipeWrapper extends ConsumerWidget {
   const ConversationSwipeWrapper({
     super.key,
     required this.itemKey,
@@ -54,7 +56,7 @@ class ConversationSwipeWrapper extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final leftAction = callbacks.callbackFor(actions.left) == null
         ? ConversationSwipeAction.none
         : actions.left;
@@ -70,6 +72,8 @@ class ConversationSwipeWrapper extends StatelessWidget {
       endToStartAction: _configFor(context, leftAction),
       onStartToEndAction: callbacks.callbackFor(rightAction),
       onEndToStartAction: callbacks.callbackFor(leftAction),
+      onThresholdHaptic: () =>
+          ref.read(hapticServiceProvider).mediumImpact(),
       child: child,
     );
   }
