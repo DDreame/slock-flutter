@@ -86,13 +86,15 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
 
     // Schedule auto-load after state reset so InboxPage (indexedStack) does
     // not require initState() to re-fire on server switch (#572).
-    Future.microtask(() {
-      try {
-        if (state.status == InboxStatus.initial) load();
-      } on StateError catch (_) {
-        // Provider disposed before auto-load fired — nothing to do.
-      }
-    });
+    if (serverId != null) {
+      Future.microtask(() async {
+        try {
+          if (state.status == InboxStatus.initial) await load();
+        } on StateError catch (_) {
+          // Provider or container disposed before auto-load completed.
+        }
+      });
+    }
     return const InboxState();
   }
 
