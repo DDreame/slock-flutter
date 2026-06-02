@@ -40,6 +40,10 @@ class ConversationSwipePreference {
   }
 }
 
+/// Provider for conversation swipe preferences.
+///
+/// Falls back to defaults (left=archive, right=togglePin) when
+/// [sharedPreferencesProvider] is not available (e.g. in tests).
 final conversationSwipePreferenceProvider = NotifierProvider<
     ConversationSwipePreferenceNotifier, ConversationSwipePreference>(
   ConversationSwipePreferenceNotifier.new,
