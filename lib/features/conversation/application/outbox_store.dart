@@ -207,9 +207,9 @@ const _prefsKey = 'outbox_queue';
 const _maxConsecutiveDrainFailures = 3;
 
 /// Initial backoff duration after consecutive drain failures.
-/// Doubles on each subsequent failure, capped at [_maxDrainBackoffDuration].
+/// Doubles on each subsequent failure, capped at [maxDrainBackoffDuration].
 @visibleForTesting
-const initialDrainBackoffDuration = Duration(seconds: 5);
+const initialDrainBackoffDuration = Duration(seconds: 30);
 
 /// Maximum backoff duration — the cap for exponential growth.
 @visibleForTesting
@@ -381,6 +381,7 @@ class OutboxStore extends Notifier<OutboxState> {
     }).toList();
     state = state.copyWith(items: current);
     _persist();
+    _clearDrainBackoff();
     _scheduleDrainIfNeeded();
   }
 
@@ -401,6 +402,7 @@ class OutboxStore extends Notifier<OutboxState> {
     }).toList();
     state = state.copyWith(items: current);
     _persist();
+    _clearDrainBackoff();
     _scheduleDrainIfNeeded();
   }
 

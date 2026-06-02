@@ -2,7 +2,7 @@
 // B131 — Offline Resilience
 //
 // Tests for the three items in B131:
-// 1. Exponential backoff on outbox drain (5s initial, doubling, 300s cap)
+// 1. Exponential backoff on outbox drain (30s initial, doubling, 300s cap)
 // 2. Offline attachment send snackbar feedback
 // 3. Outbox failure logging — mark failed after 5 retries, show banner with
 //    retry button
@@ -76,8 +76,7 @@ void main() {
   // ===========================================================================
 
   group('B131 Item 1 — Exponential backoff on drain failures', () {
-    test('computeBackoffDuration produces 5s, 10s, 20s, 40s, 80s, 160s, 300s',
-        () {
+    test('computeBackoffDuration produces 30s, 60s, 120s, 240s, 300s', () {
       fakeAsync((async) {
         final c = createContainer();
         final sub = c.listen(outboxStoreProvider, (_, __) {});
@@ -108,21 +107,20 @@ void main() {
         }
 
         // After 3 consecutive failures, backoff is active.
-        // _consecutiveDrainFailures == 3: exponent = 0 → 5s
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 5));
+        // _consecutiveDrainFailures == 3: exponent = 0 → 30s
+        expect(notifier.computeBackoffDuration(), const Duration(seconds: 30));
 
         // Each subsequent drain failure increases backoff exponentially.
         // Advance past the current backoff to trigger the next drain cycle.
         final expectedSequence = <Duration>[
-          const Duration(seconds: 10), // consecutiveFailures=4
-          const Duration(seconds: 20), // consecutiveFailures=5
-          const Duration(seconds: 40), // consecutiveFailures=6
-          const Duration(seconds: 80), // consecutiveFailures=7
-          const Duration(seconds: 160), // consecutiveFailures=8
-          const Duration(seconds: 300), // consecutiveFailures=9 (cap)
+          const Duration(seconds: 60), // consecutiveFailures=4
+          const Duration(seconds: 120), // consecutiveFailures=5
+          const Duration(seconds: 240), // consecutiveFailures=6
+          const Duration(seconds: 300), // consecutiveFailures=7 (cap)
+          const Duration(seconds: 300), // consecutiveFailures=8 (cap)
         ];
 
-        var currentBackoff = const Duration(seconds: 5);
+        var currentBackoff = const Duration(seconds: 30);
         for (final expected in expectedSequence) {
           // Advance past the current backoff + 100ms reschedule timer.
           async.elapse(currentBackoff + const Duration(milliseconds: 200));
@@ -155,13 +153,13 @@ void main() {
           async.flushMicrotasks();
         }
 
-        // Backoff should be 5s now (consecutiveFailures == 3).
-        expect(notifier.computeBackoffDuration(), const Duration(seconds: 5));
+        // Backoff should be 30s now (consecutiveFailures == 3).
+        expect(notifier.computeBackoffDuration(), const Duration(seconds: 30));
 
         // Now make sends succeed and advance past backoff.
         repository.sendFailure = null;
         async.elapse(
-            const Duration(seconds: 5) + const Duration(milliseconds: 200));
+            const Duration(seconds: 30) + const Duration(milliseconds: 200));
         async.flushMicrotasks();
 
         // After success, backoff should be cleared.
@@ -207,6 +205,53 @@ void main() {
         sub.close();
       });
     });
+
+    test('manual retryAllFailed resets backoff and triggers immediate drain',
+        () {
+      fakeAsync((async) {
+        final c = createContainer();
+        final sub = c.listen(outboxStoreProvider, (_, __) {});
+        final notifier = c.read(outboxStoreProvider.notifier);
+        async.flushMicrotasks();
+
+        repository.sendFailure = const NetworkFailure(
+          message: 'timeout',
+          causeType: 'timeout',
+        );
+
+        notifier.enqueue(target, 'msg-1', localId: 'id-1');
+
+        // Trigger backoff (3 consecutive failures).
+        for (var i = 0; i < 3; i++) {
+          notifier.drainAll();
+          async.flushMicrotasks();
+        }
+
+        // Backoff is active — drainAll() would return early.
+        // Max out retries so the item becomes failed.
+        for (var i = 3; i < maxOutboxRetryAttempts; i++) {
+          async.elapse(notifier.computeBackoffDuration() +
+              const Duration(milliseconds: 200));
+          async.flushMicrotasks();
+        }
+
+        final targetKey = outboxTargetKey(target);
+        final items = c.read(outboxStoreProvider).items[targetKey]!;
+        expect(items.first.status, OutboxMessageStatus.failed);
+
+        // Now make sends succeed and trigger manual retry.
+        repository.sendFailure = null;
+        notifier.retryAllFailed(target);
+
+        // retryAllFailed should clear backoff — drain fires via 100ms timer.
+        async.elapse(const Duration(milliseconds: 200));
+        async.flushMicrotasks();
+
+        expect(repository.sentContents, contains('msg-1'));
+
+        sub.close();
+      });
+    });
   });
 
   // ===========================================================================
@@ -236,7 +281,7 @@ void main() {
           notifier.drainAll();
           async.flushMicrotasks();
         }
-        // After 3 failures, backoff is active (5s). Advance to trigger
+        // After 3 failures, backoff is active (30s). Advance to trigger
         // remaining drain cycles.
         for (var i = 3; i < maxOutboxRetryAttempts; i++) {
           // Advance past current backoff + 100ms reschedule.
