@@ -480,13 +480,16 @@ void _handleMessageNew(
 
   if (matchedChannel != null && matchedDirectMessage == null) {
     if (!isGenericFallback) {
-      unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+      unawaited(ref
+          .read(homeRepositoryProvider)
+          .persistConversationActivity(
             serverId: homeState.serverScopeId!,
             conversationId: incoming.conversationId,
             messageId: incoming.message.id,
             preview: preview,
             activityAt: incoming.message.createdAt,
-          ));
+          )
+          .catchError((_) {}));
       notifier.updateChannelLastMessage(
         conversationId: incoming.conversationId,
         messageId: incoming.message.id,
@@ -502,13 +505,16 @@ void _handleMessageNew(
   }
   if (matchedDirectMessage != null && matchedChannel == null) {
     if (!isGenericFallback) {
-      unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+      unawaited(ref
+          .read(homeRepositoryProvider)
+          .persistConversationActivity(
             serverId: homeState.serverScopeId!,
             conversationId: incoming.conversationId,
             messageId: incoming.message.id,
             preview: preview,
             activityAt: incoming.message.createdAt,
-          ));
+          )
+          .catchError((_) {}));
       notifier.updateDmLastMessage(
         conversationId: incoming.conversationId,
         messageId: incoming.message.id,

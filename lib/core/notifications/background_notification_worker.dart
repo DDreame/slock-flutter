@@ -190,19 +190,28 @@ class BackgroundNotificationWorker {
     final refresher = _authRefresher;
     if (refresher == null) return;
 
-    final newAuth = await refresher();
-    _authProvider = newAuth;
+    try {
+      final newAuth = await refresher();
+      _authProvider = newAuth;
 
-    // Reconnect with fresh credentials.
-    final token = newAuth.token;
-    if (token == null || token.isEmpty) return;
+      // Reconnect with fresh credentials.
+      final token = newAuth.token;
+      if (token == null || token.isEmpty) return;
 
-    _socket.disconnect();
-    await _socket.connect(
-      uri: newAuth.realtimeUrl,
-      token: token,
-      serverId: newAuth.serverId,
-    );
+      _socket.disconnect();
+      await _socket.connect(
+        uri: newAuth.realtimeUrl,
+        token: token,
+        serverId: newAuth.serverId,
+      );
+    } catch (e, st) {
+      _diagnostics?.error(
+        'BackgroundWorker',
+        'refreshAuth failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
+      // The worker must remain alive — swallow the error.
+    }
   }
 
   /// Start the worker: connect to realtime and begin listening.

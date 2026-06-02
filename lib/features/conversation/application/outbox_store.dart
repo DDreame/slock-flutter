@@ -694,7 +694,38 @@ class OutboxStore extends Notifier<OutboxState> {
     try {
       final stored = await ref.read(outboxLocalStoreProvider).loadAll();
       if (stored.isEmpty) return;
-      state = OutboxState(items: _fromLocalEntries(stored));
+      final hydrated = _fromLocalEntries(stored);
+
+      // Merge: items enqueued between build() and hydration completion must
+      // not be lost. Use current state.items as the authoritative set for
+      // anything added during the async gap, then add hydrated entries
+      // whose localIds aren't already present.
+      final currentItems = state.items;
+      if (currentItems.isEmpty) {
+        // Fast path: nothing was enqueued during hydration.
+        state = OutboxState(items: hydrated);
+      } else {
+        // Collect all localIds currently in state.
+        final existingIds = <String>{};
+        for (final msgs in currentItems.values) {
+          for (final msg in msgs) {
+            existingIds.add(msg.localId);
+          }
+        }
+        // Merge hydrated entries, skipping duplicates.
+        final merged = Map<String, List<OutboxMessage>>.of(currentItems);
+        for (final entry in hydrated.entries) {
+          final newMsgs =
+              entry.value.where((m) => !existingIds.contains(m.localId));
+          if (newMsgs.isEmpty) continue;
+          merged[entry.key] = [
+            ...merged[entry.key] ?? [],
+            ...newMsgs,
+          ];
+        }
+        state = OutboxState(items: merged);
+      }
+
       final connectivity = ref.read(connectivityServiceProvider);
       if (connectivity.isOnline) {
         _scheduleDrainIfNeeded();
