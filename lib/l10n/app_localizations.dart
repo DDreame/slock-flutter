@@ -3893,6 +3893,12 @@ abstract class AppLocalizations {
   /// **'No activity log entries.'**
   String get agentsActivityLogEmpty;
 
+  /// No description provided for @agentsActivityLogLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load activity log.'**
+  String get agentsActivityLogLoadFailed;
+
   /// No description provided for @agentsConfigMachine.
   ///
   /// In en, this message translates to:

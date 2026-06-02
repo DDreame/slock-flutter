@@ -707,6 +707,7 @@
   "agentsNotFound": "未找到智能体。",
   "agentsActivityLogTitle": "活动日志",
   "agentsActivityLogEmpty": "暂无活动日志。",
+  "agentsActivityLogLoadFailed": "活动日志加载失败。",
   "agentsConfigMachine": "机器",
   "agentsConfigRuntime": "运行时",
   "agentsConfigModel": "模型",

@@ -2066,6 +2066,10 @@ class AppLocalizationsEs extends AppLocalizations {
       'Sin entradas en el registro de actividad.';
 
   @override
+  String get agentsActivityLogLoadFailed =>
+      'Error al cargar el registro de actividad.';
+
+  @override
   String get agentsConfigMachine => 'Máquina';
 
   @override

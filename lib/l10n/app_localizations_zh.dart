@@ -1989,6 +1989,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentsActivityLogEmpty => '暂无活动日志。';
 
   @override
+  String get agentsActivityLogLoadFailed => '活动日志加载失败。';
+
+  @override
   String get agentsConfigMachine => '机器';
 
   @override

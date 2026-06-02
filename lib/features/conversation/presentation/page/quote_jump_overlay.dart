@@ -77,11 +77,15 @@ class QuoteJumpDismissibleOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDismissible = state == QuoteJumpState.notFound;
+    // Use opaque hit-test only when the overlay is dismissible (notFound).
+    // During loading, use deferToChild so scroll gestures pass through.
     return Semantics(
       button: isDismissible,
       label: isDismissible ? context.l10n.quoteJumpDismissSemantics : null,
       child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+        behavior: isDismissible
+            ? HitTestBehavior.opaque
+            : HitTestBehavior.deferToChild,
         onTap: isDismissible ? onDismiss : null,
         child: QuoteJumpOverlay(
           key: const ValueKey('quote-jump-overlay'),
