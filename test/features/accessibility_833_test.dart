@@ -140,7 +140,7 @@ void main() {
           ProviderScope(
             overrides: [
               linkPreviewCacheProvider.overrideWith(
-                (ref) => _FakeLinkPreviewCacheNotifier(),
+                () => _FakeLinkPreviewCacheNotifier(),
               ),
             ],
             child: MaterialApp(
@@ -746,19 +746,14 @@ void main() {
 // =============================================================================
 
 /// Fake link preview cache — pre-populated with null metadata for the test URL.
-class _FakeLinkPreviewCacheNotifier
-    extends StateNotifier<Map<String, AsyncValue<LinkMetadata?>>>
-    implements LinkPreviewCacheNotifier {
-  _FakeLinkPreviewCacheNotifier()
-      : super({
-          'https://example.com': const AsyncValue.data(null),
-        });
+class _FakeLinkPreviewCacheNotifier extends LinkPreviewCacheNotifier {
+  @override
+  Map<String, AsyncValue<LinkMetadata?>> build() => {
+        'https://example.com': const AsyncValue.data(null),
+      };
 
   @override
   Future<void> fetch(String url) async {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _FakeAttachmentRepository implements AttachmentRepository {

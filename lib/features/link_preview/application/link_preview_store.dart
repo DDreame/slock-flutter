@@ -20,13 +20,10 @@ final linkPreviewServiceProvider = Provider<LinkPreviewService>((ref) {
 /// - `AsyncLoading` while fetch is in progress
 /// - `AsyncData(metadata)` on success (may be `null` if page has no OG tags)
 /// - `AsyncError` on transient network failure (retryable on next access)
-final linkPreviewCacheProvider = StateNotifierProvider<LinkPreviewCacheNotifier,
-    Map<String, AsyncValue<LinkMetadata?>>>((ref) {
-  return LinkPreviewCacheNotifier(
-    ref.watch(linkPreviewServiceProvider),
-    ref.read(diagnosticsCollectorProvider),
-  );
-});
+final linkPreviewCacheProvider = NotifierProvider<LinkPreviewCacheNotifier,
+    Map<String, AsyncValue<LinkMetadata?>>>(
+  LinkPreviewCacheNotifier.new,
+);
 
 /// Notifier that manages the link preview cache.
 ///
@@ -34,15 +31,18 @@ final linkPreviewCacheProvider = StateNotifierProvider<LinkPreviewCacheNotifier,
 /// the least-recently-used entries are removed. Accessing an already-cached
 /// URL via [fetch] refreshes its recency so it survives longer.
 class LinkPreviewCacheNotifier
-    extends StateNotifier<Map<String, AsyncValue<LinkMetadata?>>> {
-  LinkPreviewCacheNotifier(this._service, this._diagnostics) : super({});
-
-  final LinkPreviewService _service;
-  final DiagnosticsCollector _diagnostics;
+    extends Notifier<Map<String, AsyncValue<LinkMetadata?>>> {
   final Set<String> _inFlight = <String>{};
 
   /// Maximum number of cached link previews.
   static const maxSize = 100;
+
+  @override
+  Map<String, AsyncValue<LinkMetadata?>> build() {
+    final service = ref.read(linkPreviewServiceProvider);
+    ref.onDispose(service.close);
+    return {};
+  }
 
   /// Fetch metadata for [url] if not already cached or in progress.
   ///
@@ -71,13 +71,16 @@ class LinkPreviewCacheNotifier
     );
 
     try {
-      final metadata = await _service.fetchMetadata(url);
+      final service = ref.read(linkPreviewServiceProvider);
+      final metadata = await service.fetchMetadata(url);
       state = _trimToMax(
         {...state, url: AsyncValue.data(metadata)},
         inFlight: _inFlight,
       );
     } on Exception catch (e, st) {
-      _diagnostics.error('LinkPreview', 'Metadata fetch failed for $url: $e');
+      ref
+          .read(diagnosticsCollectorProvider)
+          .error('LinkPreview', 'Metadata fetch failed for $url: $e');
       // Transient failure — store as error so widget can show fallback.
       state = _trimToMax(
         {...state, url: AsyncValue.error(e, st)},

@@ -38,19 +38,21 @@ final audioPlayerServiceFactoryProvider =
     Provider<AudioPlayerController Function()>((ref) => AudioPlayerService.new);
 
 final audioAttachmentPlayerPoolProvider =
-    StateNotifierProvider.autoDispose<AudioAttachmentPlayerPool, String?>(
-        (ref) {
-  return AudioAttachmentPlayerPool(
-    ref.read(audioPlayerServiceFactoryProvider)(),
-  );
-});
+    AutoDisposeNotifierProvider<AudioAttachmentPlayerPool, String?>(
+  AudioAttachmentPlayerPool.new,
+);
 
-class AudioAttachmentPlayerPool extends StateNotifier<String?> {
-  AudioAttachmentPlayerPool(this._player) : super(null);
-
-  final AudioPlayerController _player;
+class AudioAttachmentPlayerPool extends AutoDisposeNotifier<String?> {
+  late final AudioPlayerController _player;
 
   AudioPlayerController get player => _player;
+
+  @override
+  String? build() {
+    _player = ref.read(audioPlayerServiceFactoryProvider)();
+    ref.onDispose(() => unawaited(_player.dispose()));
+    return null;
+  }
 
   bool isActive(String key) => state == key;
 
@@ -92,12 +94,6 @@ class AudioAttachmentPlayerPool extends StateNotifier<String?> {
     if (state == key) {
       state = null;
     }
-  }
-
-  @override
-  void dispose() {
-    unawaited(_player.dispose());
-    super.dispose();
   }
 }
 

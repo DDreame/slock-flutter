@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:slock_app/features/voice/data/audio_player_service.dart';
@@ -113,7 +114,14 @@ void main() {
   group('AudioAttachmentPlayerPool', () {
     test('load while another attachment is active returns duration', () async {
       final player = _FakeAudioPlayerController();
-      final pool = AudioAttachmentPlayerPool(player);
+      final container = ProviderContainer(
+        overrides: [
+          audioPlayerServiceFactoryProvider.overrideWithValue(() => player),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final pool = container.read(audioAttachmentPlayerPoolProvider.notifier);
 
       await pool.play('first', '/tmp/first.m4a');
       final duration = await pool.load('second', '/tmp/second.m4a');
@@ -123,8 +131,6 @@ void main() {
       expect(player.loadCount, 1);
       expect(player.loadedPaths, ['/tmp/second.m4a']);
       expect(pool.isActive('second'), isTrue);
-
-      pool.dispose();
     });
   });
 

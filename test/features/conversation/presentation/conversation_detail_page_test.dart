@@ -1819,9 +1819,7 @@ void main() {
                 () => _FixedSessionStore(const SessionState()),
               ),
               voiceWaveformCacheProvider.overrideWith(
-                (ref) => VoiceWaveformCacheNotifier({
-                  'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
-                }),
+                () => _PrefilledWaveformCache(),
               ),
               homeNowProvider
                   .overrideWith((ref) => Stream.value(DateTime.now())),
@@ -2153,6 +2151,13 @@ class _FixedSessionStore extends SessionStore {
 
   @override
   SessionState build() => _state;
+}
+
+class _PrefilledWaveformCache extends VoiceWaveformCacheNotifier {
+  @override
+  Map<String, List<double>> build() => {
+        'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
+      };
 }
 
 class _FakeConversationRepository implements ConversationRepository {
