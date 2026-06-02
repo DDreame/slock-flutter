@@ -6,24 +6,26 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/app/widgets/deep_link_resource_error_view.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/features/channels/application/load_mention_members_use_case.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
-import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
-import 'package:slock_app/features/conversation/presentation/page/mention_filter_cache.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
-import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/data/typing_realtime_binding.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_detail_helpers.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_info_page.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_scroll_coordinator.dart';
+import 'package:slock_app/features/conversation/presentation/page/mention_autocomplete_controller.dart';
+import 'package:slock_app/features/conversation/presentation/page/mention_suggestion_overlay.dart';
+import 'package:slock_app/features/conversation/presentation/page/quote_jump_overlay.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart';
 export 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart'
@@ -31,8 +33,6 @@ export 'package:slock_app/features/conversation/presentation/widgets/conversatio
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_search_overlay.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_selection_bar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
-import 'package:slock_app/features/home/application/dm_scope_map_provider.dart';
-import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
@@ -48,102 +48,17 @@ import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recording_lifecycle_binding.dart';
 import 'package:slock_app/stores/composer/composer_settings_store.dart';
 
+// Re-export extracted types so existing test imports don't break.
+export 'package:slock_app/features/conversation/presentation/page/quote_jump_overlay.dart'
+    show QuoteJumpState, QuoteJumpOverlay, QuoteJumpDismissibleOverlay;
+export 'package:slock_app/features/conversation/presentation/page/mention_suggestion_overlay.dart'
+    show buildMentionSuggestionOverlay;
+
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
   BuildContext context,
   WidgetRef ref,
   ConversationDetailState state,
 );
-
-/// State machine for quote-jump UI feedback (#649).
-///
-/// Separates "loading" (spinner during loadOlder) from "not found" (error
-/// shown only after load completes and target message is missing).
-enum QuoteJumpState { idle, loading, notFound }
-
-/// Overlay widget rendered during quote-jump loading or not-found states.
-///
-/// Exposed as public API for Phase A testability.
-class QuoteJumpOverlay extends StatelessWidget {
-  const QuoteJumpOverlay({super.key, required this.state});
-
-  final QuoteJumpState state;
-
-  @override
-  Widget build(BuildContext context) {
-    return switch (state) {
-      QuoteJumpState.idle => const SizedBox.shrink(),
-      QuoteJumpState.loading => Center(
-          child: Card(
-            key: const ValueKey('quote-jump-loading'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(context.l10n.conversationQuoteLoading),
-                ],
-              ),
-            ),
-          ),
-        ),
-      QuoteJumpState.notFound => Center(
-          child: Card(
-            key: const ValueKey('quote-jump-not-found'),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.info_outline, size: 16),
-                  const SizedBox(width: 12),
-                  Text(context.l10n.conversationQuoteNotFound),
-                ],
-              ),
-            ),
-          ),
-        ),
-    };
-  }
-}
-
-/// Dismissible overlay shell wrapping [QuoteJumpOverlay] with Semantics.
-///
-/// When [state] is [QuoteJumpState.notFound], the overlay becomes a tappable
-/// dismiss button with an accessible label. Extracted for widget-level
-/// testability (#851).
-class QuoteJumpDismissibleOverlay extends StatelessWidget {
-  const QuoteJumpDismissibleOverlay({
-    super.key,
-    required this.state,
-    this.onDismiss,
-  });
-
-  final QuoteJumpState state;
-  final VoidCallback? onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDismissible = state == QuoteJumpState.notFound;
-    return Semantics(
-      button: isDismissible,
-      label: isDismissible ? context.l10n.quoteJumpDismissSemantics : null,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: isDismissible ? onDismiss : null,
-        child: QuoteJumpOverlay(
-          key: const ValueKey('quote-jump-overlay'),
-          state: state,
-        ),
-      ),
-    );
-  }
-}
 
 class ConversationDetailPage extends StatelessWidget {
   const ConversationDetailPage({
@@ -159,19 +74,11 @@ class ConversationDetailPage extends StatelessWidget {
   final String? titleOverride;
   final ConversationAppBarActionsBuilder? appBarActionsBuilder;
   final bool registerOpenTarget;
-
-  /// When set, the page will scroll to (and optionally highlight) this message
-  /// once the message list is loaded.
   final String? highlightMessageId;
 
-  /// Test-only hook: returns the current number of cached message GlobalKeys
-  /// in the most-recently-mounted [_ConversationDetailScreenState]. Null when
-  /// no instance is mounted. Used by Phase A invariant tests to observe
-  /// explicit map clearing on dispose.
   @visibleForTesting
   static int Function()? debugMessageGlobalKeyCount;
 
-  /// Test hook: incremented each time [_registerAttachmentDownloads] fires.
   @visibleForTesting
   static int debugAttachmentRegistrationCount = 0;
 
@@ -218,46 +125,22 @@ class _ConversationDetailScreenState
   late final FocusNode _composerFocusNode;
   late final ScrollController _scrollController;
   late final bool _restoredFromSession;
+  late final ConversationScrollCoordinator _scrollCoordinator;
+  late final MentionAutocompleteController _mentionController;
   ProviderSubscription<ConversationDetailState>? _stateSubscription;
   ProviderSubscription<TranslationSettingsState>? _translationSettingsSub;
   ProviderSubscription<UnreadSourceProjectionState>? _deferredMarkReadSub;
-  bool _didApplyInitialLanding = false;
+  Timer? _highlightExpiryTimer;
+  Timer? _quoteJumpExpiryTimer;
   bool _pendingDraftCallback = false;
-  double? _olderLoadAnchorOffset;
-  double? _olderLoadAnchorMaxExtent;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
   bool _isFormattingToolbarVisible = false;
   bool _isEmojiPickerVisible = false;
-  bool _showScrollToBottom = false;
   bool _asTask = false;
-  Timer? _scrollThrottleTimer;
-
-  // Quote-jump highlight state.
-  String? _highlightedMessageId;
-  Timer? _highlightTimer;
-  QuoteJumpState _quoteJumpState = QuoteJumpState.idle;
-  Timer? _quoteJumpNotFoundTimer;
-  final Map<String, GlobalKey> _messageGlobalKeys = {};
-  int _lastRegisteredMessageCount = 0;
-
-  GlobalKey _getMessageKey(String messageId) {
-    return _messageGlobalKeys.putIfAbsent(messageId, () => GlobalKey());
-  }
-
-  // Mention autocomplete state.
-  bool _showMentionOverlay = false;
-  String _mentionQuery = '';
-  int _mentionTriggerOffset = -1;
-  List<ChannelMember> _mentionMembers = [];
-  bool _mentionMembersLoaded = false;
-  final MentionFilterCache _mentionFilterCache = MentionFilterCache();
 
   @override
   void initState() {
     super.initState();
-    // Register test hook for observing GlobalKey map size.
-    ConversationDetailPage.debugMessageGlobalKeyCount =
-        () => _messageGlobalKeys.length;
     final target = ref.read(currentConversationDetailTargetProvider);
     final cachedSession =
         ref.read(conversationDetailSessionStoreProvider)[target];
@@ -267,6 +150,20 @@ class _ConversationDetailScreenState
     _scrollController = ScrollController(
       initialScrollOffset: cachedSession?.scrollOffset ?? 0,
     )..addListener(_handleScroll);
+    _scrollCoordinator = ConversationScrollCoordinator(
+      scrollController: _scrollController,
+      readState: () => ref.read(conversationDetailStoreProvider),
+      loadOlder: () =>
+          ref.read(conversationDetailStoreProvider.notifier).loadOlder(),
+      updateViewportOffset: (offset) => ref
+          .read(conversationDetailStoreProvider.notifier)
+          .updateViewportOffset(offset),
+    );
+    ConversationDetailPage.debugMessageGlobalKeyCount =
+        () => _scrollCoordinator.messageGlobalKeyCount;
+    _mentionController = MentionAutocompleteController(
+      loadMembers: _loadMentionMembers,
+    );
     _stateSubscription = ref.listenManual<ConversationDetailState>(
       conversationDetailStoreProvider,
       _handleStateChange,
@@ -275,8 +172,6 @@ class _ConversationDetailScreenState
     Future.microtask(
       () => ref.read(conversationDetailStoreProvider.notifier).ensureLoaded(),
     );
-    // Load translation settings so auto-translate and context menu work
-    // without requiring a prior visit to the settings page.
     _translationSettingsSub = ref.listenManual<TranslationSettingsState>(
       translationSettingsStoreProvider,
       _handleTranslationSettingsLoaded,
@@ -290,36 +185,23 @@ class _ConversationDetailScreenState
   void didUpdateWidget(covariant _ConversationDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.target != widget.target) {
-      _resetMentionMembers();
+      _mentionController.reset();
+      setState(() {});
       Future.microtask(
         () => ref.read(conversationDetailStoreProvider.notifier).ensureLoaded(),
       );
     }
   }
 
-  void _resetMentionMembers() {
-    setState(() {
-      _showMentionOverlay = false;
-      _mentionQuery = '';
-      _mentionTriggerOffset = -1;
-      _mentionMembers = [];
-      _mentionMembersLoaded = false;
-    });
-  }
-
   @override
   void dispose() {
-    // Clear the key map so the test hook observes count == 0 after dispose.
-    // Phase B adds this line; the hook stays alive for test observation.
-    _messageGlobalKeys.clear();
-    // Voice recording cleanup handled by voiceRecordingControllerProvider
-    // (AutoDispose — cleaned up when page disposes and listeners are removed).
+    _highlightExpiryTimer?.cancel();
+    _quoteJumpExpiryTimer?.cancel();
+    _scrollCoordinator.dispose();
+    _mentionController.dispose();
     _stateSubscription?.close();
     _translationSettingsSub?.close();
     _deferredMarkReadSub?.close();
-    _scrollThrottleTimer?.cancel();
-    _highlightTimer?.cancel();
-    _quoteJumpNotFoundTimer?.cancel();
     if (_scrollController.hasClients) {
       ref
           .read(conversationDetailStoreProvider.notifier)
@@ -336,21 +218,13 @@ class _ConversationDetailScreenState
   @override
   Widget build(BuildContext context) {
     if (widget.registerOpenTarget) {
-      ref.watch(
-        currentOpenConversationRegistrationProvider(
-          ref.read(currentConversationDetailTargetProvider),
-        ),
-      );
+      ref.watch(currentOpenConversationRegistrationProvider(
+        ref.read(currentConversationDetailTargetProvider),
+      ));
     }
-    // #687: Keep download scheduler alive for the page lifetime so that
-    // enqueued items survive between registration and later visibility
-    // callbacks. AutoDispose will clean up when the page tears down.
     ref.watch(downloadSchedulerProvider);
 
-    // INV-SCAFFOLD-SELECT-1: Watch only scaffold-relevant fields so that
-    // messages/pendingMessages mutations (the hottest path) do NOT trigger
-    // a full scaffold rebuild. The message list has its own subscription via
-    // _ConversationMessageList.
+    // INV-SCAFFOLD-SELECT-1: Watch only scaffold-relevant fields.
     ref.watch(conversationDetailStoreProvider.select((s) => (
           status: s.status,
           failure: s.failure,
@@ -370,8 +244,7 @@ class _ConversationDetailScreenState
           canSend: s.canSend,
         )));
     final state = ref.read(conversationDetailStoreProvider);
-    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
-    // refresh completes with failure — not on pagination or mutation errors.
+
     ref.listen(
       conversationDetailStoreProvider.select((s) => s.isRefreshing),
       (prev, next) {
@@ -384,12 +257,12 @@ class _ConversationDetailScreenState
         }
       },
     );
+
     final voiceRecordingState = ref.watch(
       voiceMessageStoreProvider.select((s) => s.recordingState),
     );
     final isRecording = voiceRecordingState == VoiceRecorderState.recording;
 
-    // Initialize typing realtime binding — auto-binds/disposes via provider.
     final target = ref.read(currentConversationDetailTargetProvider);
     final typingScopeKey =
         'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
@@ -408,87 +281,9 @@ class _ConversationDetailScreenState
       });
     }
 
-    // #772: VoiceRecordingLifecycleBinding keeps the AutoDispose
-    // VoiceRecordingController alive for this page's lifetime.
     return VoiceRecordingLifecycleBinding(
       child: Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(widget.titleOverride ?? state.resolvedTitle),
-              if (target.surface == ConversationSurface.directMessage)
-                _DmPresenceSubtitle(
-                  conversationId: target.conversationId,
-                )
-              else if (state.description != null &&
-                  state.description!.isNotEmpty)
-                Text(
-                  state.description!,
-                  key: const ValueKey('channel-description-text'),
-                  style: AppTypography.caption.copyWith(
-                    color:
-                        Theme.of(context).extension<AppColors>()!.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                )
-              else if (state.memberCount != null)
-                Text(
-                  context.l10n.conversationMemberCount(state.memberCount!),
-                  key: const ValueKey('conversation-member-count'),
-                  style: AppTypography.caption.copyWith(
-                    color:
-                        Theme.of(context).extension<AppColors>()!.textSecondary,
-                  ),
-                ),
-            ],
-          ),
-          actions: [
-            if (state.status == ConversationDetailStatus.success)
-              IconButton(
-                key: const ValueKey('conversation-search-toggle'),
-                icon: Icon(
-                  state.isSearchActive ? Icons.search_off : Icons.search,
-                ),
-                tooltip: state.isSearchActive
-                    ? context.l10n.conversationCloseSearch
-                    : context.l10n.conversationSearchTooltip,
-                onPressed: ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .toggleSearch,
-              ),
-            if (state.status == ConversationDetailStatus.success)
-              IconButton(
-                key: const ValueKey('conversation-members-shortcut'),
-                icon: const Icon(Icons.info_outline),
-                tooltip: context.l10n.conversationInfoTooltip,
-                onPressed: () {
-                  final target =
-                      ref.read(currentConversationDetailTargetProvider);
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ConversationInfoPage(
-                        target: target,
-                        title: state.resolvedTitle,
-                        description: state.description,
-                        initialSection: ConversationInfoSection.members,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            if (state.status == ConversationDetailStatus.success)
-              IconButton(
-                key: const ValueKey('conversation-screenshot'),
-                icon: const Icon(Icons.screenshot_outlined),
-                onPressed: () => _captureAndAnnotate(),
-                tooltip: context.l10n.conversationScreenshotTooltip,
-              ),
-            ...?widget.appBarActionsBuilder?.call(context, ref, state),
-          ],
-        ),
+        appBar: _buildAppBar(context, state, target),
         body: Column(
           children: [
             if (state.isSearchActive)
@@ -507,573 +302,267 @@ class _ConversationDetailScreenState
                     .read(conversationDetailStoreProvider.notifier)
                     .toggleSearch,
               ),
-            const _OfflineBanner(),
-            Expanded(
-              child: switch (state.status) {
-                ConversationDetailStatus.initial ||
-                ConversationDetailStatus.loading =>
-                  ListView(
-                    key: const ValueKey('conversation-skeleton'),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.pageHorizontal,
-                      vertical: AppSpacing.sm,
-                    ),
-                    children: const [
-                      SkeletonListItem(
-                        key: ValueKey('conversation-skeleton-item-0'),
-                      ),
-                      SkeletonListItem(
-                        key: ValueKey('conversation-skeleton-item-1'),
-                      ),
-                      SkeletonListItem(
-                        key: ValueKey('conversation-skeleton-item-2'),
-                      ),
-                      SkeletonListItem(
-                        key: ValueKey('conversation-skeleton-item-3'),
-                      ),
-                      SkeletonListItem(
-                        key: ValueKey('conversation-skeleton-item-4'),
-                      ),
-                    ],
-                  ),
-                ConversationDetailStatus.failure => _ConversationFailureView(
-                    state: state,
-                    onRetry: () => ref
-                        .read(conversationDetailStoreProvider.notifier)
-                        .retry(),
-                  ),
-                ConversationDetailStatus.success when state.isEmpty =>
-                  _ConversationEmptyView(title: state.resolvedTitle),
-                ConversationDetailStatus.success => Column(
-                    children: [
-                      if (state.isRefreshing)
-                        const LinearProgressIndicator(
-                          key: ValueKey('conversation-refreshing'),
-                          minHeight: 2,
-                        ),
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            RepaintBoundary(
-                              key: _screenshotBoundaryKey,
-                              child: ConversationMessageList(
-                                controller: _scrollController,
-                                onScrollToMessage: _scrollToMessageId,
-                                highlightedMessageId: _highlightedMessageId,
-                                messageKeyBuilder: _getMessageKey,
-                              ),
-                            ),
-                            if (_quoteJumpState != QuoteJumpState.idle)
-                              Positioned.fill(
-                                child: QuoteJumpDismissibleOverlay(
-                                  state: _quoteJumpState,
-                                  onDismiss: _dismissQuoteJumpNotFound,
-                                ),
-                              ),
-                            if (_showScrollToBottom)
-                              Positioned(
-                                right: 16,
-                                bottom: 16,
-                                child: FloatingActionButton.small(
-                                  key: const ValueKey('scroll-to-bottom-fab'),
-                                  tooltip:
-                                      context.l10n.scrollToBottomFabTooltip,
-                                  onPressed: () {
-                                    _scrollController.animateTo(
-                                      0,
-                                      duration:
-                                          const Duration(milliseconds: 300),
-                                      curve: Curves.easeOut,
-                                    );
-                                  },
-                                  child: const Icon(
-                                    Icons.keyboard_double_arrow_down,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-              },
-            ),
+            const OfflineBanner(),
+            Expanded(child: _buildBody(context, state)),
             if (state.status == ConversationDetailStatus.success)
               const TypingIndicatorWidget(),
             if (state.status == ConversationDetailStatus.success)
-              const _OutboxFailedBanner(),
+              const OutboxFailedBanner(),
             if (state.status == ConversationDetailStatus.success &&
-                _showMentionOverlay &&
-                _filteredMentionMembers.isNotEmpty)
-              _MentionSuggestionOverlay(
+                _mentionController.showOverlay &&
+                _mentionController.filteredMembers.isNotEmpty)
+              MentionSuggestionOverlay(
                 key: const ValueKey('mention-suggestion-overlay'),
-                members: _filteredMentionMembers,
+                members: _mentionController.filteredMembers,
                 onSelect: _insertMention,
               ),
-            if (state.status == ConversationDetailStatus.success &&
-                state.isSelectionMode)
-              const SelectionActionBar()
-            else if (state.status == ConversationDetailStatus.success &&
-                state.isArchived)
-              const _ArchivedChannelBanner()
-            else if (state.status == ConversationDetailStatus.success)
-              ConversationComposer(
-                controller: _composerController,
-                focusNode: _composerFocusNode,
-                state: state,
-                isRecording: isRecording,
-                enterToSend: ref.watch(
-                  composerSettingsStoreProvider.select((s) => s.enterToSend),
-                ),
-                isFormattingToolbarVisible: _isFormattingToolbarVisible,
-                isEmojiPickerVisible: _isEmojiPickerVisible,
-                onToggleFormattingToolbar: () {
-                  setState(() {
-                    _isFormattingToolbarVisible = !_isFormattingToolbarVisible;
-                  });
-                },
-                onToggleEmojiPicker: () {
-                  setState(() {
-                    _isEmojiPickerVisible = !_isEmojiPickerVisible;
-                  });
-                },
-                onChanged: (value) {
-                  ref
-                      .read(conversationDetailStoreProvider.notifier)
-                      .updateDraft(value);
-                  if (value.trim().isNotEmpty) {
-                    _emitTyping();
-                  }
-                  _detectMentionTrigger(value);
-                },
-                onSend: _handleSend,
-                onPickAttachment: ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .addPendingAttachment,
-                onRemoveAttachment: ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .removePendingAttachment,
-                onCancelUpload: ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .cancelUpload,
-                onClearReply: ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .clearReplyTo,
-                onMicTap: _startRecording,
-                onSendRecording: _stopRecordingAndSend,
-                onCancelRecording: _cancelRecording,
-                asTask: _asTask,
-                onToggleAsTask: () => setState(() => _asTask = !_asTask),
-              ),
+            _buildBottomArea(state, isRecording),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _handleSend() async {
-    final sendAsTask = _asTask;
-    await ref
-        .read(conversationDetailStoreProvider.notifier)
-        .send(asTask: sendAsTask);
-    final state = ref.read(conversationDetailStoreProvider);
+  // -- Build helpers --
 
-    // B131: Show snackbar when user tries to send attachment while offline.
-    if (state.sendFailure?.causeType == 'offlineAttachment' && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          key: const ValueKey('offline-attachment-snackbar'),
-          content: Text(
-            context.l10n.conversationOfflineAttachmentSnackbar,
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (state.sendFailure == null &&
-        state.draft.isEmpty &&
-        state.pendingAttachments.isEmpty) {
-      ref.read(hapticServiceProvider).lightImpact();
-      _composerController.clear();
-      _composerFocusNode.unfocus();
-      if (sendAsTask) {
-        setState(() => _asTask = false);
-      }
-    }
-  }
-
-  void _emitTyping() {
-    final target = ref.read(currentConversationDetailTargetProvider);
-    final typingScopeKey =
-        'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
-    ref.read(typingRealtimeBindingProvider(typingScopeKey)).emitTyping();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Mention autocomplete
-  // ---------------------------------------------------------------------------
-
-  void _detectMentionTrigger(String text) {
-    final cursorOffset = _composerController.selection.baseOffset;
-    if (cursorOffset < 0) {
-      _closeMentionOverlay();
-      return;
-    }
-
-    // Walk backwards from cursor to find '@' trigger.
-    final textBeforeCursor = text.substring(0, cursorOffset);
-    final atIndex = textBeforeCursor.lastIndexOf('@');
-    if (atIndex < 0) {
-      _closeMentionOverlay();
-      return;
-    }
-
-    // '@' must be at start of text or preceded by a whitespace character.
-    if (atIndex > 0 && textBeforeCursor[atIndex - 1] != ' ') {
-      _closeMentionOverlay();
-      return;
-    }
-
-    // Extract query after '@' (up to cursor).
-    final query = textBeforeCursor.substring(atIndex + 1);
-
-    // Query must not contain spaces (would mean user moved past the mention).
-    if (query.contains(' ')) {
-      _closeMentionOverlay();
-      return;
-    }
-
-    setState(() {
-      _showMentionOverlay = true;
-      _mentionQuery = query;
-      _mentionTriggerOffset = atIndex;
-    });
-
-    if (!_mentionMembersLoaded) {
-      _loadMentionMembers();
-    }
-  }
-
-  void _closeMentionOverlay() {
-    if (_showMentionOverlay) {
-      _mentionFilterCache.invalidate();
-      setState(() {
-        _showMentionOverlay = false;
-        _mentionQuery = '';
-        _mentionTriggerOffset = -1;
-      });
-    }
-  }
-
-  Future<void> _loadMentionMembers() async {
-    try {
-      final target = ref.read(currentConversationDetailTargetProvider);
-      final repo = ref.read(channelMemberRepositoryProvider);
-      final members = await repo.listMembers(
-        target.serverId,
-        channelId: target.conversationId,
-      );
-      if (mounted &&
-          ref.read(currentConversationDetailTargetProvider) == target) {
-        setState(() {
-          _mentionMembers = members;
-          _mentionMembersLoaded = true;
-        });
-      }
-    } on Exception catch (e) {
-      ref.read(diagnosticsCollectorProvider).error(
-            'ConversationDetail',
-            'Mention member load failed: $e',
-          );
-    }
-  }
-
-  List<ChannelMember> get _filteredMentionMembers {
-    return _mentionFilterCache.filter(_mentionMembers, _mentionQuery);
-  }
-
-  void _insertMention(ChannelMember member) {
-    final text = _composerController.text;
-    final mention = '@${member.mentionHandle} ';
-    final before = text.substring(0, _mentionTriggerOffset);
-    final cursorOffset = _composerController.selection.baseOffset;
-    final after = text.substring(cursorOffset);
-    final newText = '$before$mention$after';
-    _composerController.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(
-        offset: before.length + mention.length,
+  AppBar _buildAppBar(BuildContext context, ConversationDetailState state,
+      ConversationDetailTarget target) {
+    return AppBar(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(widget.titleOverride ?? state.resolvedTitle),
+          if (target.surface == ConversationSurface.directMessage)
+            DmPresenceSubtitle(conversationId: target.conversationId)
+          else if (state.description != null && state.description!.isNotEmpty)
+            Text(
+              state.description!,
+              key: const ValueKey('channel-description-text'),
+              style: AppTypography.caption.copyWith(
+                color: Theme.of(context).extension<AppColors>()!.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          else if (state.memberCount != null)
+            Text(
+              context.l10n.conversationMemberCount(state.memberCount!),
+              key: const ValueKey('conversation-member-count'),
+              style: AppTypography.caption.copyWith(
+                color: Theme.of(context).extension<AppColors>()!.textSecondary,
+              ),
+            ),
+        ],
       ),
+      actions: [
+        if (state.status == ConversationDetailStatus.success)
+          IconButton(
+            key: const ValueKey('conversation-search-toggle'),
+            icon: Icon(state.isSearchActive ? Icons.search_off : Icons.search),
+            tooltip: state.isSearchActive
+                ? context.l10n.conversationCloseSearch
+                : context.l10n.conversationSearchTooltip,
+            onPressed:
+                ref.read(conversationDetailStoreProvider.notifier).toggleSearch,
+          ),
+        if (state.status == ConversationDetailStatus.success)
+          IconButton(
+            key: const ValueKey('conversation-members-shortcut'),
+            icon: const Icon(Icons.info_outline),
+            tooltip: context.l10n.conversationInfoTooltip,
+            onPressed: () {
+              final t = ref.read(currentConversationDetailTargetProvider);
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => ConversationInfoPage(
+                  target: t,
+                  title: state.resolvedTitle,
+                  description: state.description,
+                  initialSection: ConversationInfoSection.members,
+                ),
+              ));
+            },
+          ),
+        if (state.status == ConversationDetailStatus.success)
+          IconButton(
+            key: const ValueKey('conversation-screenshot'),
+            icon: const Icon(Icons.screenshot_outlined),
+            onPressed: _captureAndAnnotate,
+            tooltip: context.l10n.conversationScreenshotTooltip,
+          ),
+        ...?widget.appBarActionsBuilder?.call(context, ref, state),
+      ],
     );
-    // Notify the store about draft change.
-    ref.read(conversationDetailStoreProvider.notifier).updateDraft(newText);
-    _closeMentionOverlay();
-    // #656: Haptic feedback on mention selection.
-    ref.read(hapticServiceProvider).mediumImpact();
   }
 
-  Future<void> _captureAndAnnotate() async {
-    const captureService = ScreenshotCaptureService();
-    final pixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final path = await captureService.capture(
-      _screenshotBoundaryKey,
-      pixelRatio: pixelRatio,
+  Widget _buildBody(BuildContext context, ConversationDetailState state) {
+    return switch (state.status) {
+      ConversationDetailStatus.initial ||
+      ConversationDetailStatus.loading =>
+        ListView(
+          key: const ValueKey('conversation-skeleton'),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pageHorizontal,
+            vertical: AppSpacing.sm,
+          ),
+          children: const [
+            SkeletonListItem(key: ValueKey('conversation-skeleton-item-0')),
+            SkeletonListItem(key: ValueKey('conversation-skeleton-item-1')),
+            SkeletonListItem(key: ValueKey('conversation-skeleton-item-2')),
+            SkeletonListItem(key: ValueKey('conversation-skeleton-item-3')),
+            SkeletonListItem(key: ValueKey('conversation-skeleton-item-4')),
+          ],
+        ),
+      ConversationDetailStatus.failure => ConversationFailureView(
+          state: state,
+          onRetry: () =>
+              ref.read(conversationDetailStoreProvider.notifier).retry(),
+        ),
+      ConversationDetailStatus.success when state.isEmpty =>
+        ConversationEmptyView(title: state.resolvedTitle),
+      ConversationDetailStatus.success => Column(
+          children: [
+            if (state.isRefreshing)
+              const LinearProgressIndicator(
+                key: ValueKey('conversation-refreshing'),
+                minHeight: 2,
+              ),
+            Expanded(
+              child: Stack(children: [
+                RepaintBoundary(
+                  key: _screenshotBoundaryKey,
+                  child: ConversationMessageList(
+                    controller: _scrollController,
+                    onScrollToMessage: _scrollToMessageId,
+                    highlightedMessageId:
+                        _scrollCoordinator.highlightedMessageId,
+                    messageKeyBuilder: _scrollCoordinator.getMessageKey,
+                  ),
+                ),
+                if (_scrollCoordinator.quoteJumpState != QuoteJumpState.idle)
+                  Positioned.fill(
+                    child: QuoteJumpDismissibleOverlay(
+                      state: _scrollCoordinator.quoteJumpState,
+                      onDismiss: _dismissQuoteJumpNotFound,
+                    ),
+                  ),
+                if (_scrollCoordinator.showScrollToBottom)
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton.small(
+                      key: const ValueKey('scroll-to-bottom-fab'),
+                      tooltip: context.l10n.scrollToBottomFabTooltip,
+                      onPressed: () => _scrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      ),
+                      child: const Icon(Icons.keyboard_double_arrow_down),
+                    ),
+                  ),
+              ]),
+            ),
+          ],
+        ),
+    };
+  }
+
+  Widget _buildBottomArea(ConversationDetailState state, bool isRecording) {
+    if (state.status != ConversationDetailStatus.success) {
+      return const SizedBox.shrink();
+    }
+    if (state.isSelectionMode) return const SelectionActionBar();
+    if (state.isArchived) return const ArchivedChannelBanner();
+    return ConversationComposer(
+      controller: _composerController,
+      focusNode: _composerFocusNode,
+      state: state,
+      isRecording: isRecording,
+      enterToSend: ref.watch(
+        composerSettingsStoreProvider.select((s) => s.enterToSend),
+      ),
+      isFormattingToolbarVisible: _isFormattingToolbarVisible,
+      isEmojiPickerVisible: _isEmojiPickerVisible,
+      onToggleFormattingToolbar: () => setState(
+          () => _isFormattingToolbarVisible = !_isFormattingToolbarVisible),
+      onToggleEmojiPicker: () =>
+          setState(() => _isEmojiPickerVisible = !_isEmojiPickerVisible),
+      onChanged: (value) {
+        ref.read(conversationDetailStoreProvider.notifier).updateDraft(value);
+        if (value.trim().isNotEmpty) _emitTyping();
+        _detectMentionTrigger(value);
+      },
+      onSend: _handleSend,
+      onPickAttachment: ref
+          .read(conversationDetailStoreProvider.notifier)
+          .addPendingAttachment,
+      onRemoveAttachment: ref
+          .read(conversationDetailStoreProvider.notifier)
+          .removePendingAttachment,
+      onCancelUpload:
+          ref.read(conversationDetailStoreProvider.notifier).cancelUpload,
+      onClearReply:
+          ref.read(conversationDetailStoreProvider.notifier).clearReplyTo,
+      onMicTap: _startRecording,
+      onSendRecording: _stopRecordingAndSend,
+      onCancelRecording: _cancelRecording,
+      asTask: _asTask,
+      onToggleAsTask: () => setState(() => _asTask = !_asTask),
     );
-    if (path == null || !mounted) return;
-
-    ref.read(screenshotStoreProvider.notifier).setCapturedImage(path);
-    context.push('/screenshot-annotate');
   }
 
-  Future<void> _startRecording() async {
-    final controller = ref.read(voiceRecordingControllerProvider.notifier);
-    final result = await controller.startRecording();
-    if (!mounted) return;
-
-    switch (result) {
-      case StartRecordingResult.success:
-      case StartRecordingResult.alreadyStarting:
-        break;
-      case StartRecordingResult.permissionDenied:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            key: const ValueKey('mic-permission-denied'),
-            content: Text(
-              context.l10n.conversationMicDenied,
-            ),
-          ),
-        );
-      case StartRecordingResult.error:
-        ref
-            .read(diagnosticsCollectorProvider)
-            .error('VoiceRecording', 'Recording start failed');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            key: const ValueKey('recording-start-error'),
-            content: Text(
-              context.l10n.conversationMicUnavailable,
-            ),
-          ),
-        );
-    }
-  }
-
-  Future<void> _stopRecordingAndSend() async {
-    final controller = ref.read(voiceRecordingControllerProvider.notifier);
-
-    // Capture recorded amplitudes before resetting the store.
-    final amplitudes = List<double>.unmodifiable(
-        ref.read(voiceMessageStoreProvider.notifier).amplitudes);
-
-    final path = await controller.stopRecording();
-
-    if (path == null || !mounted) return;
-
-    final name = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
-    // Cache the recorded waveform so the inline player can use it.
-    if (amplitudes.isNotEmpty) {
-      ref.read(voiceWaveformCacheProvider.notifier).put(name, amplitudes);
-    }
-
-    ref.read(conversationDetailStoreProvider.notifier).addPendingAttachment(
-          PendingAttachment(
-            path: path,
-            name: name,
-            mimeType: 'audio/mp4',
-          ),
-        );
-    // Auto-send the voice message immediately.
-    await _handleSend();
-  }
-
-  Future<void> _cancelRecording() async {
-    final controller = ref.read(voiceRecordingControllerProvider.notifier);
-    await controller.cancelRecording();
-  }
-
-  /// INV-TRANSLATE-3: auto-translate visible messages when mode is auto.
-  /// Called on first successful load and after loadOlder/loadNewer.
-  void _autoTranslateIfNeeded(List<ConversationMessageSummary> messages) {
-    final settingsState = ref.read(translationSettingsStoreProvider);
-    if (settingsState.settings.mode != TranslationMode.auto) return;
-    if (messages.isEmpty) return;
-
-    final messageIds = messages
-        .where((m) => !m.isDeleted && m.messageType != 'system')
-        .map((m) => m.id)
-        .toList();
-    if (messageIds.isEmpty) return;
-
-    ref
-        .read(translationCacheStoreProvider.notifier)
-        .translateMessages(messageIds);
-  }
-
-  /// #566: Eagerly register all image attachments with the download scheduler.
-  /// This ensures offscreen items are tracked (deferred) from page load.
-  /// VisibilityDetector later promotes visible items to the priority queue.
-  void _registerAttachmentDownloads(
-    List<ConversationMessageSummary> messages,
-  ) {
-    ConversationDetailPage.debugAttachmentRegistrationCount++;
-    final scheduler = ref.read(downloadSchedulerProvider.notifier);
-    for (final message in messages) {
-      final attachments = message.attachments;
-      if (attachments == null) continue;
-      for (final attachment in attachments) {
-        if (attachment.id == null) continue;
-        final mimeType = attachment.type.toLowerCase();
-        if (!mimeType.startsWith('image/')) continue;
-        if (attachment.thumbnailUrl == null && attachment.url == null) continue;
-        scheduler.enqueue(
-          attachment.id!,
-          () async {/* Pre-fetch signed URL — actual fetch added later. */},
-        );
-      }
-    }
-  }
-
-  /// Handles the race where conversation data arrives before translation
-  /// settings. When settings transition to success and conversation is
-  /// already loaded, re-trigger auto-translate.
-  void _handleTranslationSettingsLoaded(
-    TranslationSettingsState? previous,
-    TranslationSettingsState next,
-  ) {
-    if (previous?.status != TranslationSettingsStatus.success &&
-        next.status == TranslationSettingsStatus.success) {
-      final convState = ref.read(conversationDetailStoreProvider);
-      if (convState.status == ConversationDetailStatus.success) {
-        _autoTranslateIfNeeded(convState.messages);
-      }
-    }
-  }
+  // -- Scroll handling --
 
   void _handleScroll() {
-    if (!_scrollController.hasClients) {
-      return;
-    }
-
-    // Show/hide scroll-to-bottom FAB based on scroll offset.
-    // With reverse:true, offset 0 = bottom (newest), offset > 300 = scrolled up.
-    final shouldShow = _scrollController.offset > 300;
-    if (shouldShow != _showScrollToBottom) {
-      setState(() {
-        _showScrollToBottom = shouldShow;
-      });
-    }
-
-    // Throttle updateViewportOffset writes to avoid 60+ state writes/sec
-    // during rapid scrolling. Timer-based: at most one write per 100ms.
-    if (_scrollThrottleTimer == null || !_scrollThrottleTimer!.isActive) {
-      _scrollThrottleTimer = Timer(const Duration(milliseconds: 100), () {
-        if (mounted && _scrollController.hasClients) {
-          ref
-              .read(conversationDetailStoreProvider.notifier)
-              .updateViewportOffset(_scrollController.offset);
-        }
-      });
-    }
-
-    // With reverse:true, offset 0 = bottom (newest), maxScrollExtent = top
-    // (oldest). Load older messages when near the top (oldest end).
-    final maxExtent = _scrollController.position.maxScrollExtent;
-    if (_scrollController.offset < maxExtent - 80) {
-      return;
-    }
-
-    final state = ref.read(conversationDetailStoreProvider);
-    if (state.status != ConversationDetailStatus.success ||
-        state.isLoadingOlder ||
-        !state.hasOlder) {
-      return;
-    }
-
-    _olderLoadAnchorOffset = _scrollController.offset;
-    _olderLoadAnchorMaxExtent = _scrollController.position.maxScrollExtent;
-    ref.read(conversationDetailStoreProvider.notifier).loadOlder();
+    if (_scrollCoordinator.handleScroll()) setState(() {});
   }
+
+  // -- State change handling --
 
   void _handleStateChange(
     ConversationDetailState? previous,
     ConversationDetailState next,
   ) {
-    // Fire markRead exactly once on first successful load,
-    // only when there are actually unread messages (INV-READ-4).
-    // If the inbox projection is not yet loaded (race condition: user opened
-    // conversation before inbox finished loading), set up a one-shot deferred
-    // listener that fires markRead when the projection becomes available
-    // (INV-RACE-1). The deferred listener fires at most once (INV-RACE-2).
     if (previous?.status != ConversationDetailStatus.success &&
         next.status == ConversationDetailStatus.success) {
       final t = ref.read(currentConversationDetailTargetProvider);
       final projection = ref.read(unreadSourceProjectionProvider);
-
       if (projection.isLoaded) {
         _fireMarkReadIfUnread(t, projection);
       } else {
-        // Inbox not loaded yet — defer markRead until projection is available.
-        // Use addPostFrameCallback so the loaded projection state is
-        // observable before markRead's optimistic zeroing takes effect.
         _deferredMarkReadSub?.close();
         _deferredMarkReadSub = ref.listenManual<UnreadSourceProjectionState>(
           unreadSourceProjectionProvider,
           (previous, next) {
             if (next.isLoaded) {
-              // One-shot: close subscription immediately.
               _deferredMarkReadSub?.close();
               _deferredMarkReadSub = null;
-              // Defer markRead to next frame so the loaded state is
-              // observable before optimistic zeroing (INV-RACE-1).
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  _fireMarkReadIfUnread(t, next);
-                }
+                if (mounted) _fireMarkReadIfUnread(t, next);
               });
             }
           },
         );
       }
-
-      // INV-TRANSLATE-3: auto-translate visible messages on first load
-      // when translation mode is auto.
       _autoTranslateIfNeeded(next.messages);
-
-      // Granular read cursor: report highest seq on initial load.
       _updateReadCursor(next.messages);
     }
 
-    // #566: Register attachment downloads only when messages actually change
-    // (new messages loaded/received). The scheduler deduplicates, but iterating
-    // all messages on every state emission (reactions, typing) is O(n×m) waste.
-    // Guard: only run when message count changes (loadOlder appends, realtime
-    // adds, or initial load).
     if (next.status == ConversationDetailStatus.success &&
-        next.messages.length != _lastRegisteredMessageCount) {
-      _lastRegisteredMessageCount = next.messages.length;
+        next.messages.length != _scrollCoordinator.lastRegisteredMessageCount) {
+      _scrollCoordinator.lastRegisteredMessageCount = next.messages.length;
       _registerAttachmentDownloads(next.messages);
-
-      // Granular read cursor: update when new messages arrive.
       _updateReadCursor(next.messages);
     }
 
-    // #651: Evict GlobalKeys for messages no longer in the loaded window.
-    // Prevents unbounded growth during long pagination sessions.
-    if (next.status == ConversationDetailStatus.success &&
-        _messageGlobalKeys.length > next.messages.length + 20) {
-      final activeIds = <String>{
-        for (final m in next.messages) m.id,
-      };
-      _messageGlobalKeys.removeWhere((id, _) => !activeIds.contains(id));
+    if (next.status == ConversationDetailStatus.success) {
+      _scrollCoordinator.evictStaleKeys(next.messages);
     }
 
     if (!_scrollController.hasClients) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
+        if (!mounted) return;
         _syncScrollState(previous, next);
       });
       return;
@@ -1081,13 +570,78 @@ class _ConversationDetailScreenState
     _syncScrollState(previous, next);
   }
 
-  /// Fires markRead for the current conversation if the projection
-  /// reports unread messages. Called both on immediate success and
-  /// from the deferred listener (INV-RACE-1).
+  void _syncScrollState(
+      ConversationDetailState? previous, ConversationDetailState next) {
+    _scrollCoordinator.syncScrollState(
+      previous,
+      next,
+      restoredFromSession: _restoredFromSession,
+      highlightMessageId: widget.highlightMessageId,
+      unreadCountForTarget: () => unreadCountForTarget(ref, next.target),
+      scrollToMessageId: _scrollToMessageId,
+    );
+  }
+
+  void _scrollToMessageId(
+      String messageId, List<ConversationMessageSummary> messages) {
+    _scrollCoordinator.scrollToMessageId(
+      messageId,
+      messages,
+      onMissing: _handleQuoteJumpMissing,
+    );
+    setState(() {});
+  }
+
+  Future<void> _handleQuoteJumpMissing(String messageId) async {
+    if (_scrollCoordinator.setQuoteJumpLoading()) setState(() {});
+
+    await ref
+        .read(conversationDetailStoreProvider.notifier)
+        .loadContext(messageId);
+    if (!mounted) return;
+
+    final updatedState = ref.read(conversationDetailStoreProvider);
+    final idx = updatedState.messages.indexWhere((m) => m.id == messageId);
+    if (idx >= 0) {
+      if (_scrollCoordinator.scrollToAndHighlight(messageId)) setState(() {});
+      _scheduleHighlightExpiry();
+      return;
+    }
+
+    if (mounted) {
+      if (_scrollCoordinator.setQuoteJumpNotFound()) setState(() {});
+      _scheduleQuoteJumpNotFoundExpiry();
+    }
+  }
+
+  void _dismissQuoteJumpNotFound() {
+    if (_scrollCoordinator.dismissQuoteJumpNotFound()) setState(() {});
+  }
+
+  void _scheduleHighlightExpiry() {
+    _highlightExpiryTimer?.cancel();
+    _highlightExpiryTimer = Timer(const Duration(milliseconds: 1600), () {
+      if (mounted) {
+        _scrollCoordinator.highlightedMessageId = null;
+        setState(() {});
+      }
+    });
+  }
+
+  void _scheduleQuoteJumpNotFoundExpiry() {
+    _quoteJumpExpiryTimer?.cancel();
+    _quoteJumpExpiryTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        _scrollCoordinator.dismissQuoteJumpNotFound();
+        setState(() {});
+      }
+    });
+  }
+
+  // -- Mark read --
+
   void _fireMarkReadIfUnread(
-    ConversationDetailTarget t,
-    UnreadSourceProjectionState projection,
-  ) {
+      ConversationDetailTarget t, UnreadSourceProjectionState projection) {
     switch (t.surface) {
       case ConversationSurface.channel:
         final scopeId =
@@ -1104,11 +658,9 @@ class _ConversationDetailScreenState
     }
   }
 
-  /// Update the granular read cursor with the highest seq from visible messages.
   void _updateReadCursor(List<ConversationMessageSummary> messages) {
     if (messages.isEmpty) return;
     final t = ref.read(currentConversationDetailTargetProvider);
-    // Find highest seq in the current messages list.
     int? highestSeq;
     for (final m in messages) {
       final seq = m.seq;
@@ -1120,169 +672,187 @@ class _ConversationDetailScreenState
     ref.read(readCursorServiceProvider)?.markSeen(t.conversationId, highestSeq);
   }
 
-  void _syncScrollState(
-    ConversationDetailState? previous,
-    ConversationDetailState next,
-  ) {
-    if (!_scrollController.hasClients) {
+  // -- Mention autocomplete --
+
+  void _detectMentionTrigger(String text) {
+    final cursorOffset = _composerController.selection.baseOffset;
+    if (_mentionController.detectTrigger(text, cursorOffset)) setState(() {});
+  }
+
+  Future<List<ChannelMember>> _loadMentionMembers() async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    try {
+      final load = ref.read(loadMentionMembersUseCaseProvider);
+      final members = await load(
+          serverId: target.serverId, channelId: target.conversationId);
+      if (mounted &&
+          ref.read(currentConversationDetailTargetProvider) == target) {
+        setState(() {});
+      }
+      return members;
+    } on Exception catch (e) {
+      ref
+          .read(diagnosticsCollectorProvider)
+          .error('ConversationDetail', 'Mention member load failed: $e');
+      rethrow;
+    }
+  }
+
+  void _insertMention(ChannelMember member) {
+    final text = _composerController.text;
+    final cursorOffset = _composerController.selection.baseOffset;
+    final result = _mentionController.insertMention(member, text, cursorOffset);
+    _composerController.value = TextEditingValue(
+      text: result.text,
+      selection: TextSelection.collapsed(offset: result.cursorOffset),
+    );
+    ref.read(conversationDetailStoreProvider.notifier).updateDraft(result.text);
+    setState(() {});
+    ref.read(hapticServiceProvider).mediumImpact();
+  }
+
+  // -- Sending --
+
+  Future<void> _handleSend() async {
+    final sendAsTask = _asTask;
+    await ref
+        .read(conversationDetailStoreProvider.notifier)
+        .send(asTask: sendAsTask);
+    final state = ref.read(conversationDetailStoreProvider);
+
+    if (state.sendFailure?.causeType == 'offlineAttachment' && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        key: const ValueKey('offline-attachment-snackbar'),
+        content: Text(context.l10n.conversationOfflineAttachmentSnackbar),
+      ));
       return;
     }
 
-    if (!_didApplyInitialLanding &&
-        next.status == ConversationDetailStatus.success &&
-        next.messages.isNotEmpty) {
-      // highlightMessageId outranks session restore — a permalink/search
-      // jump must always fire even if the conversation has a cached session.
-      final targetMsgId = widget.highlightMessageId;
-      if (targetMsgId != null || !_restoredFromSession) {
-        _didApplyInitialLanding = true;
-        // Compute the first unread message ID for auto-scroll.
-        final unreadCount = unreadCountForTarget(ref, next.target);
-        final firstUnreadMsgId =
-            unreadCount > 0 && unreadCount <= next.messages.length
-                ? next.messages[next.messages.length - unreadCount].id
-                : null;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || !_scrollController.hasClients) {
-            return;
-          }
-          if (targetMsgId != null) {
-            _scrollToMessageId(targetMsgId, next.messages);
-          } else if (firstUnreadMsgId != null) {
-            // Auto-scroll to the first unread message (unread divider area).
-            _scrollToMessageId(firstUnreadMsgId, next.messages);
-          } else {
-            _scrollController.jumpTo(0);
-          }
-        });
-      }
-    }
-
-    if (previous?.isLoadingOlder == true &&
-        next.status == ConversationDetailStatus.success &&
-        !next.isLoadingOlder &&
-        next.messages.length > (previous?.messages.length ?? 0) &&
-        _olderLoadAnchorOffset != null &&
-        _olderLoadAnchorMaxExtent != null) {
-      final anchorOffset = _olderLoadAnchorOffset!;
-      final previousMaxExtent = _olderLoadAnchorMaxExtent!;
-      _olderLoadAnchorOffset = null;
-      _olderLoadAnchorMaxExtent = null;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_scrollController.hasClients) {
-          return;
-        }
-        final maxExtentDelta =
-            _scrollController.position.maxScrollExtent - previousMaxExtent;
-        _scrollController.jumpTo(anchorOffset + maxExtentDelta);
-      });
+    if (state.sendFailure == null &&
+        state.draft.isEmpty &&
+        state.pendingAttachments.isEmpty) {
+      ref.read(hapticServiceProvider).lightImpact();
+      _composerController.clear();
+      _composerFocusNode.unfocus();
+      if (sendAsTask) setState(() => _asTask = false);
     }
   }
 
-  /// Scroll to a specific message by ID and show a highlight flash.
-  ///
-  /// When the target message is in the loaded list, scrolls to it using
-  /// GlobalKey-based [Scrollable.ensureVisible] and shows a brief highlight.
-  /// When the target is not loaded, attempts to load older messages via API;
-  /// if still not found, shows a [quote-jump-loading] feedback widget.
-  void _scrollToMessageId(
-    String messageId,
-    List<ConversationMessageSummary> messages,
-  ) {
-    final idx = messages.indexWhere((m) => m.id == messageId);
-    if (idx < 0) {
-      // Message not in loaded window — attempt async load.
-      _handleQuoteJumpMissing(messageId);
-      return;
-    }
-    _scrollToAndHighlight(messageId);
+  // -- Typing --
+
+  void _emitTyping() {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final typingScopeKey =
+        'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
+    ref.read(typingRealtimeBindingProvider(typingScopeKey)).emitTyping();
   }
 
-  /// Scrolls to a message using GlobalKey-based ensureVisible and applies
-  /// a highlight flash that auto-dismisses after 1.5 seconds.
-  void _scrollToAndHighlight(String messageId) {
-    // Clear any existing highlight first.
-    _highlightTimer?.cancel();
-    _quoteJumpNotFoundTimer?.cancel();
+  // -- Voice recording --
 
-    // Set the highlight immediately so the widget tree rebuilds with it.
-    setState(() {
-      _highlightedMessageId = messageId;
-      _quoteJumpState = QuoteJumpState.idle;
-    });
-
-    // Use post-frame callback to ensure the widget is built before scrolling.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final key = _getMessageKey(messageId);
-      if (key.currentContext != null) {
-        Scrollable.ensureVisible(
-          key.currentContext!,
-          duration: const Duration(milliseconds: 300),
-          alignment: 0.3,
-          curve: Curves.easeInOut,
-        );
-      } else {
-        // GlobalKey not yet in viewport — fall back to proportional estimate.
-        final state = ref.read(conversationDetailStoreProvider);
-        final idx = state.messages.indexWhere((m) => m.id == messageId);
-        if (idx >= 0 && _scrollController.hasClients) {
-          final maxExtent = _scrollController.position.maxScrollExtent;
-          final estimatedOffset = state.messages.isEmpty
-              ? 0.0
-              : (state.messages.length - idx) /
-                  (state.messages.length + 1) *
-                  maxExtent;
-          _scrollController.jumpTo(estimatedOffset.clamp(0.0, maxExtent));
-        }
-      }
-    });
-
-    // Auto-dismiss highlight after 1.5 seconds.
-    _highlightTimer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) setState(() => _highlightedMessageId = null);
-    });
-  }
-
-  /// Handles quote-jump when the target message is not in the loaded window.
-  /// Uses the context endpoint to load a centered window around the target
-  /// message, then scrolls to it and highlights.
-  Future<void> _handleQuoteJumpMissing(String messageId) async {
-    _quoteJumpNotFoundTimer?.cancel();
-    setState(() => _quoteJumpState = QuoteJumpState.loading);
-
-    final notifier = ref.read(conversationDetailStoreProvider.notifier);
-
-    await notifier.loadContext(messageId);
+  Future<void> _startRecording() async {
+    final controller = ref.read(voiceRecordingControllerProvider.notifier);
+    final result = await controller.startRecording();
     if (!mounted) return;
-
-    final updatedState = ref.read(conversationDetailStoreProvider);
-    final idx = updatedState.messages.indexWhere((m) => m.id == messageId);
-    if (idx >= 0) {
-      _scrollToAndHighlight(messageId);
-      return;
+    switch (result) {
+      case StartRecordingResult.success:
+      case StartRecordingResult.alreadyStarting:
+        break;
+      case StartRecordingResult.permissionDenied:
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          key: const ValueKey('mic-permission-denied'),
+          content: Text(context.l10n.conversationMicDenied),
+        ));
+      case StartRecordingResult.error:
+        ref
+            .read(diagnosticsCollectorProvider)
+            .error('VoiceRecording', 'Recording start failed');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          key: const ValueKey('recording-start-error'),
+          content: Text(context.l10n.conversationMicUnavailable),
+        ));
     }
+  }
 
-    // Context load succeeded but target not in response — show "not found".
-    if (mounted) {
-      setState(() => _quoteJumpState = QuoteJumpState.notFound);
-      _scheduleQuoteJumpNotFoundDismiss();
+  Future<void> _stopRecordingAndSend() async {
+    final controller = ref.read(voiceRecordingControllerProvider.notifier);
+    final amplitudes = List<double>.unmodifiable(
+        ref.read(voiceMessageStoreProvider.notifier).amplitudes);
+    final path = await controller.stopRecording();
+    if (path == null || !mounted) return;
+    final name = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    if (amplitudes.isNotEmpty) {
+      ref.read(voiceWaveformCacheProvider.notifier).put(name, amplitudes);
+    }
+    ref.read(conversationDetailStoreProvider.notifier).addPendingAttachment(
+          PendingAttachment(path: path, name: name, mimeType: 'audio/mp4'),
+        );
+    await _handleSend();
+  }
+
+  Future<void> _cancelRecording() async {
+    await ref.read(voiceRecordingControllerProvider.notifier).cancelRecording();
+  }
+
+  // -- Screenshot --
+
+  Future<void> _captureAndAnnotate() async {
+    const captureService = ScreenshotCaptureService();
+    final pixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final path = await captureService.capture(
+      _screenshotBoundaryKey,
+      pixelRatio: pixelRatio,
+    );
+    if (path == null || !mounted) return;
+    ref.read(screenshotStoreProvider.notifier).setCapturedImage(path);
+    context.push('/screenshot-annotate');
+  }
+
+  // -- Translation --
+
+  void _autoTranslateIfNeeded(List<ConversationMessageSummary> messages) {
+    final settingsState = ref.read(translationSettingsStoreProvider);
+    if (settingsState.settings.mode != TranslationMode.auto) return;
+    if (messages.isEmpty) return;
+    final messageIds = messages
+        .where((m) => !m.isDeleted && m.messageType != 'system')
+        .map((m) => m.id)
+        .toList();
+    if (messageIds.isEmpty) return;
+    ref
+        .read(translationCacheStoreProvider.notifier)
+        .translateMessages(messageIds);
+  }
+
+  void _handleTranslationSettingsLoaded(
+      TranslationSettingsState? previous, TranslationSettingsState next) {
+    if (previous?.status != TranslationSettingsStatus.success &&
+        next.status == TranslationSettingsStatus.success) {
+      final convState = ref.read(conversationDetailStoreProvider);
+      if (convState.status == ConversationDetailStatus.success) {
+        _autoTranslateIfNeeded(convState.messages);
+      }
     }
   }
 
-  void _scheduleQuoteJumpNotFoundDismiss() {
-    _quoteJumpNotFoundTimer?.cancel();
-    _quoteJumpNotFoundTimer = Timer(const Duration(seconds: 4), () {
-      if (!mounted || _quoteJumpState != QuoteJumpState.notFound) return;
-      setState(() => _quoteJumpState = QuoteJumpState.idle);
-    });
+  // -- Attachment downloads --
+
+  void _registerAttachmentDownloads(List<ConversationMessageSummary> messages) {
+    ConversationDetailPage.debugAttachmentRegistrationCount++;
+    final scheduler = ref.read(downloadSchedulerProvider.notifier);
+    for (final message in messages) {
+      final attachments = message.attachments;
+      if (attachments == null) continue;
+      for (final attachment in attachments) {
+        if (attachment.id == null) continue;
+        final mimeType = attachment.type.toLowerCase();
+        if (!mimeType.startsWith('image/')) continue;
+        if (attachment.thumbnailUrl == null && attachment.url == null) continue;
+        scheduler.enqueue(attachment.id!, () async {});
+      }
+    }
   }
 
-  void _dismissQuoteJumpNotFound() {
-    if (_quoteJumpState != QuoteJumpState.notFound) return;
-    _quoteJumpNotFoundTimer?.cancel();
-    setState(() => _quoteJumpState = QuoteJumpState.idle);
-  }
+  // -- Snackbar --
 
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
@@ -1298,351 +868,3 @@ class _ConversationDetailScreenState
       ));
   }
 }
-
-class _ConversationFailureView extends StatelessWidget {
-  const _ConversationFailureView({required this.state, required this.onRetry});
-
-  final ConversationDetailState state;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final failure = state.failure;
-    if (DeepLinkResourceErrorView.handles(failure)) {
-      return DeepLinkResourceErrorView(failure: failure!);
-    }
-
-    return Center(
-      key: const ValueKey('conversation-error'),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              context.l10n.conversationLoadFailed(state.resolvedTitle),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              state.failure?.userMessage(context.l10n) ??
-                  context.l10n.errorUnknown,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-                onPressed: onRetry,
-                child: Text(context.l10n.conversationRetry)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ConversationEmptyView extends StatelessWidget {
-  const _ConversationEmptyView({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      key: const ValueKey('conversation-empty'),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          context.l10n.conversationEmpty(title),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Mention suggestion overlay — shows channel members matching '@query'
-// ---------------------------------------------------------------------------
-
-/// Test-only factory for mounting [_MentionSuggestionOverlay] in isolation.
-@visibleForTesting
-Widget buildMentionSuggestionOverlay({
-  Key? key,
-  required List<ChannelMember> members,
-  required ValueChanged<ChannelMember> onSelect,
-}) {
-  return _MentionSuggestionOverlay(
-    key: key,
-    members: members,
-    onSelect: onSelect,
-  );
-}
-
-class _MentionSuggestionOverlay extends StatelessWidget {
-  const _MentionSuggestionOverlay({
-    super.key,
-    required this.members,
-    required this.onSelect,
-  });
-
-  final List<ChannelMember> members;
-  final ValueChanged<ChannelMember> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
-    return Semantics(
-      label: l10n.mentionSuggestionsSemantics,
-      namesRoute: true,
-      child: Container(
-        constraints: const BoxConstraints(maxHeight: 200),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border(
-            top: BorderSide(color: colors.border, width: 0.5),
-          ),
-        ),
-        child: ListView.builder(
-          shrinkWrap: true,
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-          itemCount: members.length,
-          itemBuilder: (context, index) {
-            final member = members[index];
-            return Semantics(
-              button: true,
-              label: l10n.mentionSuggestionItemSemantics(member.displayName),
-              child: InkWell(
-                key: ValueKey('mention-suggestion-$index'),
-                onTap: () => onSelect(member),
-                child: ExcludeSemantics(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: AppSpacing.sm,
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 14,
-                          backgroundColor: colors.surfaceAlt,
-                          child: Text(
-                            member.displayName.isNotEmpty
-                                ? member.displayName[0].toUpperCase()
-                                : '?',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          member.displayName,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: colors.text,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// DM presence subtitle — shown in the app bar for direct messages.
-// ---------------------------------------------------------------------------
-
-class _DmPresenceSubtitle extends ConsumerWidget {
-  const _DmPresenceSubtitle({required this.conversationId});
-
-  final String conversationId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // #654: O(1) map lookup via dmScopeMapProvider instead of O(3n) linear scan.
-    final peerId = ref.watch(
-      dmScopeMapProvider.select((map) => map[conversationId]?.peerId),
-    );
-    if (peerId == null) return const SizedBox.shrink();
-
-    final status = ref.watch(
-      presenceStoreProvider.select((s) => s.statusOf(peerId)),
-    );
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    final dotColor = switch (status) {
-      UserPresenceStatus.online => colors.success,
-      UserPresenceStatus.idle => colors.warning,
-      UserPresenceStatus.offline => colors.textTertiary,
-    };
-    final statusText = switch (status) {
-      UserPresenceStatus.online => context.l10n.conversationPresenceOnline,
-      UserPresenceStatus.idle => context.l10n.conversationPresenceIdle,
-      UserPresenceStatus.offline => context.l10n.conversationPresenceOffline,
-    };
-
-    return Row(
-      key: const ValueKey('conversation-dm-presence'),
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: dotColor,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          statusText,
-          style: AppTypography.caption.copyWith(
-            color: colors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Banner shown at the top of the conversation when the device is offline.
-///
-/// #655: Migrated from raw StreamBuilder to [connectivityStatusProvider].
-/// Banner shown in place of the composer when the channel is archived.
-class _ArchivedChannelBanner extends StatelessWidget {
-  const _ArchivedChannelBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return Container(
-      key: const ValueKey('archived-channel-banner'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
-      color: colors.textTertiary.withValues(alpha: 0.1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.archive_outlined, size: 16, color: colors.textSecondary),
-          const SizedBox(width: AppSpacing.sm),
-          Text(
-            context.l10n.channelArchivedBanner,
-            style: AppTypography.caption.copyWith(color: colors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Benefits from Riverpod lifecycle management, caching, and .select().
-class _OfflineBanner extends ConsumerWidget {
-  const _OfflineBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final status = ref.watch(connectivityStatusProvider);
-    if (status == ConnectivityStatus.online) return const SizedBox.shrink();
-
-    final colors = Theme.of(context).extension<AppColors>()!;
-    return Container(
-      key: const ValueKey('offline-banner'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      color: colors.warning.withValues(alpha: 0.15),
-      child: Row(
-        children: [
-          Icon(Icons.cloud_off, size: 16, color: colors.warning),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              context.l10n.conversationOfflineBanner,
-              style: AppTypography.caption.copyWith(color: colors.warning),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// B131: Banner shown above the composer when the outbox has failed messages
-/// for the current conversation.
-///
-/// Shows "N message(s) failed to send" with a "Retry" button that invokes
-/// [OutboxStore.retryAllFailed].
-class _OutboxFailedBanner extends ConsumerWidget {
-  const _OutboxFailedBanner();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final target = ref.watch(currentConversationDetailTargetProvider);
-    final targetKey = outboxTargetKey(target);
-    final failedCount = ref.watch(
-      outboxStoreProvider.select((s) => s.failedCountForTarget(targetKey)),
-    );
-    if (failedCount == 0) return const SizedBox.shrink();
-
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
-    return Container(
-      key: const ValueKey('outbox-failed-banner'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      color: colors.error.withValues(alpha: 0.1),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, size: 16, color: colors.error),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              l10n.outboxFailedBanner(failedCount),
-              style: AppTypography.caption.copyWith(color: colors.error),
-            ),
-          ),
-          TextButton(
-            key: const ValueKey('outbox-failed-retry-button'),
-            onPressed: () {
-              ref.read(outboxStoreProvider.notifier).retryAllFailed(target);
-            },
-            style: TextButton.styleFrom(
-              minimumSize: const Size(48, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-            ),
-            child: Text(
-              l10n.pendingRetry,
-              style: AppTypography.caption.copyWith(
-                color: colors.primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Bottom action bar shown during multi-select mode. (#537)
-///
-/// Displays Cancel, Delete, and Save buttons for batch operations
-/// on the currently selected messages.
