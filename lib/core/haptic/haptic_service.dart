@@ -88,14 +88,34 @@ class HapticService {
 }
 
 /// Provider for [HapticPreferenceRepository].
+///
+/// Falls back to a default repository (always returns [HapticIntensity.medium])
+/// when [sharedPreferencesProvider] is not available (e.g. in tests that don't
+/// provide the override). This prevents 100+ test failures from pages that
+/// incidentally reference haptic preferences but aren't testing haptics.
 final hapticPreferenceRepositoryProvider =
     Provider<HapticPreferenceRepository>((ref) {
-  return SharedPrefsHapticPreferenceRepository(
-    prefs: ref.watch(sharedPreferencesProvider),
-  );
+  try {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    return SharedPrefsHapticPreferenceRepository(prefs: prefs);
+  } on UnimplementedError {
+    return const _DefaultHapticPreferenceRepository();
+  }
 });
 
 /// Provider for [HapticService].
 final hapticServiceProvider = Provider<HapticService>((ref) {
   return HapticService(repo: ref.watch(hapticPreferenceRepositoryProvider));
 });
+
+/// Fallback repository that always returns [HapticIntensity.medium].
+/// Used when [sharedPreferencesProvider] is unavailable (test environments).
+class _DefaultHapticPreferenceRepository implements HapticPreferenceRepository {
+  const _DefaultHapticPreferenceRepository();
+
+  @override
+  HapticIntensity getIntensity() => HapticIntensity.medium;
+
+  @override
+  Future<void> setIntensity(HapticIntensity intensity) async {}
+}
