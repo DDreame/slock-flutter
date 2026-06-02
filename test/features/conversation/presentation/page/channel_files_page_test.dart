@@ -23,7 +23,7 @@ void main() {
           builder: (context, state) => ChannelFilesPage(
             serverId: 'server-1',
             channelId: 'channel-1',
-            repositoryOverride: repo,
+            listFilesOverride: repo.listFiles,
           ),
         ),
         GoRoute(

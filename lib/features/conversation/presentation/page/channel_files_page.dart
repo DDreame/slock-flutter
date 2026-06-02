@@ -5,8 +5,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/conversation/data/channel_files_repository.dart';
-import 'package:slock_app/features/conversation/data/channel_files_repository_provider.dart';
+import 'package:slock_app/features/conversation/application/channel_files_use_case.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -17,14 +16,17 @@ class ChannelFilesPage extends ConsumerStatefulWidget {
   final String serverId;
   final String channelId;
 
-  /// Optional override for the repository, used in tests.
-  final ChannelFilesRepository? repositoryOverride;
+  /// Optional override for the file listing function, used in tests.
+  final Future<List<MessageAttachment>> Function(
+    ServerScopeId serverId, {
+    required String channelId,
+  })? listFilesOverride;
 
   const ChannelFilesPage({
     super.key,
     required this.serverId,
     required this.channelId,
-    this.repositoryOverride,
+    this.listFilesOverride,
   });
 
   @override
@@ -59,9 +61,12 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
       _error = null;
     });
     try {
-      final ChannelFilesRepository repo =
-          widget.repositoryOverride ?? ref.read(channelFilesRepositoryProvider);
-      final files = await repo.listFiles(
+      final Future<List<MessageAttachment>> Function(
+        ServerScopeId serverId, {
+        required String channelId,
+      }) listFilesFn =
+          widget.listFilesOverride ?? ref.read(listChannelFilesUseCaseProvider);
+      final files = await listFilesFn(
         ServerScopeId(widget.serverId),
         channelId: widget.channelId,
       );

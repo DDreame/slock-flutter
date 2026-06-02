@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -10,11 +12,15 @@ import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 /// Default page size for inbox queries.
 const inboxPageSize = 30;
 
-final inboxStoreProvider = NotifierProvider<InboxStore, InboxState>(
+/// Duration to keep the inbox store alive after the last watcher is removed.
+/// Prevents aggressive re-fetch on quick navigation (e.g. tab switching).
+const inboxKeepAliveDuration = Duration(minutes: 5);
+
+final inboxStoreProvider = AutoDisposeNotifierProvider<InboxStore, InboxState>(
   InboxStore.new,
 );
 
-class InboxStore extends Notifier<InboxState> {
+class InboxStore extends AutoDisposeNotifier<InboxState> {
   final RequestCoordinator _coordinator = RequestCoordinator();
   bool _isLoadingMore = false;
   final Map<String, InboxItem> _knownItemsByChannelId = {};
@@ -34,6 +40,12 @@ class InboxStore extends Notifier<InboxState> {
 
   @override
   InboxState build() {
+    // Keep alive for 5 minutes after last watcher is removed.
+    // Prevents aggressive re-fetch on quick tab navigation.
+    final link = ref.keepAlive();
+    final timer = Timer(inboxKeepAliveDuration, link.close);
+    ref.onDispose(timer.cancel);
+
     // Watch the active server so the store rebuilds (state resets) on switch.
     ref.watch(activeServerScopeIdProvider);
 

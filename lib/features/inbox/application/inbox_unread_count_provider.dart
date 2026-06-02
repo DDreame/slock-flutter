@@ -11,7 +11,7 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 /// INV-INBOX-BADGE-SELECT-1: Only consumes status + totalUnreadCount.
 /// Mutations to filter, isRefreshing, failure, offset, hasMore do not
 /// recompute badges.
-final inboxTotalUnreadCountProvider = Provider<int>((ref) {
+final inboxTotalUnreadCountProvider = Provider.autoDispose<int>((ref) {
   final (:status, :totalUnreadCount) = ref.watch(
     inboxStoreProvider.select(
       (s) => (status: s.status, totalUnreadCount: s.totalUnreadCount),
@@ -29,7 +29,7 @@ final inboxTotalUnreadCountProvider = Provider<int>((ref) {
 /// INV-INBOX-CHANNEL-BADGE-SELECT-1: Only consumes status + items.
 /// Mutations to filter, isRefreshing, failure, offset, hasMore do not
 /// recompute badges.
-final inboxChannelUnreadTotalProvider = Provider<int>((ref) {
+final inboxChannelUnreadTotalProvider = Provider.autoDispose<int>((ref) {
   final (:status, :items) = ref.watch(
     inboxStoreProvider.select(
       (s) => (status: s.status, items: s.items),
@@ -53,7 +53,7 @@ final inboxChannelUnreadTotalProvider = Provider<int>((ref) {
 /// INV-INBOX-DM-BADGE-SELECT-1: Only consumes status + items.
 /// Mutations to filter, isRefreshing, failure, offset, hasMore do not
 /// recompute badges.
-final inboxDmUnreadTotalProvider = Provider<int>((ref) {
+final inboxDmUnreadTotalProvider = Provider.autoDispose<int>((ref) {
   final (:status, :items) = ref.watch(
     inboxStoreProvider.select(
       (s) => (status: s.status, items: s.items),

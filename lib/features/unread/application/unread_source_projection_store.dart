@@ -26,7 +26,7 @@ import 'package:slock_app/features/unread/application/unread_source_projection.d
 /// All surfaces (AppShell badge, Channels tab, DMs tab, Inbox,
 /// Home unread card) should read from this single provider.
 final unreadSourceProjectionProvider =
-    Provider<UnreadSourceProjectionState>((ref) {
+    Provider.autoDispose<UnreadSourceProjectionState>((ref) {
   // INV-PROJECTION-INBOX-SELECT-1: Only consume status + items from inbox.
   // Mutations to filter, isRefreshing, totalUnreadCount, totalCount, hasMore,
   // offset, failure do not trigger projection recomputation.
@@ -74,7 +74,8 @@ final unreadSourceProjectionProvider =
 /// Used by InboxPage to display the full inbox list with consistent
 /// visibility metadata. Items with [UnreadSourceProjection.unreadCount]
 /// of 0 are included (unlike [unreadSourceProjectionProvider]).
-final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
+final inboxProjectionProvider =
+    Provider.autoDispose<List<UnreadSourceProjection>>((ref) {
   // INV-PROJECTION-INBOX-SELECT-1: Only consume status + items from inbox.
   final (:status, :items) = ref.watch(
     inboxStoreProvider.select(

@@ -29,10 +29,10 @@ import 'package:slock_app/features/conversation/presentation/widgets/url_launche
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
 import 'package:slock_app/features/conversation/presentation/utils/mention_profile_resolver.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/application/open_dm_use_case.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
-import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/tasks/application/task_actions_use_case.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/application/thread_replies_store.dart';
 import 'package:slock_app/features/conversation/presentation/utils/message_permalink_builder.dart';
@@ -227,10 +227,10 @@ class ConversationMessageCardState
     bool isAgent = false,
   }) async {
     try {
-      final repo = ref.read(memberRepositoryProvider);
       final channelId = isAgent
-          ? await repo.openAgentDirectMessage(serverId, agentId: senderId)
-          : await repo.openDirectMessage(serverId, userId: senderId);
+          ? await ref.read(openAgentDmUseCaseProvider)(serverId,
+              agentId: senderId)
+          : await ref.read(openDmUseCaseProvider)(serverId, userId: senderId);
       if (!mounted) return;
       context.push('/servers/${serverId.value}/dms/$channelId');
     } catch (e, st) {
@@ -341,8 +341,7 @@ class ConversationMessageCardState
       );
 
     try {
-      final repo = ref.read(tasksRepositoryProvider);
-      final task = await repo.getTaskByNumber(
+      final task = await ref.read(getTaskByNumberUseCaseProvider)(
         target.serverId,
         channelId: target.conversationId,
         taskNumber: number,
@@ -1297,8 +1296,7 @@ class ConversationMessageCardState
     WidgetRef ref,
   ) async {
     try {
-      final repo = ref.read(tasksRepositoryProvider);
-      await repo.convertMessageToTask(
+      await ref.read(convertMessageToTaskUseCaseProvider)(
         widget.target.serverId,
         messageId: widget.message.id,
       );
