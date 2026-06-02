@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -12,6 +11,7 @@ import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -225,7 +225,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
           );
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      HapticFeedback.errorNotification();
+      ref.read(hapticServiceProvider).errorNotification();
       showAppSnackBarWithAction(
         context,
         failure.userMessage(context.l10n),
@@ -277,6 +277,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   Future<void> _claimTask(TaskItem task) async {
     try {
       await ref.read(tasksStoreProvider.notifier).claimTask(task.id);
+      ref.read(hapticServiceProvider).mediumImpact();
     } on ConflictFailure {
       if (!mounted) return;
       showAppSnackBar(context, context.l10n.taskClaimConflict);
@@ -289,6 +290,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   Future<void> _unclaimTask(TaskItem task) async {
     try {
       await ref.read(tasksStoreProvider.notifier).unclaimTask(task.id);
+      ref.read(hapticServiceProvider).mediumImpact();
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));
@@ -912,7 +914,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
 
   void _insertOverlay() {
     _dropAccepted = false;
-    HapticFeedback.mediumImpact();
+    ref.read(hapticServiceProvider).mediumImpact();
     final task = widget.task;
     _overlayEntry = OverlayEntry(
       builder: (_) => TaskStatusOverlay(
@@ -1236,6 +1238,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
       context: context,
       actions: actions,
       title: '#${task.taskNumber} ${task.title}',
+      onOpenHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
     );
 
     switch (result) {

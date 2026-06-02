@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -11,6 +10,7 @@ import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/app/widgets/deep_link_resource_error_view.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
@@ -696,6 +696,7 @@ class _ConversationDetailScreenState
     if (state.sendFailure == null &&
         state.draft.isEmpty &&
         state.pendingAttachments.isEmpty) {
+      ref.read(hapticServiceProvider).lightImpact();
       _composerController.clear();
       _composerFocusNode.unfocus();
       if (sendAsTask) {
@@ -811,7 +812,7 @@ class _ConversationDetailScreenState
     ref.read(conversationDetailStoreProvider.notifier).updateDraft(newText);
     _closeMentionOverlay();
     // #656: Haptic feedback on mention selection.
-    HapticFeedback.mediumImpact();
+    ref.read(hapticServiceProvider).mediumImpact();
   }
 
   Future<void> _captureAndAnnotate() async {

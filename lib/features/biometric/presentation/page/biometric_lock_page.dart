@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 
@@ -54,6 +55,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
     switch (result) {
       case BiometricAuthResult.success:
         _cancelCount = 0;
+        ref.read(hapticServiceProvider).successNotification();
         ref.read(biometricStoreProvider.notifier).unlock();
       case BiometricAuthResult.cancelled:
         _cancelCount++;
@@ -63,12 +65,14 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
         });
       case BiometricAuthResult.lockout:
         _cancelCount = 0;
+        ref.read(hapticServiceProvider).errorNotification();
         setState(() {
           _isAuthenticating = false;
           _errorMessage = context.l10n.biometricErrorLockout;
         });
       case BiometricAuthResult.permanentLockout:
         _cancelCount = 0;
+        ref.read(hapticServiceProvider).errorNotification();
         setState(() {
           _isAuthenticating = false;
           _errorMessage = context.l10n.biometricErrorPermanentLockout;
@@ -90,6 +94,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
         });
       case BiometricAuthResult.error:
         _cancelCount++;
+        ref.read(hapticServiceProvider).errorNotification();
         setState(() {
           _isAuthenticating = false;
           _errorMessage = context.l10n.biometricErrorGeneric(_cancelCount);

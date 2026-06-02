@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 
@@ -31,7 +30,7 @@ class SwipeActionConfig {
 ///
 /// Unified swipe pattern for all list pages:
 /// - Left-swipe: configurable primary action (mark read, mark done, etc.)
-/// - Haptic feedback: fires [HapticFeedback.mediumImpact] when the user drags
+/// - Haptic feedback: fires [onThresholdHaptic] when the user drags
 ///   past the dismiss threshold (consistent with [MessageGestureWrapper]).
 /// - Guard: when [enabled] is false, the child is rendered without any
 ///   [Dismissible] wrapper to avoid gesture interference.
@@ -45,6 +44,7 @@ class SwipeActionWrapper extends StatefulWidget {
     required this.action,
     required this.onAction,
     required this.child,
+    this.onThresholdHaptic,
   });
 
   /// Unique key for the Dismissible (typically a scope id or item id).
@@ -58,6 +58,9 @@ class SwipeActionWrapper extends StatefulWidget {
 
   /// Called when the user completes the left-swipe gesture.
   final VoidCallback onAction;
+
+  /// Optional haptic callback fired when swipe crosses threshold.
+  final Future<void> Function()? onThresholdHaptic;
 
   /// The row widget to wrap.
   final Widget child;
@@ -147,7 +150,7 @@ class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
 
     if (dragDelta > width * 0.15) {
       _hapticFired = true;
-      HapticFeedback.mediumImpact();
+      widget.onThresholdHaptic?.call();
     }
   }
 }

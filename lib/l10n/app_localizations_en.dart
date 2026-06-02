@@ -2363,6 +2363,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsThemeDarkDescription => 'Always use the dark theme.';
 
   @override
+  String get settingsHapticTitle => 'Haptic Feedback';
+
+  @override
+  String get settingsHapticOff => 'Off';
+
+  @override
+  String get settingsHapticLight => 'Light';
+
+  @override
+  String get settingsHapticMedium => 'Medium';
+
+  @override
   String get settingsDiagnosticsPageTitle => 'Diagnostics';
 
   @override

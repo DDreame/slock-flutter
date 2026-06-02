@@ -10,6 +10,8 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/data/biometric_preference.dart';
+import 'package:slock_app/features/settings/data/haptic_preference.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
@@ -43,6 +45,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final themePreference = ref.watch(
       themeModeStoreProvider.select((s) => s.preference),
     );
+    final hapticIntensity =
+        ref.watch(hapticPreferenceRepositoryProvider).getIntensity();
     final biometric = ref.watch(
       biometricStoreProvider.select(
         (s) => (
@@ -223,6 +227,24 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 ),
                 colors: colors,
                 onTap: () => context.push('/settings/appearance'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-haptic-link'),
+                icon: Icons.vibration_outlined,
+                iconColor: colors.primary,
+                title: l10n.settingsHapticTitle,
+                subtitle: switch (hapticIntensity) {
+                  HapticIntensity.off => l10n.settingsHapticOff,
+                  HapticIntensity.light => l10n.settingsHapticLight,
+                  HapticIntensity.medium => l10n.settingsHapticMedium,
+                },
+                subtitleKey: const ValueKey('settings-haptic-subtitle'),
+                colors: colors,
+                onTap: () => _showHapticPicker(context, colors, l10n),
               ),
             ),
             const SizedBox(height: AppSpacing.sectionGap),
@@ -429,6 +451,42 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _showHapticPicker(
+    BuildContext context,
+    AppColors colors,
+    AppLocalizations l10n,
+  ) async {
+    final repo = ref.read(hapticPreferenceRepositoryProvider);
+    final current = repo.getIntensity();
+    final result = await showModalBottomSheet<HapticIntensity>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final intensity in HapticIntensity.values)
+              ListTile(
+                key: ValueKey('haptic-option-${intensity.name}'),
+                title: Text(
+                  switch (intensity) {
+                    HapticIntensity.off => l10n.settingsHapticOff,
+                    HapticIntensity.light => l10n.settingsHapticLight,
+                    HapticIntensity.medium => l10n.settingsHapticMedium,
+                  },
+                ),
+                trailing: intensity == current ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.of(context).pop(intensity),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (result != null && result != current) {
+      await repo.setIntensity(result);
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _confirmLogout() async {

@@ -56,6 +56,7 @@ void main() {
         await tester.pumpWidget(wrap(
           MessageGestureWrapper(
             onDoubleTap: () {},
+            onDoubleTapHaptic: () => HapticFeedback.lightImpact(),
             child: const SizedBox(
               key: ValueKey('target'),
               width: 200,
@@ -148,6 +149,7 @@ void main() {
         await tester.pumpWidget(wrap(
           MessageGestureWrapper(
             onLongPress: () {},
+            onLongPressHaptic: () => HapticFeedback.mediumImpact(),
             child: const SizedBox(
               key: ValueKey('target'),
               width: 200,
@@ -194,6 +196,7 @@ void main() {
           MessageGestureWrapper(
             enableSwipeReply: true,
             onSwipeReply: () {},
+            onSwipeThresholdHaptic: () => HapticFeedback.mediumImpact(),
             child: const SizedBox(
               key: ValueKey('target'),
               width: 200,

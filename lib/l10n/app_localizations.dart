@@ -4511,6 +4511,30 @@ abstract class AppLocalizations {
   /// **'Always use the dark theme.'**
   String get settingsThemeDarkDescription;
 
+  /// No description provided for @settingsHapticTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Haptic Feedback'**
+  String get settingsHapticTitle;
+
+  /// No description provided for @settingsHapticOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsHapticOff;
+
+  /// No description provided for @settingsHapticLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsHapticLight;
+
+  /// No description provided for @settingsHapticMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get settingsHapticMedium;
+
   /// No description provided for @settingsDiagnosticsPageTitle.
   ///
   /// In en, this message translates to:

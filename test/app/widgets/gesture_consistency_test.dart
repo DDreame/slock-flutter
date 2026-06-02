@@ -40,6 +40,7 @@ void main() {
       required VoidCallback onAction,
       bool dismisses = false,
       String itemKey = 'test-item',
+      Future<void> Function()? onThresholdHaptic,
     }) {
       return MaterialApp(
         theme: AppTheme.light,
@@ -56,6 +57,7 @@ void main() {
                   dismisses: dismisses,
                 ),
                 onAction: onAction,
+                onThresholdHaptic: onThresholdHaptic,
                 child: const SizedBox(
                   key: ValueKey('inner-child'),
                   height: 60,
@@ -249,6 +251,7 @@ void main() {
       await tester.pumpWidget(buildApp(
         enabled: true,
         onAction: () {},
+        onThresholdHaptic: () => HapticFeedback.mediumImpact(),
       ));
       await tester.pumpAndSettle();
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -955,11 +956,15 @@ class ConversationMessageCardState
           enableTapToThread: enableTapToThread,
         ),
         onDoubleTap: () => _quickReact(context, ref),
+        onDoubleTapHaptic: () => ref.read(hapticServiceProvider).lightImpact(),
         enableSwipeReply: !message.content.contains('```'),
         onSwipeReply: () => ref
             .read(conversationDetailStoreProvider.notifier)
             .setReplyTo(message),
+        onSwipeThresholdHaptic: () =>
+            ref.read(hapticServiceProvider).mediumImpact(),
         onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
+        onLongPressHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
         child: Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: (event) {
@@ -988,7 +993,7 @@ class ConversationMessageCardState
           .read(conversationDetailStoreProvider.notifier)
           .addReaction(widget.message.id, '👍');
       // #656: Haptic feedback on successful reaction.
-      HapticFeedback.mediumImpact();
+      ref.read(hapticServiceProvider).mediumImpact();
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -1218,7 +1223,7 @@ class ConversationMessageCardState
           .read(conversationDetailStoreProvider.notifier)
           .addReaction(widget.message.id, emoji);
       // #656: Haptic feedback on successful reaction.
-      HapticFeedback.mediumImpact();
+      ref.read(hapticServiceProvider).mediumImpact();
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -1270,7 +1275,7 @@ class ConversationMessageCardState
         ) ??
         false;
     if (!confirmed) return;
-    HapticFeedback.mediumImpact();
+    ref.read(hapticServiceProvider).mediumImpact();
 
     try {
       await ref
