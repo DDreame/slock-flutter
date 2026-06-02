@@ -12,8 +12,9 @@ import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/forward_message_use_case.dart';
+import 'package:slock_app/features/conversation/application/resolve_mention_profile_use_case.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
-import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/presentation/utils/sender_label_l10n.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_reactions.dart';
@@ -26,11 +27,9 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_lin
 import 'package:slock_app/features/conversation/presentation/widgets/message_sender_profile_sheet.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/quoted_message_block.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/url_launcher_confirm.dart';
-import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
-import 'package:slock_app/features/conversation/presentation/utils/mention_profile_resolver.dart';
+import 'package:slock_app/features/profile/application/load_profile_use_case.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/members/application/open_dm_use_case.dart';
-import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/tasks/application/task_actions_use_case.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
@@ -191,8 +190,8 @@ class ConversationMessageCardState
 
     // #656: Show loading sheet immediately for visual feedback.
     final profileFuture = ref
-        .read(profileRepositoryProvider)
-        .loadProfile(target.serverId, userId: senderId);
+        .read(loadProfileUseCaseProvider)
+        .call(target.serverId, userId: senderId);
 
     // Prevent unhandled-future-error: the bottom-sheet route transition spans
     // multiple frames, so MessageSenderProfileSheet.initState may not attach its
@@ -251,12 +250,11 @@ class ConversationMessageCardState
   Future<void> _onMentionTap(String mentionName) async {
     final target = widget.target;
     try {
-      final route = await resolveMentionProfileRoute(
-        memberRepo: ref.read(channelMemberRepositoryProvider),
-        serverId: target.serverId,
-        channelId: target.conversationId,
-        mentionName: mentionName,
-      );
+      final route = await ref.read(resolveMentionProfileUseCaseProvider).call(
+            serverId: target.serverId,
+            channelId: target.conversationId,
+            mentionName: mentionName,
+          );
       if (route == null || !mounted) return;
 
       context.push(route);
@@ -1093,8 +1091,8 @@ class ConversationMessageCardState
                       );
                 try {
                   await ref
-                      .read(conversationRepositoryProvider)
-                      .sendMessage(forwardTarget, messageContent);
+                      .read(forwardMessageUseCaseProvider)
+                      .call(forwardTarget, messageContent);
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context)

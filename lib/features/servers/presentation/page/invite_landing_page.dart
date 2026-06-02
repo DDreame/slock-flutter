@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/errors/app_failure_user_message.dart';
+import 'package:slock_app/features/servers/application/get_invite_info_use_case.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
-import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class InviteLandingPage extends ConsumerStatefulWidget {
@@ -38,8 +38,8 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
 
   Future<void> _loadPreview() async {
     try {
-      final repo = ref.read(serverListRepositoryProvider);
-      final info = await repo.getInviteInfo(widget.token);
+      final info =
+          await ref.read(getInviteInfoUseCaseProvider).call(widget.token);
       if (!mounted) return;
       setState(() {
         _inviteInfo = info;
