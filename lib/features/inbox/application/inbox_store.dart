@@ -40,14 +40,18 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
 
   @override
   InboxState build() {
+    // Watch the active server so the store rebuilds (state resets) on switch.
+    final serverId = ref.watch(activeServerScopeIdProvider);
+
     // Keep alive for 5 minutes after last watcher is removed.
     // Prevents aggressive re-fetch on quick tab navigation.
-    final link = ref.keepAlive();
-    final timer = Timer(inboxKeepAliveDuration, link.close);
-    ref.onDispose(timer.cancel);
-
-    // Watch the active server so the store rebuilds (state resets) on switch.
-    ref.watch(activeServerScopeIdProvider);
+    // Only activate when there's a server — without one, there's nothing
+    // to cache, and tests without a configured server avoid lingering timers.
+    if (serverId != null) {
+      final link = ref.keepAlive();
+      final timer = Timer(inboxKeepAliveDuration, link.close);
+      ref.onDispose(timer.cancel);
+    }
 
     // Reset _isLoadingMore so pagination isn't stuck if a server switch
     // happens while loadMore is in-flight (#714).
