@@ -20,7 +20,8 @@ void main() {
   // auth refresher callback or socket connect, since the worker must
   // remain alive regardless of transient network/auth failures.
   // ===========================================================================
-  group('#827C — BackgroundNotificationWorker.refreshAuth error resilience', () {
+  group('#827C — BackgroundNotificationWorker.refreshAuth error resilience',
+      () {
     late _FakeSocket fakeSocket;
     late _FakeSink fakeSink;
     late _FakeAuth fakeAuth;
