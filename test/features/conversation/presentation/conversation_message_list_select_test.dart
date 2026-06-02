@@ -277,7 +277,8 @@ void main() {
   test(
     'INV-CONV-UNREAD-COUNT-SELECT-1: target channel unread change DOES '
     'notify target-specific select',
-    skip: true,
+    skip:
+        true, // Gating: target-specific .select() for unread count not yet wired
     () async {
       const channelScopeId = ChannelScopeId(
         serverId: ServerScopeId('server-1'),
