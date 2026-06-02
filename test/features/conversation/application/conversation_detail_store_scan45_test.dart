@@ -425,6 +425,7 @@ class _ThrowingRepo implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     if (sendCompleter != null) return sendCompleter!.future;

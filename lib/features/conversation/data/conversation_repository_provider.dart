@@ -406,6 +406,7 @@ class _ApiConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     try {
@@ -426,6 +427,13 @@ class _ApiConversationRepository implements ConversationRepository {
       }
       if (asTask == true) {
         data['asTask'] = true;
+      }
+      // P2-4: Include client-generated idempotency key so the server can
+      // reject duplicate sends caused by timeout-retry races. If the server
+      // already processed a message with this clientId, it returns the
+      // existing message instead of creating a duplicate.
+      if (clientId != null) {
+        data['clientId'] = clientId;
       }
       final response = await _appDioClient.post<Object?>(
         _sendMessagePath,

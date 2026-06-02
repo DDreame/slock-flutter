@@ -277,6 +277,7 @@ class _MockConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     if (shouldFailSend) throw Exception('Send failed');

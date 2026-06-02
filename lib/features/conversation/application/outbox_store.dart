@@ -421,6 +421,7 @@ class OutboxStore extends Notifier<OutboxState> {
           target,
           item.content,
           replyToId: item.replyToId,
+          clientId: item.localId,
         );
         // Success — remove from queue and notify callback.
         _clearDrainBackoff();

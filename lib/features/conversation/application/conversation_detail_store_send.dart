@@ -333,6 +333,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         attachmentIds: attachmentIds,
         replyToId: replyToId,
         asTask: asTask ? true : null,
+        clientId: localId,
         cancelToken: sendCancelToken,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
@@ -578,6 +579,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         pending.content,
         attachmentIds: pending.attachmentIds,
         replyToId: pending.replyToId,
+        clientId: localId,
         cancelToken: sendCancelToken,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {

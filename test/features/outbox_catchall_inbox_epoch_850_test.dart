@@ -351,6 +351,7 @@ class _ThrowingConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     // Check if this message should throw a non-AppFailure exception.

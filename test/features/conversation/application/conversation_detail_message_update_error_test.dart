@@ -120,6 +120,7 @@ class _ThrowingConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     throw UnimplementedError();
@@ -272,6 +273,7 @@ class _SuccessConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
     bool? asTask,
+    String? clientId,
     CancelToken? cancelToken,
   }) async {
     throw UnimplementedError();
