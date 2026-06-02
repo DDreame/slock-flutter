@@ -621,14 +621,20 @@ class _ConversationDetailScreenState
   void _scheduleHighlightExpiry() {
     _highlightExpiryTimer?.cancel();
     _highlightExpiryTimer = Timer(const Duration(milliseconds: 1600), () {
-      if (mounted) setState(() {});
+      if (mounted) {
+        _scrollCoordinator.highlightedMessageId = null;
+        setState(() {});
+      }
     });
   }
 
   void _scheduleQuoteJumpNotFoundExpiry() {
     _quoteJumpExpiryTimer?.cancel();
     _quoteJumpExpiryTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() {});
+      if (mounted) {
+        _scrollCoordinator.dismissQuoteJumpNotFound();
+        setState(() {});
+      }
     });
   }
 
