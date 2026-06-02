@@ -272,10 +272,10 @@ Widget _buildBiometricApp({
       hapticServiceProvider.overrideWithValue(hapticSpy),
       biometricServiceProvider.overrideWithValue(biometricService),
     ],
-    child: MaterialApp(
+    child: const MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: const BiometricLockPage(),
+      home: BiometricLockPage(),
     ),
   );
 }
