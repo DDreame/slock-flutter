@@ -24,6 +24,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/unread/application/read_cursor_service.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -274,6 +275,7 @@ void main() {
           ),
           homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
           readCursorServiceProvider.overrideWithValue(null),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);

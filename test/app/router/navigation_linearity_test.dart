@@ -22,6 +22,7 @@ import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
@@ -61,6 +62,7 @@ Widget _buildRouterApp(GoRouter router) {
       authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
       splashControllerProvider.overrideWith(() => _StallingSplashController()),
       homeListStoreProvider.overrideWith(() => _TestHomeListStore()),
+      inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ...extraOverrides,
     ],
   );

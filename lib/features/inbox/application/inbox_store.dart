@@ -14,7 +14,12 @@ const inboxPageSize = 30;
 
 /// Duration to keep the inbox store alive after the last watcher is removed.
 /// Prevents aggressive re-fetch on quick navigation (e.g. tab switching).
-const inboxKeepAliveDuration = Duration(minutes: 5);
+///
+/// Override with [Duration.zero] in tests to suppress timer creation and avoid
+/// pending-timer failures in fakeAsync / testWidgets.
+final inboxKeepAliveDurationProvider = Provider<Duration>(
+  (ref) => const Duration(minutes: 5),
+);
 
 final inboxStoreProvider = AutoDisposeNotifierProvider<InboxStore, InboxState>(
   InboxStore.new,
@@ -48,9 +53,12 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
     // Only activate when there's a server — without one, there's nothing
     // to cache, and tests without a configured server avoid lingering timers.
     if (serverId != null) {
-      final link = ref.keepAlive();
-      final timer = Timer(inboxKeepAliveDuration, link.close);
-      ref.onDispose(timer.cancel);
+      final duration = ref.read(inboxKeepAliveDurationProvider);
+      if (duration > Duration.zero) {
+        final link = ref.keepAlive();
+        final timer = Timer(duration, link.close);
+        ref.onDispose(timer.cancel);
+      }
     }
 
     // Reset _isLoadingMore so pagination isn't stuck if a server switch
