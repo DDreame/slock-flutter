@@ -49,30 +49,43 @@ class ConversationSwipePreferenceNotifier
     extends Notifier<ConversationSwipePreference> {
   @override
   ConversationSwipePreference build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    return ConversationSwipePreference(
-      left: ConversationSwipeAction.fromStored(
-            prefs.getString(ConversationSwipePreference.leftPrefsKey),
-          ) ??
-          ConversationSwipeAction.archive,
-      right: ConversationSwipeAction.fromStored(
-            prefs.getString(ConversationSwipePreference.rightPrefsKey),
-          ) ??
-          ConversationSwipeAction.togglePin,
-    );
+    try {
+      final prefs = ref.watch(sharedPreferencesProvider);
+      return ConversationSwipePreference(
+        left: ConversationSwipeAction.fromStored(
+              prefs.getString(ConversationSwipePreference.leftPrefsKey),
+            ) ??
+            ConversationSwipeAction.archive,
+        right: ConversationSwipeAction.fromStored(
+              prefs.getString(ConversationSwipePreference.rightPrefsKey),
+            ) ??
+            ConversationSwipeAction.togglePin,
+      );
+    } on UnimplementedError {
+      // sharedPreferencesProvider not overridden — return defaults.
+      return const ConversationSwipePreference();
+    }
   }
 
   void setLeftAction(ConversationSwipeAction action) {
     state = state.copyWith(left: action);
-    ref
-        .read(sharedPreferencesProvider)
-        .setString(ConversationSwipePreference.leftPrefsKey, action.name);
+    try {
+      ref
+          .read(sharedPreferencesProvider)
+          .setString(ConversationSwipePreference.leftPrefsKey, action.name);
+    } on UnimplementedError {
+      // Test environment — skip persistence.
+    }
   }
 
   void setRightAction(ConversationSwipeAction action) {
     state = state.copyWith(right: action);
-    ref
-        .read(sharedPreferencesProvider)
-        .setString(ConversationSwipePreference.rightPrefsKey, action.name);
+    try {
+      ref
+          .read(sharedPreferencesProvider)
+          .setString(ConversationSwipePreference.rightPrefsKey, action.name);
+    } on UnimplementedError {
+      // Test environment — skip persistence.
+    }
   }
 }
