@@ -20,8 +20,20 @@ final agentsRepositoryProvider = Provider<AgentsRepository>((ref) {
   );
 });
 
+/// Provider for agent form operations (machines list, runtime models).
+///
+/// Uses explicit server IDs rather than the active server scope, since form
+/// dialogs may operate on a specific server context.
+final agentFormRepositoryProvider = Provider<AgentFormRepository>((ref) {
+  final appDioClient = ref.watch(appDioClientProvider);
+  return _ApiAgentsRepository(
+    appDioClient: appDioClient,
+    activeServerId: null,
+  );
+});
+
 class _ApiAgentsRepository
-    implements AgentsRepository, AgentsMutationRepository {
+    implements AgentsRepository, AgentsMutationRepository, AgentFormRepository {
   const _ApiAgentsRepository({
     required AppDioClient appDioClient,
     required ServerScopeId? activeServerId,
@@ -188,6 +200,46 @@ class _ApiAgentsRepository
     }
   }
 
+  @override
+  Future<MachinesSnapshot> loadFormMachines(String serverId) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '/servers/$serverId/machines',
+        options: Options(headers: {_serverHeaderName: serverId}),
+      );
+      return parseMachinesSnapshot(response.data);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load machines.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<RuntimeModelsResult> loadRuntimeModels({
+    required String serverId,
+    required String machineId,
+    required String runtime,
+  }) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '/servers/$serverId/machines/$machineId/runtime-models/$runtime',
+        options: Options(headers: {_serverHeaderName: serverId}),
+      );
+      return _parseRuntimeModelsResult(response.data);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load runtime models.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
   List<AgentItem> _parseAgentList(Object? payload) {
     if (payload is List) {
       return payload
@@ -285,6 +337,52 @@ class _ApiAgentsRepository
           .where((e) => e.key is String && e.value is String)
           .map((e) => MapEntry(e.key as String, e.value as String)),
     );
+  }
+
+  RuntimeModelsResult _parseRuntimeModelsResult(Object? payload) {
+    final map = switch (payload) {
+      final Map<String, dynamic> value => value,
+      final Map value => Map<String, dynamic>.from(value),
+      _ => const <String, dynamic>{},
+    };
+
+    final models = switch (map['models']) {
+      final List raw => raw
+          .whereType<Object>()
+          .map(_parseModelOption)
+          .whereType<RuntimeModelOption>()
+          .toList(growable: false),
+      _ => const <RuntimeModelOption>[],
+    };
+
+    final defaultId = switch (map['default']) {
+      final String s when s.isNotEmpty => s,
+      _ => null,
+    };
+
+    return RuntimeModelsResult(models: models, defaultModelId: defaultId);
+  }
+
+  RuntimeModelOption? _parseModelOption(Object? payload) {
+    final map = switch (payload) {
+      final Map<String, dynamic> value => value,
+      final Map value => Map<String, dynamic>.from(value),
+      _ => null,
+    };
+    if (map == null) return null;
+
+    final id = switch (map['id']) {
+      final String s when s.isNotEmpty => s,
+      _ => null,
+    };
+    if (id == null) return null;
+
+    final label = switch (map['label']) {
+      final String s when s.isNotEmpty => s,
+      _ => id,
+    };
+
+    return RuntimeModelOption(id: id, label: label);
   }
 }
 

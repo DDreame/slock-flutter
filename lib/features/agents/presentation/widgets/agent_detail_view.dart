@@ -261,9 +261,10 @@ class AgentDetailBody extends ConsumerWidget {
   }
 
   String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:'
-        '${dt.minute.toString().padLeft(2, '0')}:'
-        '${dt.second.toString().padLeft(2, '0')}';
+    final local = dt.toLocal();
+    return '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}:'
+        '${local.second.toString().padLeft(2, '0')}';
   }
 }
 
@@ -438,6 +439,15 @@ class _ConfigCell extends StatelessWidget {
 // Environment Variables section
 // ---------------------------------------------------------------------------
 
+/// Read-only stub for the environment variables section.
+///
+/// Currently displays an "empty" placeholder regardless of the agent's actual
+/// env vars. The full editing flow is handled by [AgentFormDialog] — this
+/// detail view intentionally omits inline editing to keep env vars (which may
+/// contain secrets) behind the explicit form flow.
+///
+/// To implement real display here, accept the agent's `envVars` map and
+/// enumerate key names (values should remain masked for security).
 class _EnvVarsSection extends StatelessWidget {
   const _EnvVarsSection({super.key, required this.colors});
 
