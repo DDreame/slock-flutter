@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// An action item displayed in [showListActionSheet].
 class ListActionItem {
@@ -25,8 +24,7 @@ class ListActionItem {
 
 /// Shows a standardized bottom sheet with a list of actions.
 ///
-/// Fires [HapticFeedback.mediumImpact] when the sheet opens, consistent
-/// with the [MessageGestureWrapper] long-press pattern.
+/// Fires [onOpenHaptic] when the sheet opens for tactile confirmation.
 ///
 /// Returns the [ListActionItem.key] of the selected action, or `null` if
 /// the sheet was dismissed without selection.
@@ -34,8 +32,9 @@ Future<String?> showListActionSheet({
   required BuildContext context,
   required List<ListActionItem> actions,
   String? title,
+  Future<void> Function()? onOpenHaptic,
 }) async {
-  HapticFeedback.mediumImpact();
+  onOpenHaptic?.call();
 
   return showModalBottomSheet<String>(
     context: context,

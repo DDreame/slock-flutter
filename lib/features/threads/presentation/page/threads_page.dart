@@ -6,6 +6,7 @@ import 'package:slock_app/app/widgets/app_error_view.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_state.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -118,6 +119,7 @@ class _ThreadsListSurface extends ConsumerWidget {
             isCompleting: completingThreadIds.contains(threadChannelId),
             onOpen: () => onOpen(item),
             onDone: () => onDone(item),
+            onHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
           );
         },
       ),
@@ -131,12 +133,14 @@ class _ThreadInboxCard extends StatelessWidget {
     required this.isCompleting,
     required this.onOpen,
     required this.onDone,
+    this.onHaptic,
   });
 
   final ThreadInboxItem item;
   final bool isCompleting;
   final VoidCallback onOpen;
   final Future<void> Function() onDone;
+  final Future<void> Function()? onHaptic;
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +159,7 @@ class _ThreadInboxCard extends StatelessWidget {
         dismisses: true,
       ),
       onAction: onDone,
+      onThresholdHaptic: onHaptic,
       child: Card(
         key: ValueKey('thread-item-${item.routeTarget.parentMessageId}'),
         child: ListTile(
@@ -211,6 +216,7 @@ class _ThreadInboxCard extends StatelessWidget {
       context: context,
       actions: actions,
       title: item.resolvedTitle,
+      onOpenHaptic: onHaptic,
     );
 
     switch (result) {

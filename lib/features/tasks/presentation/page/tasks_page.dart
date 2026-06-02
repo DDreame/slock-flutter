@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -226,7 +225,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
           );
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      HapticFeedback.errorNotification();
+      ref.read(hapticServiceProvider).errorNotification();
       showAppSnackBarWithAction(
         context,
         failure.userMessage(context.l10n),
@@ -915,7 +914,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
 
   void _insertOverlay() {
     _dropAccepted = false;
-    HapticFeedback.mediumImpact();
+    ref.read(hapticServiceProvider).mediumImpact();
     final task = widget.task;
     _overlayEntry = OverlayEntry(
       builder: (_) => TaskStatusOverlay(
@@ -1239,6 +1238,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
       context: context,
       actions: actions,
       title: '#${task.taskNumber} ${task.title}',
+      onOpenHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
     );
 
     switch (result) {

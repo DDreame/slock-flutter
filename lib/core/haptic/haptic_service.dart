@@ -6,8 +6,9 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart'
 
 /// Centralized haptic feedback service that respects user preference.
 ///
-/// All haptic feedback in the app should go through this service so that
-/// the user's intensity preference (off/light/medium) is uniformly applied.
+/// New haptic call sites should go through this service so that the user's
+/// intensity preference (off/light/medium) is uniformly applied.
+/// Legacy sites (inbox swipe, task overlay) will be migrated in follow-up.
 class HapticService {
   HapticService({required this.repo});
 

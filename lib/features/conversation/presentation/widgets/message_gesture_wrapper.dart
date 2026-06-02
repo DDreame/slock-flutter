@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
-import 'package:flutter/services.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
 AppLocalizations _conversationL10n(BuildContext context) =>
@@ -38,7 +37,7 @@ const _kDoubleTapInterval = Duration(milliseconds: 300);
 /// * **Optional press-down opacity feedback** (matches the old
 ///   `_TapFeedbackWrapper` behavior).
 ///
-/// All gesture triggers fire [HapticFeedback] for tactile confirmation.
+/// All gesture triggers fire haptic callbacks for tactile confirmation.
 class MessageGestureWrapper extends StatefulWidget {
   const MessageGestureWrapper({
     super.key,
@@ -46,9 +45,12 @@ class MessageGestureWrapper extends StatefulWidget {
     this.onTap,
     this.onDoubleTap,
     this.onLongPress,
+    this.onLongPressHaptic,
     this.onSwipeReply,
     this.enableSwipeReply = false,
     this.enablePressFeedback = false,
+    this.onSwipeThresholdHaptic,
+    this.onDoubleTapHaptic,
   });
 
   final Widget child;
@@ -63,6 +65,16 @@ class MessageGestureWrapper extends StatefulWidget {
 
   /// Called on a long-press (e.g. context menu).
   final VoidCallback? onLongPress;
+
+  /// Optional haptic callback fired on long-press before [onLongPress].
+  /// Should route through [HapticService] for preference-aware feedback.
+  final Future<void> Function()? onLongPressHaptic;
+
+  /// Optional haptic callback fired when swipe crosses reply threshold.
+  final Future<void> Function()? onSwipeThresholdHaptic;
+
+  /// Optional haptic callback fired on double-tap.
+  final Future<void> Function()? onDoubleTapHaptic;
 
   /// Called when the user swipes right beyond [kSwipeReplyThreshold].
   final VoidCallback? onSwipeReply;
@@ -143,7 +155,7 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
 
     if (!_thresholdCrossed && _dragOffset >= kSwipeReplyThreshold) {
       _thresholdCrossed = true;
-      HapticFeedback.mediumImpact();
+      widget.onSwipeThresholdHaptic?.call();
     }
   }
 
@@ -191,7 +203,7 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
         // Second tap within interval → double-tap.
         _tapTimer!.cancel();
         _tapTimer = null;
-        HapticFeedback.lightImpact();
+        widget.onDoubleTapHaptic?.call();
         widget.onDoubleTap!();
         return;
       }
@@ -210,7 +222,7 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
 
   void _handleLongPress() {
     if (widget.onLongPress == null) return;
-    HapticFeedback.mediumImpact();
+    widget.onLongPressHaptic?.call();
     widget.onLongPress!();
   }
 

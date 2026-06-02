@@ -94,6 +94,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
         });
       case BiometricAuthResult.error:
         _cancelCount++;
+        ref.read(hapticServiceProvider).errorNotification();
         setState(() {
           _isAuthenticating = false;
           _errorMessage = context.l10n.biometricErrorGeneric(_cancelCount);
