@@ -99,7 +99,7 @@ void main() {
             },
           ],
         },
-        '/channels/dm/dm-1': {
+        '/channels/dm-1': {
           'id': 'dm-1',
           'participant': {'displayName': 'Alice'},
         },
@@ -120,7 +120,7 @@ void main() {
 
     expect(
       appDioClient.requests.map((request) => request.path),
-      ['/messages/channel/dm-1', '/channels/dm/dm-1'],
+      ['/messages/channel/dm-1', '/channels/dm-1'],
     );
     expect(snapshot.title, 'Alice');
     expect(snapshot.hasOlder, isFalse);
@@ -797,7 +797,7 @@ void main() {
           ],
           'historyLimited': false,
         },
-        '/channels/dm/dm-1': {
+        '/channels/dm-1': {
           'id': 'dm-1',
           'participant': {'displayName': 'Alice'},
         },

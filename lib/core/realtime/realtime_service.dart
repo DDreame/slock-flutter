@@ -227,9 +227,13 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
   void _onSocketError(Object error) {
     state = state.copyWith(
       status: RealtimeConnectionStatus.reconnecting,
-      reconnectAttempts: state.reconnectAttempts + 1,
       disconnectReason: error.toString(),
     );
+    // Trigger reconnection — without this, the state machine is stuck in
+    // 'reconnecting' indefinitely since watchdog/syncConnection only act
+    // on 'disconnected' state. forceReconnect() handles the
+    // reconnectAttempts increment.
+    unawaited(forceReconnect(reason: error.toString()));
   }
 
   void _onRawEvent(RealtimeSocketRawEvent signal) {
