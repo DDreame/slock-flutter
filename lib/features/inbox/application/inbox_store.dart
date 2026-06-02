@@ -48,17 +48,20 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
     // Watch the active server so the store rebuilds (state resets) on switch.
     final serverId = ref.watch(activeServerScopeIdProvider);
 
-    // Keep alive for 5 minutes after last watcher is removed.
+    // Keep alive after last watcher is removed.
     // Prevents aggressive re-fetch on quick tab navigation.
     // Only activate when there's a server — without one, there's nothing
     // to cache, and tests without a configured server avoid lingering timers.
     if (serverId != null) {
+      final link = ref.keepAlive();
       final duration = ref.read(inboxKeepAliveDurationProvider);
       if (duration > Duration.zero) {
-        final link = ref.keepAlive();
         final timer = Timer(duration, link.close);
         ref.onDispose(timer.cancel);
       }
+      // When duration is zero (tests): keepAlive link persists without a
+      // timer, so no pending-timer fakeAsync failures. The provider stays
+      // alive until the container is explicitly disposed by the test.
     }
 
     // Reset _isLoadingMore so pagination isn't stuck if a server switch
@@ -84,7 +87,11 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
     // Schedule auto-load after state reset so InboxPage (indexedStack) does
     // not require initState() to re-fire on server switch (#572).
     Future.microtask(() {
-      if (state.status == InboxStatus.initial) load();
+      try {
+        if (state.status == InboxStatus.initial) load();
+      } on StateError catch (_) {
+        // Provider disposed before auto-load fired — nothing to do.
+      }
     });
     return const InboxState();
   }
