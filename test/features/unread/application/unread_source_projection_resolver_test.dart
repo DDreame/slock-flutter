@@ -28,7 +28,7 @@ import 'package:slock_app/l10n/app_localizations_provider.dart';
 // INV-RESOLVE-4: memberNames populated from agents
 // INV-RESOLVE-5: returns empty resolver when status ≠ success
 //
-// Phase A — all tests skip: true.
+// Phase B — all tests active (name resolver implemented in production code).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -65,7 +65,6 @@ void main() {
   group('_buildNameResolver — map construction', () {
     test(
       'channelNames populated from pinned + regular channels (INV-RESOLVE-1)',
-      skip: true,
       () {
         // Setup: HomeListState with pinnedChannels=[general] + channels=[random].
         // Inbox has items referencing both channel IDs with null channelName.
@@ -115,7 +114,6 @@ void main() {
 
     test(
       'channelNames populated from pinned + regular DMs (INV-RESOLVE-2)',
-      skip: true,
       () {
         // Setup: HomeListState with pinnedDirectMessages=[alice],
         // directMessages=[bob].
@@ -159,7 +157,6 @@ void main() {
 
     test(
       'memberNames populated from DM peer IDs (INV-RESOLVE-3)',
-      skip: true,
       () {
         // Setup: DM with peerId='user-alice'. Inbox item has
         // senderId='user-alice' but null senderName.
@@ -200,7 +197,6 @@ void main() {
 
     test(
       'memberNames populated from agents (INV-RESOLVE-4)',
-      skip: true,
       () {
         // Setup: Agent with id='agent-j1', label='J1'.
         // Inbox item has senderId='agent-j1' but null senderName.
@@ -248,7 +244,6 @@ void main() {
 
     test(
       'returns empty resolver when status ≠ success (INV-RESOLVE-5)',
-      skip: true,
       () {
         // Setup: HomeListState with status=loading (not success).
         // Inbox has items.

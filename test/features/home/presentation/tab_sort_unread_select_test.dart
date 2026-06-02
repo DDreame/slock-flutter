@@ -437,7 +437,6 @@ void main() {
   test(
     'INV-TAB-UNREAD-SELECT-1: channel unread change DOES notify '
     'channelUnreadCounts select',
-    skip: true,
     () async {
       const channelScopeId = ChannelScopeId(
         serverId: ServerScopeId('server-1'),
@@ -559,7 +558,6 @@ void main() {
   test(
     'INV-TAB-UNREAD-SELECT-2: DM unread change DOES notify '
     'dmUnreadCounts select',
-    skip: true,
     () async {
       const dmScopeId = DirectMessageScopeId(
         serverId: ServerScopeId('server-1'),
