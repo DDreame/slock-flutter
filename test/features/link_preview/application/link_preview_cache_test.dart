@@ -265,6 +265,8 @@ void main() {
 
         // Access the provider to ensure it's alive.
         container.read(linkPreviewCacheProvider);
+        container.read(
+            linkPreviewServiceProvider); // instantiate to register onDispose
 
         expect(closeCalled, isFalse,
             reason: 'Close callback must not fire before dispose');
