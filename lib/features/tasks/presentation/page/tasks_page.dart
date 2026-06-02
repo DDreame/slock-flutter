@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/deep_link_resource_error_view.dart';
+import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
@@ -165,7 +166,10 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
               children: [
                 _TasksHeader(colors: colors, onNew: _showCreateTaskDialog),
                 Expanded(
-                  child: Center(child: Text(context.l10n.tasksEmptyAll)),
+                  child: EmptyStateWidget(
+                    icon: Icons.task_alt_outlined,
+                    title: context.l10n.tasksEmptyAll,
+                  ),
                 ),
               ],
             ),
@@ -580,8 +584,9 @@ class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
             ),
           if (filteredItems.isEmpty && _selectedChannelId != null)
             Expanded(
-              child: Center(
-                child: Text(context.l10n.tasksEmptyChannel),
+              child: EmptyStateWidget(
+                icon: Icons.task_alt_outlined,
+                title: context.l10n.tasksEmptyChannel,
               ),
             )
           else
@@ -679,28 +684,32 @@ class _FilterChip extends StatelessWidget {
       label: label,
       selected: isSelected,
       button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          height: _kFilterChipHeight,
-          padding: const EdgeInsets.symmetric(
-            horizontal: _kFilterChipHorizontalPadding,
-          ),
-          decoration: BoxDecoration(
-            color: isSelected ? colors.primary : colors.surfaceAlt,
-            borderRadius: _borderRadius,
-            border: isSelected ? null : Border.all(color: colors.border),
-          ),
-          alignment: Alignment.center,
-          child: ExcludeSemantics(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: _kFilterChipFontSize,
-                fontWeight: _kFilterChipFontWeight,
-                color: isSelected
-                    ? colors.primaryForeground
-                    : colors.textSecondary,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: _borderRadius,
+          child: Container(
+            height: _kFilterChipHeight,
+            padding: const EdgeInsets.symmetric(
+              horizontal: _kFilterChipHorizontalPadding,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected ? colors.primary : colors.surfaceAlt,
+              borderRadius: _borderRadius,
+              border: isSelected ? null : Border.all(color: colors.border),
+            ),
+            alignment: Alignment.center,
+            child: ExcludeSemantics(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: _kFilterChipFontSize,
+                  fontWeight: _kFilterChipFontWeight,
+                  color: isSelected
+                      ? colors.primaryForeground
+                      : colors.textSecondary,
+                ),
               ),
             ),
           ),

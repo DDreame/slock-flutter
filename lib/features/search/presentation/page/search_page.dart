@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/search/application/search_history_store.dart';
@@ -235,9 +236,10 @@ class _SearchBody extends ConsumerWidget {
           message: state.failure?.userMessage(l10n) ?? l10n.errorUnknown,
         ),
       _ when state.hasResults => _buildScopedResults(state),
-      SearchStatus.success when !state.hasResults => Center(
+      SearchStatus.success when !state.hasResults => EmptyStateWidget(
           key: const ValueKey('search-empty'),
-          child: Text(l10n.searchNoResults),
+          icon: Icons.search_off_outlined,
+          title: l10n.searchNoResults,
         ),
       _ => const SizedBox.shrink(),
     };
@@ -448,9 +450,10 @@ class _SearchMessageResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final results = state.mergedResults;
     if (results.isEmpty && !state.isRemoteSearching) {
-      return Center(
+      return EmptyStateWidget(
         key: const ValueKey('search-empty'),
-        child: Text(context.l10n.searchNoResults),
+        icon: Icons.search_off_outlined,
+        title: context.l10n.searchNoResults,
       );
     }
     final hasTrailer =
@@ -511,9 +514,10 @@ class _SearchChannelResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final results = state.channelResults;
     if (results.isEmpty) {
-      return Center(
+      return EmptyStateWidget(
         key: const ValueKey('search-empty'),
-        child: Text(context.l10n.searchNoResults),
+        icon: Icons.search_off_outlined,
+        title: context.l10n.searchNoResults,
       );
     }
     return ListView.separated(
@@ -552,9 +556,10 @@ class _SearchContactResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final results = state.contactResults;
     if (results.isEmpty) {
-      return Center(
+      return EmptyStateWidget(
         key: const ValueKey('search-empty'),
-        child: Text(context.l10n.searchNoResults),
+        icon: Icons.search_off_outlined,
+        title: context.l10n.searchNoResults,
       );
     }
     return ListView.separated(

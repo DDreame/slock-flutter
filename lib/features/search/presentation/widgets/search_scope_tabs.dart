@@ -107,50 +107,55 @@ class _ScopeTab extends StatelessWidget {
       child: Semantics(
         button: true,
         label: context.l10n.searchScopeTabSemantics(label),
-        child: GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            decoration: BoxDecoration(
-              color: isActive ? surface : Colors.transparent,
-              borderRadius: _kTabBorderRadius,
-              boxShadow: isActive
-                  ? [
-                      BoxShadow(
-                        color: shadowColor,
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: _kTabBorderRadius,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: isActive ? surface : Colors.transparent,
+                borderRadius: _kTabBorderRadius,
+                boxShadow: isActive
+                    ? [
+                        BoxShadow(
+                          color: shadowColor,
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: AppTypography.label.copyWith(
+                        color: textColor,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w500,
                       ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    label,
-                    style: AppTypography.label.copyWith(
-                      color: textColor,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (count != null && count! > 0) ...[
-                  const SizedBox(width: 2),
-                  Text(
-                    '($count)',
-                    key: countKey,
-                    style: AppTypography.caption.copyWith(
-                      color: textColor.withAlpha(179),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (count != null && count! > 0) ...[
+                    const SizedBox(width: 2),
+                    Text(
+                      '($count)',
+                      key: countKey,
+                      style: AppTypography.caption.copyWith(
+                        color: textColor.withAlpha(179),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
