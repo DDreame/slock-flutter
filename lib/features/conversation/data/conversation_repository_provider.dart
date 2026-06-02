@@ -91,19 +91,22 @@ class _ApiConversationRepository implements ConversationRepository {
         queryParameters: const {'limit': _messagePageSize},
         options: _serverScopedOptions(target.serverId),
       );
-      final metadataResponse = _appDioClient.get<Object?>(
-        _perChannelMetadataPath(target),
-        options: _serverScopedOptions(target.serverId),
-      );
+      // Metadata fetch is self-handling: errors resolve to null instead of
+      // propagating as unhandled zone errors when messagesResponse throws
+      // first and control exits before this future is awaited.
+      final metadataFuture = _appDioClient
+          .get<Object?>(
+            _perChannelMetadataPath(target),
+            options: _serverScopedOptions(target.serverId),
+          )
+          .then<Object?>(
+            (r) => r.data,
+            onError: (_) => null,
+          );
 
       // Await both in parallel but tolerate metadata failure.
       final messages = await messagesResponse;
-      Object? metadataPayload;
-      try {
-        metadataPayload = (await metadataResponse).data;
-      } catch (_) {
-        // Metadata 404 or network error — non-fatal, fall back to defaults.
-      }
+      final metadataPayload = await metadataFuture;
 
       final messagesPayload = _parseMessagesPayload(
         messages.data,
