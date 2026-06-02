@@ -71,7 +71,8 @@ class SwipeActionWrapper extends StatefulWidget {
   /// Called when the user completes the left-swipe gesture.
   final VoidCallback? onEndToStartAction;
 
-  /// Optional haptic callback fired when swipe crosses threshold.
+  /// Optional haptic callback fired when swipe crosses 15% threshold.
+  /// Callers should route through [HapticService] for preference-aware haptics.
   final Future<void> Function()? onThresholdHaptic;
 
   /// The row widget to wrap.

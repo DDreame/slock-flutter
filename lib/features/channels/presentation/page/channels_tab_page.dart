@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/presentation/page/create_channel_page.dart';
@@ -742,6 +743,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         l10n.conversationSwipeArchived(channel.name),
         actionLabel: l10n.undoAction,
         onAction: () {
+          ref.read(hapticServiceProvider).lightImpact();
           ref
               .read(channelManagementStoreProvider.notifier)
               .unarchiveChannel(channel.scopeId);

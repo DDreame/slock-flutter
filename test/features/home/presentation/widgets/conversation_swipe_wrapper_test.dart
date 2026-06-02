@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/home/application/conversation_swipe_preference.dart';
 import 'package:slock_app/features/home/presentation/widgets/conversation_swipe_wrapper.dart';
+import 'package:slock_app/features/settings/data/haptic_preference.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
@@ -13,27 +16,32 @@ void main() {
     VoidCallback? onTogglePin,
     VoidCallback? onToggleMute,
   }) {
-    return MaterialApp(
-      theme: AppTheme.light,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: SizedBox(
-          width: 400,
-          height: 96,
-          child: ConversationSwipeWrapper(
-            itemKey: 'test-row',
-            actions: ConversationSwipeActions(left: left, right: right),
-            callbacks: ConversationSwipeCallbacks(
-              onArchive: onArchive,
-              onTogglePin: onTogglePin,
-              onToggleMute: onToggleMute,
-            ),
-            isPinned: false,
-            isMuted: false,
-            child: const ListTile(
-              key: ValueKey('conversation-row'),
-              title: Text('General'),
+    return ProviderScope(
+      overrides: [
+        hapticServiceProvider.overrideWithValue(_NoOpHapticService()),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 96,
+            child: ConversationSwipeWrapper(
+              itemKey: 'test-row',
+              actions: ConversationSwipeActions(left: left, right: right),
+              callbacks: ConversationSwipeCallbacks(
+                onArchive: onArchive,
+                onTogglePin: onTogglePin,
+                onToggleMute: onToggleMute,
+              ),
+              isPinned: false,
+              isMuted: false,
+              child: const ListTile(
+                key: ValueKey('conversation-row'),
+                title: Text('General'),
+              ),
             ),
           ),
         ),
@@ -123,4 +131,35 @@ void main() {
 
     await gesture.up();
   });
+}
+
+/// No-op [HapticService] for tests that don't verify haptic behavior.
+class _NoOpHapticService extends HapticService {
+  _NoOpHapticService() : super(repo: _AlwaysMediumRepo());
+
+  @override
+  Future<void> lightImpact() async {}
+
+  @override
+  Future<void> mediumImpact() async {}
+
+  @override
+  Future<void> heavyImpact() async {}
+
+  @override
+  Future<void> selectionClick() async {}
+
+  @override
+  Future<void> successNotification() async {}
+
+  @override
+  Future<void> errorNotification() async {}
+}
+
+class _AlwaysMediumRepo implements HapticPreferenceRepository {
+  @override
+  HapticIntensity getIntensity() => HapticIntensity.medium;
+
+  @override
+  Future<void> setIntensity(HapticIntensity intensity) async {}
 }
