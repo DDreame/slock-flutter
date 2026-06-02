@@ -469,7 +469,7 @@ void main() {
         expect(log[1].entry, 'Working: live task');
       });
 
-      test('silently fails without clearing existing entries', () async {
+      test('rethrows AppFailure without clearing existing entries', () async {
         fakeRepo.listResult = [makeAgent(id: 'a1')];
         await store().load();
 
@@ -482,7 +482,10 @@ void main() {
 
         fakeRepo.activityLogShouldFail = true;
 
-        await store().loadActivityLog('a1');
+        await expectLater(
+          () => store().loadActivityLog('a1'),
+          throwsA(isA<AppFailure>()),
+        );
 
         // Existing live entries should remain.
         final log = state().activityLogFor('a1');

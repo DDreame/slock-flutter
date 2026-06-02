@@ -9,13 +9,18 @@ import 'package:slock_app/features/settings/data/channel_notification_preference
 
 class _RecordingRepository implements ChannelNotificationPreferenceRepository {
   final List<({String serverId, String channelId, bool muted})> calls = [];
+  final Set<String> _mutedKeys = {};
   bool shouldThrow = false;
 
   @override
-  bool isChannelMuted(String serverId, String channelId) => false;
+  bool isChannelMuted(String serverId, String channelId) {
+    final key = ChannelNotificationPreferenceRepository.compositeKey(
+        serverId, channelId);
+    return _mutedKeys.contains(key);
+  }
 
   @override
-  Set<String> getAllMutedCompositeKeys() => const {};
+  Set<String> getAllMutedCompositeKeys() => Set.unmodifiable(_mutedKeys);
 
   @override
   Future<void> setChannelMuted(
@@ -27,6 +32,13 @@ class _RecordingRepository implements ChannelNotificationPreferenceRepository {
       throw Exception('persistence failure');
     }
     calls.add((serverId: serverId, channelId: channelId, muted: muted));
+    final key = ChannelNotificationPreferenceRepository.compositeKey(
+        serverId, channelId);
+    if (muted) {
+      _mutedKeys.add(key);
+    } else {
+      _mutedKeys.remove(key);
+    }
   }
 }
 
@@ -73,9 +85,10 @@ void main() {
     });
 
     test('mute=false persists and removes from in-memory set', () async {
-      // Pre-populate the muted IDs set.
+      // Pre-populate both the fake repo and the muted IDs set.
       final key = ChannelNotificationPreferenceRepository.compositeKey(
           serverId, channelId);
+      repo._mutedKeys.add(key);
       container.read(channelMutedIdsProvider.notifier).state = {key};
 
       final toggle = container.read(toggleChannelMuteUseCaseProvider);
