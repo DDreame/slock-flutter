@@ -130,6 +130,8 @@ class _ConversationDetailScreenState
   ProviderSubscription<ConversationDetailState>? _stateSubscription;
   ProviderSubscription<TranslationSettingsState>? _translationSettingsSub;
   ProviderSubscription<UnreadSourceProjectionState>? _deferredMarkReadSub;
+  Timer? _highlightExpiryTimer;
+  Timer? _quoteJumpExpiryTimer;
   bool _pendingDraftCallback = false;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
   bool _isFormattingToolbarVisible = false;
@@ -193,6 +195,8 @@ class _ConversationDetailScreenState
 
   @override
   void dispose() {
+    _highlightExpiryTimer?.cancel();
+    _quoteJumpExpiryTimer?.cancel();
     _scrollCoordinator.dispose();
     _mentionController.dispose();
     _stateSubscription?.close();
@@ -615,13 +619,15 @@ class _ConversationDetailScreenState
   }
 
   void _scheduleHighlightExpiry() {
-    Future.delayed(const Duration(milliseconds: 1600), () {
+    _highlightExpiryTimer?.cancel();
+    _highlightExpiryTimer = Timer(const Duration(milliseconds: 1600), () {
       if (mounted) setState(() {});
     });
   }
 
   void _scheduleQuoteJumpNotFoundExpiry() {
-    Future.delayed(const Duration(seconds: 5), () {
+    _quoteJumpExpiryTimer?.cancel();
+    _quoteJumpExpiryTimer = Timer(const Duration(seconds: 5), () {
       if (mounted) setState(() {});
     });
   }
