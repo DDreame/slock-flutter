@@ -10,8 +10,7 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/data/biometric_preference.dart';
-import 'package:slock_app/features/settings/data/haptic_preference.dart';
-import 'package:slock_app/core/haptic/haptic_service.dart';
+import 'package:slock_app/features/settings/application/haptic_intensity_use_case.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
@@ -45,8 +44,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final themePreference = ref.watch(
       themeModeStoreProvider.select((s) => s.preference),
     );
-    final hapticIntensity =
-        ref.watch(hapticPreferenceRepositoryProvider).getIntensity();
+    final hapticIntensity = ref.watch(hapticIntensityProvider);
     final biometric = ref.watch(
       biometricStoreProvider.select(
         (s) => (
@@ -458,8 +456,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     AppColors colors,
     AppLocalizations l10n,
   ) async {
-    final repo = ref.read(hapticPreferenceRepositoryProvider);
-    final current = repo.getIntensity();
+    final current = ref.read(hapticIntensityProvider);
     final result = await showModalBottomSheet<HapticIntensity>(
       context: context,
       builder: (context) => SafeArea(
@@ -484,7 +481,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
     if (result != null && result != current) {
-      await repo.setIntensity(result);
+      await ref.read(setHapticIntensityUseCaseProvider).call(result);
       if (mounted) setState(() {});
     }
   }
