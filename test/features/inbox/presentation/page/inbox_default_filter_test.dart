@@ -60,6 +60,7 @@ void main() {
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
         homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ]);
       addTearDown(container.dispose);
 
@@ -175,6 +176,7 @@ void main() {
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
         homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ]);
       addTearDown(container.dispose);
 

@@ -3,6 +3,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
@@ -156,6 +157,7 @@ class RuntimeAppFixture {
             .overrideWithValue(() async => const <ServerSummary>[]),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
         agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ..._extraOverrides,
       ],
     );

@@ -12,7 +12,7 @@ import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
-import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
+import 'package:slock_app/features/conversation/application/attachment_url_resolver.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
@@ -334,9 +334,9 @@ class _FullScreenImageViewerState
     }
     setState(() => _loading = true);
     try {
-      final repo = ref.read(attachmentRepositoryProvider);
+      final getSignedUrl = ref.read(attachmentSignedUrlProvider);
       final serverId = _extractServerIdFromContext();
-      final url = await repo.getSignedUrl(
+      final url = await getSignedUrl(
         serverId,
         attachmentId: att.id!,
       );
@@ -535,8 +535,8 @@ class _HtmlAttachmentRow extends ConsumerWidget {
       try {
         final target = ref.read(currentOpenConversationTargetProvider);
         if (target == null) return;
-        final repo = ref.read(attachmentRepositoryProvider);
-        final previewUrl = await repo.getHtmlPreviewUrl(
+        final getPreviewUrl = ref.read(attachmentHtmlPreviewUrlProvider);
+        final previewUrl = await getPreviewUrl(
           target.serverId,
           attachmentId: attachment.id!,
         );

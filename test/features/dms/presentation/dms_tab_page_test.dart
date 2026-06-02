@@ -827,6 +827,7 @@ void main() {
           const _FakeThreadRepository(),
         ),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ],
     );
     addTearDown(container.dispose);

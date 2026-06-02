@@ -762,6 +762,7 @@ void main() {
         ),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
         channelMutedIdsProvider.overrideWith((ref) => <String>{}),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ],
     );
     addTearDown(container.dispose);

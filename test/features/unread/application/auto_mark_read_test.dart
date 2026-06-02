@@ -80,6 +80,7 @@ void main() {
           (ref) => Stream.value(DateTime.now()),
         ),
         readCursorServiceProvider.overrideWithValue(null),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ],
     );
     return container;

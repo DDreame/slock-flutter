@@ -10,7 +10,7 @@ import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/application/open_dm_use_case.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -139,11 +139,10 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
   Future<void> _openDirectMessage(MemberProfile member) async {
     setState(() => _openingId = member.id);
     try {
-      final channelId =
-          await ref.read(memberRepositoryProvider).openDirectMessage(
-                widget.serverId,
-                userId: member.id,
-              );
+      final channelId = await ref.read(openDmUseCaseProvider)(
+        widget.serverId,
+        userId: member.id,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(channelId);
     } on AppFailure catch (failure) {
@@ -163,11 +162,10 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
   Future<void> _openAgentDirectMessage(AgentItem agent) async {
     setState(() => _openingId = agent.id);
     try {
-      final channelId =
-          await ref.read(memberRepositoryProvider).openAgentDirectMessage(
-                widget.serverId,
-                agentId: agent.id,
-              );
+      final channelId = await ref.read(openAgentDmUseCaseProvider)(
+        widget.serverId,
+        agentId: agent.id,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(channelId);
     } on AppFailure catch (failure) {

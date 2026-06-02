@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/servers/application/onboarding_settings_use_case.dart';
 import 'package:slock_app/features/servers/data/onboarding_settings_repository.dart';
-import 'package:slock_app/features/servers/data/onboarding_settings_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class OnboardingSettingsPage extends ConsumerStatefulWidget {
@@ -36,8 +36,8 @@ class _OnboardingSettingsPageState
     });
 
     try {
-      final repo = ref.read(onboardingSettingsRepositoryProvider);
-      final settings = await repo.getSettings(ServerScopeId(widget.serverId));
+      final getSettings = ref.read(getOnboardingSettingsUseCaseProvider);
+      final settings = await getSettings(ServerScopeId(widget.serverId));
       if (!mounted) return;
       setState(() {
         _settings = settings;
@@ -63,8 +63,8 @@ class _OnboardingSettingsPageState
     setState(() => _isSaving = true);
 
     try {
-      final repo = ref.read(onboardingSettingsRepositoryProvider);
-      final updated = await repo.updateSettings(
+      final updateSettings = ref.read(updateOnboardingSettingsUseCaseProvider);
+      final updated = await updateSettings(
         ServerScopeId(widget.serverId),
         setupModalReminderOptOut: value,
       );

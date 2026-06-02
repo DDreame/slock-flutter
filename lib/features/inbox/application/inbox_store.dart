@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -10,11 +12,20 @@ import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 /// Default page size for inbox queries.
 const inboxPageSize = 30;
 
-final inboxStoreProvider = NotifierProvider<InboxStore, InboxState>(
+/// Duration to keep the inbox store alive after the last watcher is removed.
+/// Prevents aggressive re-fetch on quick navigation (e.g. tab switching).
+///
+/// Override with [Duration.zero] in tests to suppress timer creation and avoid
+/// pending-timer failures in fakeAsync / testWidgets.
+final inboxKeepAliveDurationProvider = Provider<Duration>(
+  (ref) => const Duration(minutes: 5),
+);
+
+final inboxStoreProvider = AutoDisposeNotifierProvider<InboxStore, InboxState>(
   InboxStore.new,
 );
 
-class InboxStore extends Notifier<InboxState> {
+class InboxStore extends AutoDisposeNotifier<InboxState> {
   final RequestCoordinator _coordinator = RequestCoordinator();
   bool _isLoadingMore = false;
   final Map<String, InboxItem> _knownItemsByChannelId = {};
@@ -35,7 +46,23 @@ class InboxStore extends Notifier<InboxState> {
   @override
   InboxState build() {
     // Watch the active server so the store rebuilds (state resets) on switch.
-    ref.watch(activeServerScopeIdProvider);
+    final serverId = ref.watch(activeServerScopeIdProvider);
+
+    // Keep alive after last watcher is removed.
+    // Prevents aggressive re-fetch on quick tab navigation.
+    // Only activate when there's a server — without one, there's nothing
+    // to cache, and tests without a configured server avoid lingering timers.
+    if (serverId != null) {
+      final link = ref.keepAlive();
+      final duration = ref.read(inboxKeepAliveDurationProvider);
+      if (duration > Duration.zero) {
+        final timer = Timer(duration, link.close);
+        ref.onDispose(timer.cancel);
+      }
+      // When duration is zero (tests): keepAlive link persists without a
+      // timer, so no pending-timer fakeAsync failures. The provider stays
+      // alive until the container is explicitly disposed by the test.
+    }
 
     // Reset _isLoadingMore so pagination isn't stuck if a server switch
     // happens while loadMore is in-flight (#714).
@@ -59,9 +86,15 @@ class InboxStore extends Notifier<InboxState> {
 
     // Schedule auto-load after state reset so InboxPage (indexedStack) does
     // not require initState() to re-fire on server switch (#572).
-    Future.microtask(() {
-      if (state.status == InboxStatus.initial) load();
-    });
+    if (serverId != null) {
+      Future.microtask(() async {
+        try {
+          if (state.status == InboxStatus.initial) await load();
+        } on StateError catch (_) {
+          // Provider or container disposed before auto-load completed.
+        }
+      });
+    }
     return const InboxState();
   }
 

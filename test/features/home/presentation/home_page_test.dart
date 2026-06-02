@@ -1291,6 +1291,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
 
@@ -1392,6 +1393,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
 
@@ -1523,6 +1525,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
 
@@ -1846,6 +1849,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
 
@@ -1932,6 +1936,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
 
@@ -2355,6 +2360,7 @@ void main() {
             homeNowProvider.overrideWith(
               (ref) => Stream.value(DateTime.now()),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
 

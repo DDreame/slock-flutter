@@ -468,6 +468,7 @@ void main() {
       overrides: [
         secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
       ],
     );
     addTearDown(container.dispose);
@@ -871,6 +872,7 @@ void main() {
             serverListRepositoryProvider.overrideWithValue(
               _FakeServerListRepository(['server-1']),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
         addTearDown(container.dispose);
@@ -1076,6 +1078,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['server-1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
@@ -1209,6 +1212,7 @@ void main() {
             serverListRepositoryProvider.overrideWithValue(
               _FakeServerListRepository(['server-1']),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
         addTearDown(container.dispose);
@@ -1300,6 +1304,7 @@ void main() {
             serverListRepositoryProvider.overrideWithValue(
               _FakeServerListRepository(['server-1']),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
         addTearDown(container.dispose);
@@ -1667,6 +1672,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['server-1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
@@ -1711,6 +1717,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['server-1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
@@ -1755,6 +1762,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['server-1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
@@ -1794,6 +1802,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['server-1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
@@ -1845,6 +1854,7 @@ void main() {
             serverListRepositoryProvider.overrideWithValue(
               _FakeServerListRepository(['server-1']),
             ),
+            inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
           ],
         );
         addTearDown(container.dispose);
@@ -1910,6 +1920,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['s1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
@@ -2026,6 +2037,7 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             _FakeServerListRepository(['s1']),
           ),
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       );
       addTearDown(container.dispose);
