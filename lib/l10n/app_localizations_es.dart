@@ -1504,6 +1504,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get conversationReplySemantics => 'Responder';
 
   @override
+  String get conversationSwipeLeftSemantics => 'Entrar al hilo';
+
+  @override
+  String get conversationSwipeRightReactionSemantics => 'Agregar reacción';
+
+  @override
   String get channelStopAllAgents => 'Detener todos los agentes';
 
   @override

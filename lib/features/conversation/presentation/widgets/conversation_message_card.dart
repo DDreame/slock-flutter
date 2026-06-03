@@ -25,6 +25,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_con
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_linked_task_badge.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_sender_profile_sheet.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/quick_reaction_bar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/quoted_message_block.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/url_launcher_confirm.dart';
 import 'package:slock_app/features/profile/application/load_profile_use_case.dart';
@@ -940,6 +941,7 @@ class ConversationMessageCardState
           ),
         );
       }
+      final enableSwipe = !message.content.contains('```');
       return MessageGestureWrapper(
         enablePressFeedback: enableTapToThread,
         onTap: () => _handleMessageTap(
@@ -950,12 +952,16 @@ class ConversationMessageCardState
         ),
         onDoubleTap: () => _quickReact(context, ref),
         onDoubleTapHaptic: () => ref.read(hapticServiceProvider).lightImpact(),
-        enableSwipeReply: !message.content.contains('```'),
+        enableSwipeReply: enableSwipe,
         onSwipeReply: () => ref
             .read(conversationDetailStoreProvider.notifier)
             .setReplyTo(message),
+        enableSwipeLeft: enableSwipe,
+        onSwipeLeft: () => _navigateToThread(context),
+        enableSwipeRight: enableSwipe,
+        onSwipeRight: () => _showQuickReactionBar(context, ref),
         onSwipeThresholdHaptic: () =>
-            ref.read(hapticServiceProvider).mediumImpact(),
+            ref.read(hapticServiceProvider).lightImpact(),
         onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
         onLongPressHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
         child: Listener(
@@ -1237,6 +1243,37 @@ class ConversationMessageCardState
         parentMessageId: widget.message.id,
         threadChannelId: widget.message.threadId,
       ).toLocation(),
+    );
+  }
+
+  void _showQuickReactionBar(BuildContext context, WidgetRef ref) {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+
+    final position = renderBox.localToGlobal(Offset.zero);
+    final anchorRect = position & renderBox.size;
+
+    showQuickReactionBar(
+      context: context,
+      anchorRect: anchorRect,
+      onReaction: (emoji) async {
+        try {
+          await ref
+              .read(conversationDetailStoreProvider.notifier)
+              .addReaction(widget.message.id, emoji);
+          ref.read(hapticServiceProvider).mediumImpact();
+        } on AppFailure catch (failure) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(failure.userMessage(context.l10n)),
+              ),
+            );
+        }
+      },
+      onOpenPicker: () => _showEmojiPicker(context, ref),
     );
   }
 

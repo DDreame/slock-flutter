@@ -523,6 +523,8 @@
   "conversationMessageActionsSemantics": "消息操作",
   "conversationShowMessageMenuSemantics": "显示消息菜单",
   "conversationReplySemantics": "回复",
+  "conversationSwipeLeftSemantics": "进入话题",
+  "conversationSwipeRightReactionSemantics": "添加表情",
   "channelStopAllAgents": "停止所有智能体",
   "channelResumeAllAgents": "恢复所有智能体",
   "channelStopAllAgentsTitle": "停止所有智能体",

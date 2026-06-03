@@ -1445,6 +1445,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationReplySemantics => '回复';
 
   @override
+  String get conversationSwipeLeftSemantics => '进入话题';
+
+  @override
+  String get conversationSwipeRightReactionSemantics => '添加表情';
+
+  @override
   String get channelStopAllAgents => '停止所有智能体';
 
   @override

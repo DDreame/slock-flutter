@@ -9,8 +9,11 @@ AppLocalizations _conversationL10n(BuildContext context) =>
     AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 /// Minimum horizontal displacement (in logical pixels) required to trigger
-/// a swipe-to-reply.
-const double kSwipeReplyThreshold = 60;
+/// a swipe action.
+const double kSwipeThreshold = 64;
+
+/// Legacy alias for backward compatibility.
+const double kSwipeReplyThreshold = kSwipeThreshold;
 
 /// Maximum horizontal offset the child can be dragged to.
 const double _kMaxDragOffset = 100;
@@ -27,11 +30,16 @@ const _kPressFeedbackOpacity = 0.7;
 /// Maximum interval between two taps to count as a double-tap.
 const _kDoubleTapInterval = Duration(milliseconds: 300);
 
+/// Minimum horizontal displacement before locking the gesture direction
+/// (prevents conflict with vertical scrolling).
+const _kDirectionLockThreshold = 15.0;
+
 /// A gesture wrapper for chat message bubbles that provides:
 ///
 /// * **Double-tap** — e.g. quick-react with 👍 (tracked manually to avoid
 ///   interfering with child widget taps via [DoubleTapGestureRecognizer]).
-/// * **Swipe right** — e.g. quote-reply.
+/// * **Swipe left** — e.g. enter thread / quote reply.
+/// * **Swipe right** — e.g. quick reaction bar.
 /// * **Long-press** — e.g. show context menu.
 /// * **Tap** — e.g. navigate to thread.
 /// * **Optional press-down opacity feedback** (matches the old
@@ -47,7 +55,11 @@ class MessageGestureWrapper extends StatefulWidget {
     this.onLongPress,
     this.onLongPressHaptic,
     this.onSwipeReply,
+    this.onSwipeLeft,
+    this.onSwipeRight,
     this.enableSwipeReply = false,
+    this.enableSwipeLeft = false,
+    this.enableSwipeRight = false,
     this.enablePressFeedback = false,
     this.onSwipeThresholdHaptic,
     this.onDoubleTapHaptic,
@@ -70,20 +82,33 @@ class MessageGestureWrapper extends StatefulWidget {
   /// Should route through [HapticService] for preference-aware feedback.
   final Future<void> Function()? onLongPressHaptic;
 
-  /// Optional haptic callback fired when swipe crosses reply threshold.
+  /// Optional haptic callback fired when swipe crosses threshold.
   final Future<void> Function()? onSwipeThresholdHaptic;
 
   /// Optional haptic callback fired on double-tap.
   final Future<void> Function()? onDoubleTapHaptic;
 
-  /// Called when the user swipes right beyond [kSwipeReplyThreshold].
+  /// Called when the user swipes right beyond [kSwipeThreshold].
+  /// Legacy callback — use [onSwipeRight] for new code.
   final VoidCallback? onSwipeReply;
 
-  /// When `true` the horizontal drag gesture is enabled and a reply-icon
-  /// indicator appears during the swipe. When `false` swipe gestures are
-  /// ignored — useful for system messages or messages with horizontally
-  /// scrollable content (code blocks).
+  /// Called when the user swipes left beyond [kSwipeThreshold] (drag left).
+  /// Typically used for entering a thread or quote reply.
+  final VoidCallback? onSwipeLeft;
+
+  /// Called when the user swipes right beyond [kSwipeThreshold] (drag right).
+  /// Typically used for showing quick reaction bar.
+  final VoidCallback? onSwipeRight;
+
+  /// When `true` the horizontal drag gesture is enabled for right-swipe
+  /// (reply). Legacy flag — use [enableSwipeRight] for new code.
   final bool enableSwipeReply;
+
+  /// When `true` left-swipe gesture is enabled (drag left → thread entry).
+  final bool enableSwipeLeft;
+
+  /// When `true` right-swipe gesture is enabled (drag right → reaction).
+  final bool enableSwipeRight;
 
   /// When `true` a subtle opacity dip is shown on tap-down (press feedback).
   final bool enablePressFeedback;
@@ -98,6 +123,7 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
   double _dragOffset = 0;
   bool _thresholdCrossed = false;
   double _dragStartX = 0;
+  bool _directionLocked = false;
 
   // ---------- Tap state ----------
   bool _isPressed = false;
@@ -111,6 +137,11 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
   // ---------- Snap-back animation ----------
   late AnimationController _snapController;
   double _snapFrom = 0;
+
+  bool get _enableAnySwipe =>
+      widget.enableSwipeReply ||
+      widget.enableSwipeLeft ||
+      widget.enableSwipeRight;
 
   @override
   void initState() {
@@ -143,24 +174,45 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
   void _onHorizontalDragStart(DragStartDetails details) {
     _dragStartX = details.localPosition.dx;
     _thresholdCrossed = false;
+    _directionLocked = false;
     _snapController.stop();
   }
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
+    final rawDelta = details.localPosition.dx - _dragStartX;
+
+    // Lock direction once past the dead zone.
+    if (!_directionLocked && rawDelta.abs() >= _kDirectionLockThreshold) {
+      _directionLocked = true;
+    }
+
+    if (!_directionLocked) return;
+
+    // Determine allowed offset based on direction.
+    double newOffset;
+    if (rawDelta < 0) {
+      // Left swipe (negative) — only if enabled.
+      if (!widget.enableSwipeLeft) return;
+      newOffset = rawDelta.clamp(-_kMaxDragOffset, 0).toDouble();
+    } else {
+      // Right swipe (positive) — enabled by either legacy or new flag.
+      if (!widget.enableSwipeReply && !widget.enableSwipeRight) return;
+      newOffset = rawDelta.clamp(0, _kMaxDragOffset).toDouble();
+    }
+
     setState(() {
-      _dragOffset = (details.localPosition.dx - _dragStartX)
-          .clamp(0, _kMaxDragOffset)
-          .toDouble();
+      _dragOffset = newOffset;
     });
 
-    if (!_thresholdCrossed && _dragOffset >= kSwipeReplyThreshold) {
+    if (!_thresholdCrossed && _dragOffset.abs() >= kSwipeThreshold) {
       _thresholdCrossed = true;
       widget.onSwipeThresholdHaptic?.call();
     }
   }
 
   void _onHorizontalDragEnd(DragEndDetails details) {
-    final crossed = _dragOffset >= kSwipeReplyThreshold;
+    final crossed = _dragOffset.abs() >= kSwipeThreshold;
+    final wasLeftSwipe = _dragOffset < 0;
 
     // Animate snap-back to zero.
     _snapFrom = _dragOffset;
@@ -169,9 +221,15 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
       ..forward();
 
     _thresholdCrossed = false;
+    _directionLocked = false;
 
     if (crossed) {
-      widget.onSwipeReply?.call();
+      if (wasLeftSwipe) {
+        widget.onSwipeLeft?.call();
+      } else {
+        // Right swipe: prefer new callback, fall back to legacy.
+        (widget.onSwipeRight ?? widget.onSwipeReply)?.call();
+      }
     }
   }
 
@@ -226,6 +284,8 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
     widget.onLongPress!();
   }
 
+  // ---------- Build ----------
+
   @override
   Widget build(BuildContext context) {
     Widget inner = AnimatedOpacity(
@@ -235,31 +295,44 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
       child: widget.child,
     );
 
-    // When swipe is active and offset > 0, show the reply icon + offset.
-    if (widget.enableSwipeReply && _dragOffset > 0) {
+    // When swipe is active and offset != 0, show icon + translate.
+    if (_enableAnySwipe && _dragOffset != 0) {
+      final isLeftSwipe = _dragOffset < 0;
+      final absOffset = _dragOffset.abs();
+      final progress = math.min(absOffset / kSwipeThreshold, 1.0);
+
       inner = Stack(
         clipBehavior: Clip.none,
         children: [
+          // Icon revealed behind the message.
           Positioned(
-            left: 0,
+            left: isLeftSwipe ? null : 0,
+            right: isLeftSwipe ? 0 : null,
             top: 0,
             bottom: 0,
             child: Center(
-              child: Opacity(
-                opacity: math.min(_dragOffset / kSwipeReplyThreshold, 1.0),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Icon(
-                    Icons.reply,
-                    color: _thresholdCrossed
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                    size: 24,
+              child: Transform.scale(
+                scale: 0.5 + 0.5 * progress,
+                child: Opacity(
+                  opacity: progress,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: isLeftSwipe ? 0 : 8,
+                      right: isLeftSwipe ? 8 : 0,
+                    ),
+                    child: Icon(
+                      isLeftSwipe ? Icons.reply : Icons.add_reaction_outlined,
+                      color: _thresholdCrossed
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
+          // Translated child.
           Transform.translate(
             offset: Offset(_dragOffset, 0),
             child: inner,
@@ -278,9 +351,15 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
           CustomSemanticsAction(
             label: l10n.conversationShowMessageMenuSemantics,
           ): _handleLongPress,
-        if (widget.enableSwipeReply)
+        if (widget.enableSwipeReply || widget.enableSwipeRight)
           CustomSemanticsAction(label: l10n.conversationReplySemantics): () {
-            widget.onSwipeReply?.call();
+            (widget.onSwipeRight ?? widget.onSwipeReply)?.call();
+          },
+        if (widget.enableSwipeLeft)
+          CustomSemanticsAction(
+            label: l10n.conversationSwipeLeftSemantics,
+          ): () {
+            widget.onSwipeLeft?.call();
           },
       },
       child: GestureDetector(
@@ -290,12 +369,10 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
         onTapDown: _handleTapDown,
         onTapUp: _handleTapUp,
         onTapCancel: _handleTapCancel,
-        onHorizontalDragStart:
-            widget.enableSwipeReply ? _onHorizontalDragStart : null,
+        onHorizontalDragStart: _enableAnySwipe ? _onHorizontalDragStart : null,
         onHorizontalDragUpdate:
-            widget.enableSwipeReply ? _onHorizontalDragUpdate : null,
-        onHorizontalDragEnd:
-            widget.enableSwipeReply ? _onHorizontalDragEnd : null,
+            _enableAnySwipe ? _onHorizontalDragUpdate : null,
+        onHorizontalDragEnd: _enableAnySwipe ? _onHorizontalDragEnd : null,
         child: inner,
       ),
     );
