@@ -1175,25 +1175,16 @@ class ConversationDetailStore
         } catch (e, st) {
           ref.read(crashReporterProvider).captureException(e, stackTrace: st);
         }
-        if (persisted == null) {
-          // Persistence failed — still attempt gap recovery if needed.
-          if (gapDetected) {
-            try {
-              await _recoverGap(target, afterSeq: prevMaxSeq);
-            } catch (e, st) {
-              ref
-                  .read(crashReporterProvider)
-                  .captureException(e, stackTrace: st);
-            }
-          }
-          return;
-        }
+        // INV-P0-REALTIME: If persistence failed, use the incoming message
+        // directly so the user sees it in real-time. Persistence is
+        // best-effort — display must not depend on local storage success.
+        final messageToAppend = persisted ?? incoming.message;
         if (ref.read(currentConversationDetailTargetProvider) != target ||
             state.status != ConversationDetailStatus.success) {
           return;
         }
         state = state.copyWith(
-          messages: _appendDedupedMessage(state.messages, persisted),
+          messages: _appendDedupedMessage(state.messages, messageToAppend),
         );
         _persistSession();
 

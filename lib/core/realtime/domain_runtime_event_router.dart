@@ -217,6 +217,12 @@ final domainRuntimeEventRouterProvider = Provider<void>(
 
       inboxDebounceTimer?.cancel();
       ref.read(inboxStoreProvider.notifier).refresh(reason: reason);
+      // INV-P0-UNREAD: After immediate refresh, preserve optimistic mark-read
+      // for the currently-open conversation so reconnect/syncBatch responses
+      // don't overwrite the zero unread count the user sees.
+      ref
+          .read(inboxStoreProvider.notifier)
+          .preserveActiveConversationReadState();
     }
 
     // -----------------------------------------------------------------------

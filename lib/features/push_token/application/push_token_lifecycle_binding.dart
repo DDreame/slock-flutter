@@ -80,6 +80,31 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
       }
     },
   );
+
+  // INV-P0-PUSH: Re-register push token on every WebSocket reconnect.
+  // If the server restarts and clears its token registry, the app would
+  // otherwise never re-push its token (only triggered on token change or
+  // login). Re-registering on every `connected` transition ensures the
+  // server always has the current device token.
+  ref.listen(
+    realtimeServiceProvider.select((s) => s.status),
+    (previous, next) {
+      if (previous == next) return;
+      if (next != RealtimeConnectionStatus.connected) return;
+
+      final session = ref.read(sessionStoreProvider);
+      if (!session.isAuthenticated) return;
+
+      final notifState = ref.read(notificationStoreProvider);
+      final token = notifState.pushToken;
+      if (token != null) {
+        unawaited(_register(repo, token,
+            platform: notifState.pushTokenPlatform,
+            crashReporter: crashReporter,
+            diagnostics: diagnostics));
+      }
+    },
+  );
 });
 
 Future<void> _register(
