@@ -22,7 +22,6 @@ import 'package:slock_app/features/conversation/presentation/widgets/conversatio
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
-import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
@@ -1540,8 +1539,7 @@ void main() {
     expect(find.byIcon(Icons.screenshot_outlined), findsOneWidget);
   });
 
-  testWidgets(
-      'screenshot button tapping captures and navigates to annotate page', (
+  testWidgets('screenshot button enters multi-select mode', (
     tester,
   ) async {
     final target = ConversationDetailTarget.channel(
@@ -1569,40 +1567,10 @@ void main() {
       ),
     );
 
-    final container = ProviderContainer(
-      overrides: [
-        conversationRepositoryProvider.overrideWithValue(repository),
-        sessionStoreProvider.overrideWith(
-          () => _FixedSessionStore(const SessionState()),
-        ),
-        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
-      ],
-    );
-
-    final router = GoRouter(
-      initialLocation: '/',
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (context, state) => ConversationDetailPage(target: target),
-        ),
-        GoRoute(
-          path: '/screenshot-annotate',
-          builder: (context, state) =>
-              const Scaffold(body: Text('Annotate Page')),
-        ),
-      ],
-    );
-
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp.router(
-          routerConfig: router,
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-        ),
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
       ),
     );
     await tester.pumpAndSettle();
@@ -1613,31 +1581,27 @@ void main() {
       findsOneWidget,
     );
 
-    // Tap the screenshot button to trigger _captureAndAnnotate().
-    await tester.tap(find.byKey(const ValueKey('conversation-screenshot')));
+    // Selection action bar should NOT be visible yet.
+    expect(
+      find.byKey(const ValueKey('selection-action-bar')),
+      findsNothing,
+    );
 
-    // _captureAndAnnotate calls RenderRepaintBoundary.toImage() which is a
-    // native dart:ui call. Interleave pump + runAsync so each async step
-    // in the capture chain (toImage → toByteData → file write → setState)
-    // completes and its fakeAsync continuation is processed.
-    for (var i = 0; i < 5; i++) {
-      await tester.pump();
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 100)),
-      );
-    }
+    // Tap the screenshot button to enter multi-select mode.
+    await tester.tap(find.byKey(const ValueKey('conversation-screenshot')));
     await tester.pumpAndSettle();
 
-    // Verify the capture flow ran: ScreenshotCaptureService.capture()
-    // rasterizes the RepaintBoundary and sets the store's imagePath.
-    final screenshotState = container.read(screenshotStoreProvider);
-    expect(screenshotState.imagePath, isNotNull,
-        reason: 'Screenshot capture should populate imagePath in store');
+    // Verify the selection action bar is now visible.
+    expect(
+      find.byKey(const ValueKey('selection-action-bar')),
+      findsOneWidget,
+    );
 
-    // Verify navigation to the annotate page.
-    expect(find.text('Annotate Page'), findsOneWidget);
-
-    router.dispose();
+    // Verify cancel button is available in the selection bar.
+    expect(
+      find.byKey(const ValueKey('selection-action-cancel')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('composer shows mic button when text is empty', (tester) async {
