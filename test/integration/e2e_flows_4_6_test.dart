@@ -388,7 +388,10 @@ void main() {
       await tester.longPress(find.byKey(const ValueKey('message-to-delete')));
       await tester.pumpAndSettle();
 
-      // Tap delete.
+      // Scroll to and tap delete (may be below the fold in the bottom sheet).
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('ctx-action-delete')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
 
