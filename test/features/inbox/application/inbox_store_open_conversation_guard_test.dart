@@ -165,6 +165,9 @@ void main() {
 
       await fixture.boot();
       try {
+        // Ensure inbox is loaded (auto-load may not complete within boot drain).
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+
         // After initial load, ch-open has unread=7.
         final stateAfterBoot = fixture.container.read(inboxStoreProvider);
         expect(stateAfterBoot.status, InboxStatus.success);
