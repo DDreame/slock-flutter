@@ -522,6 +522,14 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
   /// INV-P0-UNREAD-LOAD: Enforce zero unread for the currently-open
   /// conversation in a list of inbox items — but only when a mark-read
   /// mutation was already recorded for the channel (mutation version exists).
+  /// Suppresses stale unread counts for channels that have had mark-read
+  /// mutations issued but whose server-side projection may not yet reflect
+  /// the read state.
+  ///
+  /// Previously only applied to the currently-open conversation. Expanded in
+  /// #858 to cover ALL channels with pending mark-read mutations — after
+  /// navigating away from a conversation, a stale inbox refresh should not
+  /// resurrect the badge for a channel we already marked as read.
   ///
   /// This ensures:
   /// - After markRead fires: subsequent refreshes with stale server data
@@ -529,22 +537,23 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
   /// - Before markRead fires: initial inbox load passes through unchanged,
   ///   allowing _fireMarkReadIfUnread to detect unread > 0 and call the API.
   List<InboxItem> _applyOpenConversationReadGuard(List<InboxItem> items) {
-    final openTarget = ref.read(currentOpenConversationTargetProvider);
-    if (openTarget == null) return items;
-    final channelId = openTarget.conversationId;
-    // Only suppress if a mark-read was already issued for this channel.
-    // Without a prior mutation, the projection must reflect server data so
-    // _fireMarkReadIfUnread can detect unread > 0 and fire the API.
-    if (!_readMutationVersionsByChannelId.containsKey(channelId)) return items;
-    final index = items.indexWhere((item) => item.channelId == channelId);
-    if (index < 0 || items[index].unreadCount <= 0) return items;
-    final updated = List<InboxItem>.of(items);
-    updated[index] = items[index].copyWith(
-      unreadCount: 0,
-      isMentioned: false,
-      clearFirstUnreadMessageId: true,
-    );
-    return updated;
+    if (_readMutationVersionsByChannelId.isEmpty) return items;
+
+    // Apply guard for ALL channels with pending mutations, not just the
+    // currently-open conversation (#858).
+    List<InboxItem>? updated;
+    for (final channelId in _readMutationVersionsByChannelId.keys) {
+      final index =
+          (updated ?? items).indexWhere((item) => item.channelId == channelId);
+      if (index < 0 || (updated ?? items)[index].unreadCount <= 0) continue;
+      updated ??= List<InboxItem>.of(items);
+      updated[index] = updated[index].copyWith(
+        unreadCount: 0,
+        isMentioned: false,
+        clearFirstUnreadMessageId: true,
+      );
+    }
+    return updated ?? items;
   }
 
   int _bumpReadMutationVersions(Iterable<String> channelIds) {

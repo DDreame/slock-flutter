@@ -184,9 +184,24 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         syncBatchRefreshPending = true;
         return;
       }
-      // If exiting a batch and a refresh was deferred, fire it now.
+      // If a batch was pending but syncBatchCompleteEvent never arrived
+      // (e.g. connection dropped mid-batch), fire the deferred refresh now.
+      // Skip the open-conversation suppression — the deferred refresh covers
+      // ALL conversations that changed during the batch (#858).
       if (syncBatchRefreshPending) {
         syncBatchRefreshPending = false;
+        final inboxState = ref.read(inboxStoreProvider);
+        if (inboxState.status == InboxStatus.success) {
+          inboxDebounceTimer?.cancel();
+          ref.read(inboxStoreProvider.notifier).refresh(
+                reason: 'syncBatchDeferred',
+              );
+          ref
+              .read(inboxStoreProvider.notifier)
+              .preserveActiveConversationReadState();
+        }
+        // Still process this event's own refresh below (it may target a
+        // different conversation than the batch covered).
       }
 
       // Suppress refresh for messages in the currently-open conversation.

@@ -570,6 +570,22 @@ class _ConversationDetailScreenState
       final projection = ref.read(unreadSourceProjectionProvider);
       if (projection.isLoaded) {
         _fireMarkReadIfUnread(t, projection);
+      } else {
+        // Deferred fallback: projection not yet loaded when new messages
+        // arrive (e.g. rapid reconnect). Wait for it, then mark read (#858).
+        _deferredMarkReadSub?.close();
+        _deferredMarkReadSub = ref.listenManual<UnreadSourceProjectionState>(
+          unreadSourceProjectionProvider,
+          (previous, next) {
+            if (next.isLoaded) {
+              _deferredMarkReadSub?.close();
+              _deferredMarkReadSub = null;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _fireMarkReadIfUnread(t, next);
+              });
+            }
+          },
+        );
       }
     }
 
