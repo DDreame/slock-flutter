@@ -17,6 +17,7 @@ import 'package:slock_app/features/conversation/application/pinned_messages_stor
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -81,6 +82,18 @@ mixin _ConversationDetailCoreMixin
                   ?.scrollOffset ??
               0,
         );
+  }
+
+  /// Seeds the PresenceStore with the DM peer's initial presence from
+  /// the channel metadata response. This ensures the presence dot shows
+  /// the correct status immediately instead of defaulting to offline
+  /// until the first realtime event arrives.
+  void _seedPeerPresence(ConversationDetailSnapshot snapshot) {
+    final peerId = snapshot.peerId;
+    final peerPresence = snapshot.peerPresence;
+    if (peerId == null || peerPresence == null) return;
+    if (snapshot.target.surface != ConversationSurface.directMessage) return;
+    ref.read(presenceStoreProvider.notifier).setPresence(peerId, peerPresence);
   }
 
   List<ConversationMessageSummary> _appendDedupedMessage(
@@ -540,6 +553,8 @@ class ConversationDetailStore
         isArchived: snapshot.isArchived,
       );
       _persistSession();
+      // Seed PresenceStore with DM peer's initial presence from metadata.
+      _seedPeerPresence(snapshot);
       // #861: Only call refreshSavedMessageIds if batch didn't provide them.
       if (snapshot.savedMessageIds == null) {
         unawaited(refreshSavedMessageIds());
@@ -648,6 +663,7 @@ class ConversationDetailStore
           isArchived: snapshot.isArchived,
         );
         _persistSession();
+        _seedPeerPresence(snapshot);
         // #861: Only call refreshSavedMessageIds if batch didn't provide them.
         if (snapshot.savedMessageIds == null) {
           unawaited(refreshSavedMessageIds());

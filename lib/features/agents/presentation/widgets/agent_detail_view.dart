@@ -185,7 +185,8 @@ class _AgentHeader extends StatelessWidget {
         Center(
           child: StatusGlowRing(
             key: const ValueKey('agent-detail-glow-ring'),
-            status: mapActivityToGlowStatus(agent.activity),
+            status: mapActivityToGlowStatus(agent.activity,
+                isStopped: agent.isStopped),
             size: 80,
             child: PresenceAvatar(
               key: ValueKey('agent-detail-presence-${agent.id}'),

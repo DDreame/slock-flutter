@@ -748,8 +748,13 @@ class ConversationMessageCardState
     }
 
     // Thread indicator is placed BELOW the bubble, not inside it.
+    // Show when threadId is populated OR when the message has replies
+    // (replyCount > 0) — the API may not always populate threadId on
+    // thread-root messages.
+    final hasThread = message.threadId != null ||
+        (message.replyCount != null && message.replyCount! > 0);
     Widget threadIndicator = const SizedBox.shrink();
-    if (message.threadId != null) {
+    if (hasThread) {
       final threadLabel = message.replyCount != null && message.replyCount! > 0
           ? context.l10n.conversationMessageReplyCount(message.replyCount!)
           : context.l10n.conversationMessageInThread;
@@ -797,7 +802,7 @@ class ConversationMessageCardState
     // and only when the message already has a thread.
     final enableTapToThread = target.surface == ConversationSurface.channel &&
         visualKind != _ConversationMessageVisualKind.system &&
-        message.threadId != null;
+        hasThread;
 
     final isNonSystem = visualKind != _ConversationMessageVisualKind.system;
 

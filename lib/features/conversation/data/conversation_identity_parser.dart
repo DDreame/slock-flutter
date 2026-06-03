@@ -121,6 +121,34 @@ String? resolveDirectMessagePeerId(Object? payload) {
   return null;
 }
 
+/// Extracts the peer's presence status from a DM channel metadata payload.
+///
+/// Tries `peerPresence`, `presence`, or nested peer objects with a
+/// `presence` / `status` field. Returns values like `'online'`, `'idle'`,
+/// `'offline'`, or null if not available.
+String? resolveDirectMessagePeerPresence(Object? payload) {
+  final map = _readOptionalMap(payload);
+  if (map == null) return null;
+
+  // Try top-level presence fields.
+  final directPresence = _firstPresentString(
+    map,
+    fields: const ['peerPresence', 'presence', 'peerStatus'],
+  );
+  if (directPresence != null) return directPresence;
+
+  // Try nested identity objects with a 'presence' or 'status' field.
+  for (final field in const ['peer', 'peerUser', 'participant']) {
+    final nested = _readOptionalMap(map[field]);
+    if (nested == null) continue;
+    final presence = _readOptionalString(nested['presence']) ??
+        _readOptionalString(nested['status']);
+    if (presence != null) return presence;
+  }
+
+  return null;
+}
+
 String? _readOptionalString(Object? value) {
   if (value is String && value.isNotEmpty) {
     return value;

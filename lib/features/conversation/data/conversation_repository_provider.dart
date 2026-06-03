@@ -180,6 +180,8 @@ class _ApiConversationRepository implements ConversationRepository {
         description: metadata.description,
         savedMessageIds: savedMessageIds,
         isArchived: metadata.isArchived,
+        peerPresence: metadata.peerPresence,
+        peerId: metadata.peerId,
       );
     } on AppFailure {
       rethrow;
@@ -778,6 +780,8 @@ _ConversationMetadata _resolveMetadataFromSingle(
         return _ConversationMetadata(
           displayTitle: title,
           summaryTitle: title,
+          peerPresence: resolveDirectMessagePeerPresence(payload),
+          peerId: resolveDirectMessagePeerId(payload),
         );
       }
   }
@@ -1188,6 +1192,8 @@ class _ConversationMetadata {
     this.memberCount,
     this.description,
     this.isArchived = false,
+    this.peerPresence,
+    this.peerId,
   });
 
   final String displayTitle;
@@ -1195,6 +1201,8 @@ class _ConversationMetadata {
   final int? memberCount;
   final String? description;
   final bool isArchived;
+  final String? peerPresence;
+  final String? peerId;
 }
 
 class _MessagesPayload {
