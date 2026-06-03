@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/data/conversation_unread_repository_provider.dart';
@@ -80,6 +81,11 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
           next == RealtimeConnectionStatus.connected) {
         if (state.status == InboxStatus.success) {
           refresh(reason: 'reconnect');
+          // INV-P0-UNREAD: After reconnect refresh, preserve the optimistic
+          // mark-read (zero) for the currently-open conversation. Without this
+          // guard, the server response overwrites the zero → the user sees a
+          // stale unread badge on the conversation they're actively viewing.
+          preserveActiveConversationReadState();
         }
       }
     });
@@ -262,6 +268,34 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
   /// Preserves existing items via SWR pattern.
   Future<void> refresh({String reason = 'pullToRefresh'}) =>
       _coordinator.coordinate(reason, () => load(filter: state.filter));
+
+  /// INV-P0-UNREAD: Preserve the optimistic mark-read (zero unread count)
+  /// for the currently-open conversation after a full inbox refresh.
+  ///
+  /// When the user is actively viewing a conversation, any inbox refresh
+  /// (reconnect, syncBatch, appResume) must not overwrite the zero unread
+  /// state — the user has already "read" the messages by being in the view.
+  void preserveActiveConversationReadState() {
+    final openTarget = ref.read(currentOpenConversationTargetProvider);
+    if (openTarget == null) return;
+    final channelId = openTarget.conversationId;
+
+    // Bump mutation version so that if the in-flight refresh completes and
+    // tries to overwrite, our version wins. Then optimistically zero-out
+    // the unread count in the current state.
+    _bumpReadMutationVersions([channelId]);
+    final items = state.items;
+    final index = items.indexWhere((item) => item.channelId == channelId);
+    if (index >= 0 && items[index].unreadCount > 0) {
+      final updated = List<InboxItem>.of(items);
+      updated[index] = items[index].copyWith(
+        unreadCount: 0,
+        isMentioned: false,
+        clearFirstUnreadMessageId: true,
+      );
+      state = state.copyWith(items: updated);
+    }
+  }
 
   /// Switch filter mode and reload.
   Future<void> setFilter(InboxFilter filter) => load(filter: filter);
