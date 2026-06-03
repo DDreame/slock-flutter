@@ -104,14 +104,21 @@ class SelectionActionBar extends ConsumerWidget {
                       // Render the export card in an overlay for capture.
                       final boundaryKey = GlobalKey();
                       final overlay = Overlay.of(context);
+                      // Capture the theme from the current context so the
+                      // overlay (which has its own context) renders text
+                      // with the correct font family and styles.
+                      final theme = Theme.of(context);
                       final entry = OverlayEntry(
-                        builder: (_) => Transform.translate(
-                          offset: const Offset(-10000, -10000),
-                          child: SizedBox(
-                            width: 360,
-                            child: MessageExportCard(
-                              messages: selectedMessages,
-                              boundaryKey: boundaryKey,
+                        builder: (_) => Theme(
+                          data: theme,
+                          child: Transform.translate(
+                            offset: const Offset(-10000, -10000),
+                            child: SizedBox(
+                              width: 360,
+                              child: MessageExportCard(
+                                messages: selectedMessages,
+                                boundaryKey: boundaryKey,
+                              ),
                             ),
                           ),
                         ),
@@ -141,6 +148,83 @@ class SelectionActionBar extends ConsumerWidget {
                         ref
                             .read(conversationDetailStoreProvider.notifier)
                             .exitSelectionMode();
+                      }
+                    }
+                  : null,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            IconButton(
+              key: const ValueKey('selection-action-save-gallery'),
+              icon: const Icon(Icons.save_alt),
+              tooltip: l10n.conversationSelectionSaveToGallery,
+              onPressed: selectedCount > 0
+                  ? () async {
+                      // Gather selected messages in chronological order.
+                      final detailState =
+                          ref.read(conversationDetailStoreProvider);
+                      final ids = detailState.selectedMessageIds;
+                      final selectedMessages = detailState.messages
+                          .where((m) => ids.contains(m.id))
+                          .toList()
+                        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+                      if (selectedMessages.isEmpty) return;
+
+                      // Render the export card in an overlay for capture.
+                      final boundaryKey = GlobalKey();
+                      final overlay = Overlay.of(context);
+                      final theme = Theme.of(context);
+                      final entry = OverlayEntry(
+                        builder: (_) => Theme(
+                          data: theme,
+                          child: Transform.translate(
+                            offset: const Offset(-10000, -10000),
+                            child: SizedBox(
+                              width: 360,
+                              child: MessageExportCard(
+                                messages: selectedMessages,
+                                boundaryKey: boundaryKey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                      overlay.insert(entry);
+
+                      // Wait for layout.
+                      final completer = Completer<void>();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        completer.complete();
+                      });
+                      await completer.future;
+
+                      // Save to gallery.
+                      final service = ref.read(messageExportServiceProvider);
+                      final path = await service.saveExportToGallery(
+                        boundaryKey: boundaryKey,
+                      );
+
+                      // Clean up overlay.
+                      entry.remove();
+
+                      if (!context.mounted) return;
+                      if (path != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text(l10n.conversationSelectionSavedToGallery),
+                          ),
+                        );
+                        ref
+                            .read(conversationDetailStoreProvider.notifier)
+                            .exitSelectionMode();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                l10n.conversationSelectionSaveGalleryFailed),
+                          ),
+                        );
                       }
                     }
                   : null,

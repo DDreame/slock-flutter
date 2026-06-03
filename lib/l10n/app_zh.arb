@@ -429,6 +429,17 @@
   "conversationSelectionCancel": "取消",
   "conversationSelectionSave": "保存",
   "conversationSelectionExportAsImage": "导出为图片",
+  "conversationSelectionSaveToGallery": "保存到相册",
+  "conversationSelectionSavedToGallery": "已保存到相册",
+  "conversationSelectionSaveGalleryFailed": "保存失败，请检查存储权限",
+  "conversationExportThreadReplies": "包含 {count} 条回复",
+  "@conversationExportThreadReplies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionDelete": "删除",
   "conversationSelectionSelected": "已选择 {count} 项",
   "@conversationSelectionSelected": {

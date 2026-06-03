@@ -146,6 +146,32 @@ class _MessageExportCardState extends State<MessageExportCard> {
                           height: 1.4,
                         ),
                       ),
+                      // #852 Item 2: Thread indicator — shows reply count
+                      // when the message is a thread root.
+                      if (msg.replyCount != null && msg.replyCount! > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.forum_outlined,
+                                size: 13,
+                                color: Color(0xFF7B8794),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                context.l10n.conversationExportThreadReplies(
+                                    msg.replyCount!),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF7B8794),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 )),

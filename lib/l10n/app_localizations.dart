@@ -2638,6 +2638,30 @@ abstract class AppLocalizations {
   /// **'Export as image'**
   String get conversationSelectionExportAsImage;
 
+  /// No description provided for @conversationSelectionSaveToGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to gallery'**
+  String get conversationSelectionSaveToGallery;
+
+  /// No description provided for @conversationSelectionSavedToGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to gallery'**
+  String get conversationSelectionSavedToGallery;
+
+  /// No description provided for @conversationSelectionSaveGalleryFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save — check storage permissions'**
+  String get conversationSelectionSaveGalleryFailed;
+
+  /// No description provided for @conversationExportThreadReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Contains {count} replies'**
+  String conversationExportThreadReplies(int count);
+
   /// No description provided for @conversationSelectionDelete.
   ///
   /// In en, this message translates to:

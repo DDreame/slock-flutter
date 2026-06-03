@@ -1388,6 +1388,21 @@ class AppLocalizationsEs extends AppLocalizations {
   String get conversationSelectionExportAsImage => 'Exportar como imagen';
 
   @override
+  String get conversationSelectionSaveToGallery => 'Guardar en galería';
+
+  @override
+  String get conversationSelectionSavedToGallery => 'Guardado en galería';
+
+  @override
+  String get conversationSelectionSaveGalleryFailed =>
+      'No se pudo guardar — revise los permisos de almacenamiento';
+
+  @override
+  String conversationExportThreadReplies(int count) {
+    return 'Contiene $count respuestas';
+  }
+
+  @override
   String get conversationSelectionDelete => 'Eliminar';
 
   @override

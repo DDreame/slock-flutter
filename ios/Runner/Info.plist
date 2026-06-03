@@ -104,5 +104,7 @@
 	<string>Authenticate with Face ID to unlock Slock.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Slock needs microphone access to record voice messages.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Slock needs photo library access to save exported images.</string>
 </dict>
 </plist>
