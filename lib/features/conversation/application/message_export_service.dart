@@ -152,6 +152,10 @@ class MessageExportService {
   ///
   /// Returns the temp file path on success, or null on failure/permission denied.
   /// Requires photo library permission (iOS) or storage permission (Android <29).
+  ///
+  /// Important: image is captured BEFORE the permission dialog so the overlay
+  /// boundary remains valid — the dialog may cause the widget tree to rebuild
+  /// or the overlay to be removed (#857).
   Future<String?> saveExportToGallery({
     required GlobalKey boundaryKey,
   }) async {
@@ -162,18 +166,20 @@ class MessageExportService {
       final boundary = context.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
 
-      // 2. Check permission.
-      final hasAccess = await Gal.hasAccess();
-      if (!hasAccess) {
-        final granted = await Gal.requestAccess();
-        if (!granted) return null;
-      }
-
-      // 3. Capture at 3x for sharp output.
+      // 2. Capture at 3x BEFORE permission dialog (#857).
+      //    The overlay may be removed while the permission dialog is open,
+      //    making the boundary stale. Capture immediately while it's valid.
       final image = await boundary.toImage(pixelRatio: 3.0);
       try {
         final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
         if (byteData == null) return null;
+
+        // 3. Check permission (async — safe now since image is already captured).
+        final hasAccess = await Gal.hasAccess();
+        if (!hasAccess) {
+          final granted = await Gal.requestAccess();
+          if (!granted) return null;
+        }
 
         // 4. Save to temp file then copy to gallery.
         final dir = Directory.systemTemp;

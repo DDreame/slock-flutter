@@ -17,11 +17,19 @@ AppLocalizations _conversationL10n(BuildContext context) =>
 ///
 /// Displays Cancel, Delete, and Save buttons for batch operations
 /// on the currently selected messages.
-class SelectionActionBar extends ConsumerWidget {
+class SelectionActionBar extends ConsumerStatefulWidget {
   const SelectionActionBar({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SelectionActionBar> createState() => _SelectionActionBarState();
+}
+
+class _SelectionActionBarState extends ConsumerState<SelectionActionBar> {
+  /// Re-entry guard: prevents double-tap spawning concurrent captures (#857).
+  bool _isExporting = false;
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = _conversationL10n(context);
     final selectedCount = ref.watch(
@@ -88,66 +96,80 @@ class SelectionActionBar extends ConsumerWidget {
               key: const ValueKey('selection-action-export'),
               icon: const Icon(Icons.image_outlined),
               tooltip: l10n.conversationSelectionExportAsImage,
-              onPressed: selectedCount > 0
+              onPressed: selectedCount > 0 && !_isExporting
                   ? () async {
-                      // Gather selected messages in chronological order.
-                      final detailState =
-                          ref.read(conversationDetailStoreProvider);
-                      final ids = detailState.selectedMessageIds;
-                      final selectedMessages = detailState.messages
-                          .where((m) => ids.contains(m.id))
-                          .toList()
-                        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                      if (_isExporting) return; // Re-entry guard (#857).
+                      setState(() => _isExporting = true);
+                      try {
+                        // Gather selected messages in chronological order.
+                        final detailState =
+                            ref.read(conversationDetailStoreProvider);
+                        final ids = detailState.selectedMessageIds;
+                        final selectedMessages = detailState.messages
+                            .where((m) => ids.contains(m.id))
+                            .toList()
+                          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-                      if (selectedMessages.isEmpty) return;
+                        if (selectedMessages.isEmpty) return;
 
-                      // Render the export card in an overlay for capture.
-                      final boundaryKey = GlobalKey();
-                      final overlay = Overlay.of(context);
-                      // Capture the theme from the current context so the
-                      // overlay (which has its own context) renders text
-                      // with the correct font family and styles.
-                      final theme = Theme.of(context);
-                      final entry = OverlayEntry(
-                        builder: (_) => Theme(
-                          data: theme,
-                          child: Transform.translate(
-                            offset: const Offset(-10000, -10000),
-                            child: SizedBox(
-                              width: 360,
-                              child: MessageExportCard(
-                                messages: selectedMessages,
-                                boundaryKey: boundaryKey,
+                        // Render the export card in an overlay for capture.
+                        final boundaryKey = GlobalKey();
+                        final overlay = Overlay.of(context);
+                        // Capture the theme from the current context so the
+                        // overlay (which has its own context) renders text
+                        // with the correct font family and styles.
+                        final theme = Theme.of(context);
+                        final entry = OverlayEntry(
+                          builder: (_) => Theme(
+                            data: theme,
+                            child: Transform.translate(
+                              offset: const Offset(-10000, -10000),
+                              child: SizedBox(
+                                width: 360,
+                                child: MessageExportCard(
+                                  messages: selectedMessages,
+                                  boundaryKey: boundaryKey,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                      overlay.insert(entry);
+                        );
+                        overlay.insert(entry);
 
-                      // Wait for the overlay to be laid out and painted.
-                      // addPostFrameCallback fires after the next frame renders.
-                      final completer = Completer<void>();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        completer.complete();
-                      });
-                      await completer.future;
+                        // Wait for the overlay to be laid out and painted.
+                        // addPostFrameCallback fires after the next frame renders.
+                        final completer = Completer<void>();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          completer.complete();
+                        });
+                        await completer.future;
 
-                      // Capture and share.
-                      final service = ref.read(messageExportServiceProvider);
-                      await service.exportSelectedMessages(
-                        selectedMessages,
-                        boundaryKey: boundaryKey,
-                      );
+                        // Mounted check after async gap (#857).
+                        if (!context.mounted) {
+                          entry.remove();
+                          return;
+                        }
 
-                      // Clean up overlay.
-                      entry.remove();
+                        // Capture and share.
+                        final service = ref.read(messageExportServiceProvider);
+                        await service.exportSelectedMessages(
+                          selectedMessages,
+                          boundaryKey: boundaryKey,
+                        );
 
-                      // Exit selection mode.
-                      if (context.mounted) {
-                        ref
-                            .read(conversationDetailStoreProvider.notifier)
-                            .exitSelectionMode();
+                        // Clean up overlay.
+                        entry.remove();
+
+                        // Exit selection mode.
+                        if (context.mounted) {
+                          ref
+                              .read(conversationDetailStoreProvider.notifier)
+                              .exitSelectionMode();
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isExporting = false);
+                        }
                       }
                     }
                   : null,
@@ -157,74 +179,88 @@ class SelectionActionBar extends ConsumerWidget {
               key: const ValueKey('selection-action-save-gallery'),
               icon: const Icon(Icons.save_alt),
               tooltip: l10n.conversationSelectionSaveToGallery,
-              onPressed: selectedCount > 0
+              onPressed: selectedCount > 0 && !_isExporting
                   ? () async {
-                      // Gather selected messages in chronological order.
-                      final detailState =
-                          ref.read(conversationDetailStoreProvider);
-                      final ids = detailState.selectedMessageIds;
-                      final selectedMessages = detailState.messages
-                          .where((m) => ids.contains(m.id))
-                          .toList()
-                        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                      if (_isExporting) return; // Re-entry guard (#857).
+                      setState(() => _isExporting = true);
+                      try {
+                        // Gather selected messages in chronological order.
+                        final detailState =
+                            ref.read(conversationDetailStoreProvider);
+                        final ids = detailState.selectedMessageIds;
+                        final selectedMessages = detailState.messages
+                            .where((m) => ids.contains(m.id))
+                            .toList()
+                          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-                      if (selectedMessages.isEmpty) return;
+                        if (selectedMessages.isEmpty) return;
 
-                      // Render the export card in an overlay for capture.
-                      final boundaryKey = GlobalKey();
-                      final overlay = Overlay.of(context);
-                      final theme = Theme.of(context);
-                      final entry = OverlayEntry(
-                        builder: (_) => Theme(
-                          data: theme,
-                          child: Transform.translate(
-                            offset: const Offset(-10000, -10000),
-                            child: SizedBox(
-                              width: 360,
-                              child: MessageExportCard(
-                                messages: selectedMessages,
-                                boundaryKey: boundaryKey,
+                        // Render the export card in an overlay for capture.
+                        final boundaryKey = GlobalKey();
+                        final overlay = Overlay.of(context);
+                        final theme = Theme.of(context);
+                        final entry = OverlayEntry(
+                          builder: (_) => Theme(
+                            data: theme,
+                            child: Transform.translate(
+                              offset: const Offset(-10000, -10000),
+                              child: SizedBox(
+                                width: 360,
+                                child: MessageExportCard(
+                                  messages: selectedMessages,
+                                  boundaryKey: boundaryKey,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                      overlay.insert(entry);
-
-                      // Wait for layout.
-                      final completer = Completer<void>();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        completer.complete();
-                      });
-                      await completer.future;
-
-                      // Save to gallery.
-                      final service = ref.read(messageExportServiceProvider);
-                      final path = await service.saveExportToGallery(
-                        boundaryKey: boundaryKey,
-                      );
-
-                      // Clean up overlay.
-                      entry.remove();
-
-                      if (!context.mounted) return;
-                      if (path != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                Text(l10n.conversationSelectionSavedToGallery),
-                          ),
                         );
-                        ref
-                            .read(conversationDetailStoreProvider.notifier)
-                            .exitSelectionMode();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                l10n.conversationSelectionSaveGalleryFailed),
-                          ),
+                        overlay.insert(entry);
+
+                        // Wait for layout.
+                        final completer = Completer<void>();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          completer.complete();
+                        });
+                        await completer.future;
+
+                        // Mounted check after async gap (#857).
+                        if (!context.mounted) {
+                          entry.remove();
+                          return;
+                        }
+
+                        // Save to gallery.
+                        final service = ref.read(messageExportServiceProvider);
+                        final path = await service.saveExportToGallery(
+                          boundaryKey: boundaryKey,
                         );
+
+                        // Clean up overlay.
+                        entry.remove();
+
+                        if (!context.mounted) return;
+                        if (path != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  l10n.conversationSelectionSavedToGallery),
+                            ),
+                          );
+                          ref
+                              .read(conversationDetailStoreProvider.notifier)
+                              .exitSelectionMode();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  l10n.conversationSelectionSaveGalleryFailed),
+                            ),
+                          );
+                        }
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isExporting = false);
+                        }
                       }
                     }
                   : null,
