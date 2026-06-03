@@ -1268,6 +1268,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationComposerTaskToggleTooltip => '作为任务发送';
 
   @override
+  String get conversationComposerOverflowTooltip => '更多选项';
+
+  @override
   String get conversationComposerCameraUnavailable => '相机不可用。请检查权限。';
 
   @override

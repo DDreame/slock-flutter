@@ -2512,6 +2512,12 @@ abstract class AppLocalizations {
   /// **'Send as task'**
   String get conversationComposerTaskToggleTooltip;
 
+  /// No description provided for @conversationComposerOverflowTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'More options'**
+  String get conversationComposerOverflowTooltip;
+
   /// No description provided for @conversationComposerCameraUnavailable.
   ///
   /// In en, this message translates to:

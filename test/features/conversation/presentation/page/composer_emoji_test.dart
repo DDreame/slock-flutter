@@ -30,14 +30,13 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   // -----------------------------------------------------------------------
-  // INV-EMOJI-1: Emoji button visible in composer toolbar
+  // INV-EMOJI-1: Emoji option visible in composer overflow menu
   //
-  // The composer toolbar has: attach, format-toggle, emoji, [input], send/mic.
-  // The emoji button (key: 'composer-emoji') sits between format-toggle and
-  // the text field.
+  // The composer toolbar has: attach, overflow (+) [contains format, emoji,
+  // task], [input], send/mic. The emoji option is inside the overflow menu.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Composer toolbar shows emoji button (INV-EMOJI-1)',
+    'Composer overflow menu shows emoji option (INV-EMOJI-1)',
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -53,24 +52,32 @@ void main() {
         reason: 'Composer text field must be rendered',
       );
 
-      // Emoji button must exist in the toolbar.
+      // Open overflow menu.
+      final overflowFinder =
+          find.byKey(const ValueKey('composer-overflow-btn'));
+      expect(overflowFinder, findsOneWidget,
+          reason: 'Overflow button must exist');
+      await tester.tap(overflowFinder);
+      await tester.pumpAndSettle();
+
+      // Emoji option must exist in the overflow menu.
       expect(
-        find.byKey(const ValueKey('composer-emoji')),
+        find.byKey(const ValueKey('overflow-emoji')),
         findsOneWidget,
-        reason: 'Emoji button must be visible in composer toolbar '
+        reason: 'Emoji option must be visible in overflow menu '
             '(INV-EMOJI-1)',
       );
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-EMOJI-2: Tap emoji button → picker panel opens
+  // INV-EMOJI-2: Tap emoji option → picker panel opens
   //
-  // Tapping the emoji button toggles the emoji picker panel
-  // (keyed 'composer-emoji-picker') below the composer toolbar.
+  // Tapping the emoji option in the overflow menu toggles the emoji picker
+  // panel (keyed 'composer-emoji-picker') below the composer toolbar.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Tap emoji button opens emoji picker (INV-EMOJI-2)',
+    'Tap emoji option opens emoji picker (INV-EMOJI-2)',
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -83,21 +90,25 @@ void main() {
       expect(
         find.byKey(const ValueKey('composer-emoji-picker')),
         findsNothing,
-        reason: 'Emoji picker must not be visible before tapping button',
+        reason: 'Emoji picker must not be visible before tapping option',
       );
 
-      // Tap the emoji button.
-      final emojiButton = find.byKey(const ValueKey('composer-emoji'));
-      expect(emojiButton, findsOneWidget,
-          reason: 'Emoji button must exist before tap');
-      await tester.tap(emojiButton);
+      // Open overflow menu and tap emoji option.
+      final overflowFinder =
+          find.byKey(const ValueKey('composer-overflow-btn'));
+      await tester.tap(overflowFinder);
+      await tester.pumpAndSettle();
+      final emojiOption = find.byKey(const ValueKey('overflow-emoji'));
+      expect(emojiOption, findsOneWidget,
+          reason: 'Emoji option must exist in overflow menu');
+      await tester.tap(emojiOption);
       await tester.pumpAndSettle();
 
       // Emoji picker panel must appear.
       expect(
         find.byKey(const ValueKey('composer-emoji-picker')),
         findsOneWidget,
-        reason: 'Emoji picker must open after tapping emoji button '
+        reason: 'Emoji picker must open after tapping emoji option '
             '(INV-EMOJI-2)',
       );
     },
@@ -106,10 +117,10 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-EMOJI-3: Select emoji → inserted at cursor position in TextField
   //
-  // After opening the picker and selecting an emoji, that emoji must be
-  // inserted into the composer TextField at the current cursor position.
-  // The emoji_picker_flutter package renders EmojiCell widgets; we find
-  // one and tap it, then verify the controller text.
+  // After opening the picker via overflow menu and selecting an emoji, that
+  // emoji must be inserted into the composer TextField at the current cursor
+  // position. The emoji_picker_flutter package renders EmojiCell widgets;
+  // we find one and tap it, then verify the controller text.
   // -----------------------------------------------------------------------
   testWidgets(
     'Select emoji inserts it at cursor position (INV-EMOJI-3)',
@@ -134,10 +145,12 @@ void main() {
       );
       await tester.pump();
 
-      // Open emoji picker.
-      final emojiButton = find.byKey(const ValueKey('composer-emoji'));
-      expect(emojiButton, findsOneWidget);
-      await tester.tap(emojiButton);
+      // Open emoji picker via overflow menu.
+      final overflowFinder =
+          find.byKey(const ValueKey('composer-overflow-btn'));
+      await tester.tap(overflowFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-emoji')));
       await tester.pumpAndSettle();
 
       // Picker must be visible.

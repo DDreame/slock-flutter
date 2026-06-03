@@ -72,13 +72,14 @@ class _ApiConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
   ) async {
     try {
-      String? storedChannelTitle;
-      try {
-        storedChannelTitle = await _readStoredChannelTitle(target);
-      } catch (e, st) {
-        // Local store read failure is non-fatal.
-        _crashReporter.captureException(e, stackTrace: st);
-      }
+      // #848-P2: Parallelize all initial IO — stored title read, messages
+      // fetch, and metadata fetch run concurrently instead of sequentially.
+      final storedTitleFuture = _readStoredChannelTitle(target).catchError(
+        (Object e, StackTrace st) {
+          _crashReporter.captureException(e, stackTrace: st);
+          return null;
+        },
+      );
 
       // #861: Fetch per-channel metadata instead of full channel list.
       // Uses GET /channels/{id} (or /channels/dm/{id}) — scoped to the
@@ -104,9 +105,10 @@ class _ApiConversationRepository implements ConversationRepository {
             onError: (_) => null,
           );
 
-      // Await both in parallel but tolerate metadata failure.
+      // Await all three in parallel — storedTitle, messages, and metadata.
       final messages = await messagesResponse;
       final metadataPayload = await metadataFuture;
+      final storedChannelTitle = await storedTitleFuture;
 
       final messagesPayload = _parseMessagesPayload(
         messages.data,
@@ -122,19 +124,19 @@ class _ApiConversationRepository implements ConversationRepository {
       // #861: Batch savedMessageIds check — fire after messages are known,
       // include result in snapshot. Eliminates the secondary state emission
       // from refreshSavedMessageIds().
-      Set<String>? savedMessageIds;
+      // #848-P2: Run savedMessages check in parallel with local store writes
+      // (both depend on messages but not on each other).
+      Future<Set<String>?> savedMessageIdsFuture =
+          Future<Set<String>?>.value(null);
       if (messagesPayload.messages.isNotEmpty) {
-        try {
-          final messageIds =
-              messagesPayload.messages.map((m) => m.id).toList(growable: false);
-          savedMessageIds = await _savedMessagesRepository.checkSavedMessages(
-            target.serverId,
-            messageIds,
-          );
-        } catch (_) {
-          // Saved messages check failure is non-fatal — UI will show no
-          // bookmark icons rather than blocking the entire load.
-        }
+        final messageIds =
+            messagesPayload.messages.map((m) => m.id).toList(growable: false);
+        savedMessageIdsFuture = _savedMessagesRepository
+            .checkSavedMessages(target.serverId, messageIds)
+            .then<Set<String>?>(
+              (ids) => ids,
+              onError: (_) => null,
+            );
       }
 
       try {
@@ -169,6 +171,9 @@ class _ApiConversationRepository implements ConversationRepository {
         // Local store write failure is non-fatal.
         _crashReporter.captureException(e, stackTrace: st);
       }
+
+      // Await savedMessages result (ran in parallel with local writes above).
+      final savedMessageIds = await savedMessageIdsFuture;
 
       return ConversationDetailSnapshot(
         target: target,
