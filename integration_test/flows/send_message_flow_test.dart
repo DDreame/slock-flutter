@@ -37,7 +37,7 @@ void main() {
         // Seed the home page with an unread item pointing to our channel.
         fixture.seedHome(
           channels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: channelScopeId,
               name: 'general',
             ),

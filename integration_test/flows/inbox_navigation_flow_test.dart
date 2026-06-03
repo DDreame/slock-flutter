@@ -38,7 +38,7 @@ void main() {
 
         fixture.seedHome(
           channels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: channelScope,
               name: 'announcements',
             ),
@@ -148,7 +148,7 @@ void main() {
 
         fixture.seedHome(
           directMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: dmScope,
               title: 'Bob',
             ),
