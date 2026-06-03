@@ -529,15 +529,23 @@ void main() {
     testWidgets('navigating to a channel marks it as read', (tester) async {
       final prefs = await b132Prefs();
 
+      // Use consistent channelId across all fakes so the auto-fire
+      // path (_fireMarkReadIfUnread) can resolve the channel in the
+      // unreadSourceProjection and actually fire.
+      const channelId = 'ch-general';
+      final channelTarget = ConversationDetailTarget.channel(
+        const ChannelScopeId(serverId: b132ServerId, value: channelId),
+      );
+
       final homeRepository = B132HomeRepository(
         channels: [
-          b132Channel('ch-general', name: 'general'),
+          b132Channel(channelId, name: 'general'),
         ],
       );
 
       final conversationRepository = B132ConversationRepository(
         seed: {
-          'ch-general': [
+          channelId: [
             b132Message(id: 'msg-1', content: 'Unread message', seq: 1),
           ],
         },
@@ -546,7 +554,7 @@ void main() {
       final inboxRepository = _TrackingInboxRepository(items: [
         const InboxItem(
           kind: InboxItemKind.channel,
-          channelId: 'ch-general',
+          channelId: channelId,
           channelName: 'general',
           unreadCount: 5,
           preview: 'Unread message',
@@ -558,8 +566,7 @@ void main() {
         routes: [
           GoRoute(
             path: '/conversation',
-            builder: (_, __) =>
-                ConversationDetailPage(target: b132ChannelTarget),
+            builder: (_, __) => ConversationDetailPage(target: channelTarget),
           ),
         ],
       );
@@ -573,58 +580,46 @@ void main() {
           inboxRepositoryProvider.overrideWithValue(inboxRepository),
         ],
       ));
+
+      // Let the widget tree settle — the page auto-fires
+      // _fireMarkReadIfUnread once the unreadSourceProjection loads
+      // (deferred listener path: inbox auto-loads → projection loaded
+      // → postFrameCallback → markRead).
       await tester.pumpAndSettle();
 
-      // After navigating to the conversation, mark-read should be called.
+      // Drain microtasks so the InboxStore.markRead future completes
+      // and state propagates through the projection.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump();
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      // Verify the mark-read API was called by the auto-fire path.
+      expect(
+        inboxRepository.markReadCalls.contains(channelId),
+        isTrue,
+        reason: 'markItemRead should have been auto-fired for the open channel',
+      );
+
+      // Verify unread cleared in the projection.
       final innerElement = tester.element(
         find.byKey(const ValueKey('composer-input')),
       );
       final container = ProviderScope.containerOf(innerElement);
+      final projection = container.read(unreadSourceProjectionProvider);
+      expect(projection.isLoaded, isTrue);
+      expect(
+        projection.channelUnreadCount(
+          const ChannelScopeId(serverId: b132ServerId, value: channelId),
+        ),
+        0,
+        reason: 'Channel unread should be 0 after auto mark-read',
+      );
 
-      // Load inbox to populate projection.
-      await container.read(inboxStoreProvider.notifier).load();
-      for (var i = 0; i < 20; i++) {
-        await Future<void>.delayed(Duration.zero);
-      }
-
-      // Verify initial unread count before mark-read.
-      final projectionBefore = container.read(unreadSourceProjectionProvider);
-      if (projectionBefore.isLoaded) {
-        final generalUnread = projectionBefore.channelUnreadCount(
-          const ChannelScopeId(serverId: b132ServerId, value: 'ch-general'),
-        );
-        expect(
-          generalUnread,
-          5,
-          reason: 'Channel should show 5 unread before mark-read',
-        );
-      }
-
-      // Simulate mark-read (triggered by conversation open).
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markRead(channelId: 'ch-general');
-      for (var i = 0; i < 20; i++) {
-        await Future<void>.delayed(Duration.zero);
-      }
-
-      // Verify unread cleared.
-      final projectionAfter = container.read(unreadSourceProjectionProvider);
-      if (projectionAfter.isLoaded) {
-        final generalUnreadAfter = projectionAfter.channelUnreadCount(
-          const ChannelScopeId(serverId: b132ServerId, value: 'ch-general'),
-        );
-        expect(
-          generalUnreadAfter,
-          0,
-          reason: 'Channel unread should be 0 after mark-read',
-        );
-      }
-
-      // Inbox item should be removed after mark-read.
+      // Inbox item should have unread=0.
       final inboxState = container.read(inboxStoreProvider);
       final generalItem = inboxState.items
-          .where((item) => item.channelId == 'ch-general')
+          .where((item) => item.channelId == channelId)
           .toList();
       expect(
         generalItem.isEmpty || generalItem.first.unreadCount == 0,
@@ -666,7 +661,13 @@ class _TrackingInboxRepository implements InboxRepository {
     required String channelId,
   }) async {
     markReadCalls.add(channelId);
-    items.removeWhere((item) => item.channelId == channelId);
+    // Zero the unread count but keep the item in the list so subsequent
+    // fetchInbox calls still return it (the real API returns items with
+    // unreadCount=0 in the "all" filter).
+    final index = items.indexWhere((item) => item.channelId == channelId);
+    if (index >= 0) {
+      items[index] = items[index].copyWith(unreadCount: 0, isMentioned: false);
+    }
   }
 
   @override
