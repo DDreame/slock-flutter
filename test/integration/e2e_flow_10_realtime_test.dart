@@ -24,6 +24,9 @@ import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import '../support/fakes/fake_inbox_repository.dart';
 import 'b132_phase2_test_support.dart';
 
+/// Typing event scope key — matches the format used by ConversationDetailPage.
+const _typingScopeKey = 'server:server-1/channel:$b132ChannelId';
+
 void main() {
   // ===========================================================================
   // Flow 10a: Realtime message appears in conversation
@@ -349,11 +352,11 @@ void main() {
       // The scope key format is 'server:{serverId}/{channel|dm}:{conversationId}'
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
-        scopeKey: 'server:server-1/channel:$b132ChannelId',
+        scopeKey: _typingScopeKey,
         seq: 0,
         receivedAt: DateTime.now(),
-        payload: {
-          'scopeKey': 'server:server-1/channel:$b132ChannelId',
+        payload: const {
+          'scopeKey': _typingScopeKey,
           'userId': 'user-3',
           'displayName': 'Charlie',
         },
@@ -397,11 +400,11 @@ void main() {
       // Inject a typing event.
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
-        scopeKey: 'server:server-1/channel:$b132ChannelId',
+        scopeKey: _typingScopeKey,
         seq: 0,
         receivedAt: DateTime.now(),
-        payload: {
-          'scopeKey': 'server:server-1/channel:$b132ChannelId',
+        payload: const {
+          'scopeKey': _typingScopeKey,
           'userId': 'user-3',
           'displayName': 'Charlie',
         },
@@ -454,11 +457,11 @@ void main() {
       // Inject a typing event from the current user (user-1 in B132SessionStore).
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
-        scopeKey: 'server:server-1/channel:$b132ChannelId',
+        scopeKey: _typingScopeKey,
         seq: 0,
         receivedAt: DateTime.now(),
-        payload: {
-          'scopeKey': 'server:server-1/channel:$b132ChannelId',
+        payload: const {
+          'scopeKey': _typingScopeKey,
           'userId': 'user-1',
           'displayName': 'Robin',
         },
@@ -500,11 +503,11 @@ void main() {
       // Inject typing events from two different users.
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
-        scopeKey: 'server:server-1/channel:$b132ChannelId',
+        scopeKey: _typingScopeKey,
         seq: 0,
         receivedAt: DateTime.now(),
-        payload: {
-          'scopeKey': 'server:server-1/channel:$b132ChannelId',
+        payload: const {
+          'scopeKey': _typingScopeKey,
           'userId': 'user-3',
           'displayName': 'Charlie',
         },
@@ -513,11 +516,11 @@ void main() {
 
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
-        scopeKey: 'server:server-1/channel:$b132ChannelId',
+        scopeKey: _typingScopeKey,
         seq: 0,
         receivedAt: DateTime.now(),
-        payload: {
-          'scopeKey': 'server:server-1/channel:$b132ChannelId',
+        payload: const {
+          'scopeKey': _typingScopeKey,
           'userId': 'user-4',
           'displayName': 'Diana',
         },
