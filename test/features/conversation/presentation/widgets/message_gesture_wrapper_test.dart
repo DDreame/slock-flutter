@@ -181,10 +181,13 @@ void main() {
           ),
         ));
 
-        // Horizontal drag right beyond the default threshold (60px).
+        // Horizontal drag right beyond the 64px threshold.
+        // tester.drag consumes ~20px as touch slop, so 100px total gives
+        // ~80px effective delta which exceeds the threshold.
         await tester.drag(
           find.byKey(const ValueKey('target')),
-          const Offset(80, 0),
+          const Offset(100, 0),
+          warnIfMissed: false,
         );
         await tester.pumpAndSettle();
 
@@ -207,7 +210,8 @@ void main() {
 
         await tester.drag(
           find.byKey(const ValueKey('target')),
-          const Offset(80, 0),
+          const Offset(100, 0),
+          warnIfMissed: false,
         );
         await tester.pumpAndSettle();
 
@@ -254,7 +258,8 @@ void main() {
 
         await tester.drag(
           find.byKey(const ValueKey('target')),
-          const Offset(80, 0),
+          const Offset(100, 0),
+          warnIfMissed: false,
         );
         await tester.pumpAndSettle();
 
@@ -277,7 +282,8 @@ void main() {
 
         await tester.drag(
           find.byKey(const ValueKey('target')),
-          const Offset(-80, 0),
+          const Offset(-100, 0),
+          warnIfMissed: false,
         );
         await tester.pumpAndSettle();
 
@@ -299,7 +305,8 @@ void main() {
 
         await tester.drag(
           find.byKey(const ValueKey('target')),
-          const Offset(80, 0),
+          const Offset(100, 0),
+          warnIfMissed: false,
         );
         await tester.pumpAndSettle();
 

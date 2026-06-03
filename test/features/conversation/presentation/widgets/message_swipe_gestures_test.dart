@@ -5,6 +5,11 @@
 // - Left swipe → thread navigation (at 64px threshold)
 // - Right swipe → quick reaction bar
 // - Direction locking, threshold haptics, edge cases
+//
+// NOTE: Drag distances must account for the test framework's touch slop
+// (kDragSlopDefault = 20px) consumed before the recognizer accepts.
+// Effective delta = dragDistance - touchSlop. To cross the 64px threshold,
+// minimum drag = 64 + 20 + margin ≈ 100.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -12,7 +17,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/quick_reaction_bar.dart';
 
-Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
+Widget _wrap(Widget child) =>
+    MaterialApp(home: Scaffold(body: Center(child: child)));
 
 void main() {
   group('MessageGestureWrapper — bidirectional swipe', () {
@@ -31,10 +37,12 @@ void main() {
         ),
       ));
 
-      // Drag left (negative X) beyond 64px threshold.
+      // Drag left (negative X) — 100px total, minus ~20px touch slop = 80px
+      // effective delta, well past the 64px threshold.
       await tester.drag(
         find.byKey(const ValueKey('target')),
-        const Offset(-80, 0),
+        const Offset(-100, 0),
+        warnIfMissed: false,
       );
       await tester.pumpAndSettle();
 
@@ -56,10 +64,11 @@ void main() {
         ),
       ));
 
-      // Drag left less than threshold.
+      // Drag left less than threshold (40px total → ~20px effective).
       await tester.drag(
         find.byKey(const ValueKey('target')),
         const Offset(-40, 0),
+        warnIfMissed: false,
       );
       await tester.pumpAndSettle();
 
@@ -84,7 +93,8 @@ void main() {
       // Drag right beyond threshold.
       await tester.drag(
         find.byKey(const ValueKey('target')),
-        const Offset(80, 0),
+        const Offset(100, 0),
+        warnIfMissed: false,
       );
       await tester.pumpAndSettle();
 
@@ -109,7 +119,8 @@ void main() {
 
       await tester.drag(
         find.byKey(const ValueKey('target')),
-        const Offset(80, 0),
+        const Offset(100, 0),
+        warnIfMissed: false,
       );
       await tester.pumpAndSettle();
 
@@ -135,7 +146,8 @@ void main() {
 
       await tester.drag(
         find.byKey(const ValueKey('target')),
-        const Offset(-80, 0),
+        const Offset(-100, 0),
+        warnIfMissed: false,
       );
       await tester.pumpAndSettle();
 
@@ -163,7 +175,8 @@ void main() {
       // Drag left past threshold.
       await tester.drag(
         find.byKey(const ValueKey('target')),
-        const Offset(-80, 0),
+        const Offset(-100, 0),
+        warnIfMissed: false,
       );
       await tester.pumpAndSettle();
 
@@ -183,16 +196,23 @@ void main() {
           ),
         ),
       ));
+      await tester.pumpAndSettle();
 
-      // Start a drag that crosses threshold (manual gesture for intermediate
-      // frame inspection).
-      final center = tester.getCenter(find.byKey(const ValueKey('target')));
+      // Manual gesture: split into slop move + remaining (mimics how
+      // tester.drag works internally). The GestureRecognizer accepts after
+      // the first move exceeds kTouchSlop (~18px), then subsequent moves
+      // fire onHorizontalDragUpdate.
+      final center = tester.getCenter(find.byKey(const ValueKey('target')),
+          warnIfMissed: false);
       final gesture = await tester.startGesture(center);
-      // Move past threshold (64px + direction lock 15px).
-      await gesture.moveBy(const Offset(-90, 0));
+      // First move: exceed touch slop to trigger acceptance.
+      await gesture.moveBy(const Offset(-20, 0));
+      await tester.pump();
+      // Second move: push well past 64px threshold.
+      await gesture.moveBy(const Offset(-80, 0));
       await tester.pump();
 
-      // Find the reply icon.
+      // Find the reply icon (shown for left swipe).
       final icon = tester.widget<Icon>(find.byIcon(Icons.reply));
       final theme = Theme.of(
         tester.element(find.byKey(const ValueKey('target'))),
@@ -220,10 +240,14 @@ void main() {
           ),
         ),
       ));
+      await tester.pumpAndSettle();
 
-      // Right swipe should show reaction icon.
-      final center = tester.getCenter(find.byKey(const ValueKey('target')));
+      // Right swipe: split into slop + remaining.
+      final center = tester.getCenter(find.byKey(const ValueKey('target')),
+          warnIfMissed: false);
       final rightGesture = await tester.startGesture(center);
+      await rightGesture.moveBy(const Offset(20, 0));
+      await tester.pump();
       await rightGesture.moveBy(const Offset(80, 0));
       await tester.pump();
 
@@ -233,8 +257,10 @@ void main() {
       await rightGesture.up();
       await tester.pumpAndSettle();
 
-      // Left swipe should show reply icon.
+      // Left swipe: split into slop + remaining.
       final leftGesture = await tester.startGesture(center);
+      await leftGesture.moveBy(const Offset(-20, 0));
+      await tester.pump();
       await leftGesture.moveBy(const Offset(-80, 0));
       await tester.pump();
 
