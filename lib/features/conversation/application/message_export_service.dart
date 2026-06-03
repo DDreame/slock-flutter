@@ -76,14 +76,15 @@ class MessageExportService {
     required GlobalKey boundaryKey,
   }) async {
     try {
-      // 0. Clean up previous export temp files (#741).
-      await cleanupPreviousExportFiles();
-
-      // 1. Find the RepaintBoundary render object.
+      // 1. Find the RepaintBoundary render object (sync, before any async gap).
       final context = boundaryKey.currentContext;
       if (context == null) return null;
       final boundary = context.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
+
+      // 0. Clean up previous export temp files (#741).
+      //    Moved after context capture to avoid use_build_context_synchronously.
+      await cleanupPreviousExportFiles();
 
       // 2. Capture as image at 3x pixel ratio for sharp output.
       final image = await boundary.toImage(pixelRatio: 3.0);
