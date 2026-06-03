@@ -221,7 +221,7 @@ void main() {
       );
     });
 
-    test('threads are hidden (no dedicated tab row)', () {
+    test('threads are visible (shown in Home unread card)', () {
       final container = createContainer(
         inboxState: const InboxState(
           status: InboxStatus.success,
@@ -249,7 +249,7 @@ void main() {
       expect(state.sources.first.kind, ConversationProjectionKind.thread);
       expect(
         state.sources.first.visibility,
-        UnreadSourceVisibility.hidden,
+        UnreadSourceVisibility.visible,
       );
     });
 

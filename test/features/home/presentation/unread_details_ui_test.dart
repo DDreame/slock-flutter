@@ -257,7 +257,7 @@ void main() {
   });
 
   group('Z2 three-line unread UI rendering', () {
-    testWidgets('thread item is excluded from Home unread card (hidden source)',
+    testWidgets('thread item is rendered on Home unread card (visible source)',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -277,16 +277,11 @@ void main() {
         ],
       );
 
-      // Threads are hidden sources — not rendered on Home unread card.
+      // Threads are now visible sources — rendered on Home unread card.
       expect(
         find.byKey(const ValueKey('unread-pill-thread:th-1')),
-        findsNothing,
-        reason: 'Thread items should be excluded from Home card',
-      );
-      expect(
-        find.text('话题'),
-        findsNothing,
-        reason: 'No THREAD pill on Home card under hidden-thread contract',
+        findsOneWidget,
+        reason: 'Thread items should be rendered on Home card',
       );
     });
 
@@ -495,7 +490,7 @@ void main() {
         ],
       );
 
-      // Only channel and DM glyphs render (threads are hidden sources).
+      // Channel and DM glyphs render for the seeded items.
       expect(
         find.byKey(const ValueKey('unread-kind-channel')),
         findsOneWidget,
@@ -508,7 +503,7 @@ void main() {
       );
     });
 
-    testWidgets('thread pill is not rendered on Home card (hidden source)',
+    testWidgets('thread pill is rendered on Home card (visible source)',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -526,11 +521,11 @@ void main() {
         ],
       );
 
-      // Thread is a hidden source — pill not rendered on Home card.
+      // Thread is now a visible source — pill rendered on Home card.
       expect(
         find.byKey(const ValueKey('unread-pill-thread:th-color')),
-        findsNothing,
-        reason: 'Thread pill should not appear on Home card',
+        findsOneWidget,
+        reason: 'Thread pill should appear on Home card',
       );
     });
 
@@ -628,7 +623,7 @@ void main() {
     });
 
     testWidgets(
-        'thread source and title are not rendered on Home card (hidden source)',
+        'thread source and title are rendered on Home card (visible source)',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -646,16 +641,16 @@ void main() {
         ],
       );
 
-      // Thread is a hidden source — not rendered on Home card.
+      // Thread is now a visible source — rendered on Home card.
       expect(
         find.byKey(const ValueKey('unread-source-thread:th-dup')),
-        findsNothing,
-        reason: 'Thread source label should not appear on Home card',
+        findsOneWidget,
+        reason: 'Thread source label should appear on Home card',
       );
       expect(
         find.byKey(const ValueKey('unread-title-thread:th-dup')),
-        findsNothing,
-        reason: 'Thread title should not appear on Home card',
+        findsOneWidget,
+        reason: 'Thread title should appear on Home card',
       );
     });
   });
