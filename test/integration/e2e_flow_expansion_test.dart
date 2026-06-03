@@ -578,23 +578,17 @@ void main() {
         conversationRepository: conversationRepository,
         overrides: [
           inboxRepositoryProvider.overrideWithValue(inboxRepository),
+          // Suppress the 5-min keepAlive timer so pumpAndSettle can settle
+          // without advancing through 5 minutes of fake time.
+          inboxKeepAliveDurationProvider.overrideWithValue(Duration.zero),
         ],
       ));
 
-      // Pump explicit frames instead of pumpAndSettle — background timers
-      // (inboxKeepAliveDuration, readCursorService debounce) prevent full
-      // settle. The page auto-fires _fireMarkReadIfUnread once the
-      // unreadSourceProjection loads (deferred listener path: inbox
-      // auto-loads → projection loaded → postFrameCallback → markRead).
-      await tester.pump(); // initial build + layout
-      await tester.pump(const Duration(milliseconds: 100)); // async loads
-      await tester.pump(const Duration(seconds: 1)); // debounce windows
-      // Drain microtasks so the InboxStore.markRead future completes
-      // and state propagates through the projection.
-      for (var i = 0; i < 10; i++) {
-        await tester.pump();
-        await Future<void>.delayed(Duration.zero);
-      }
+      // pumpAndSettle advances through all async loads and frame callbacks.
+      // With keepAlive timer suppressed, this settles once the auto-fire
+      // mark-read chain completes: inbox loads → projection resolves →
+      // _fireMarkReadIfUnread fires via addPostFrameCallback → markRead.
+      await tester.pumpAndSettle();
 
       // Verify the mark-read API was called by the auto-fire path.
       expect(
