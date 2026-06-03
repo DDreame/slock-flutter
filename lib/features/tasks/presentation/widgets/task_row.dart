@@ -80,21 +80,68 @@ class _TaskRowState extends ConsumerState<TaskRow> {
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
-    final colors = widget.colors;
     final isDone = task.status == 'done';
     final isClosed = task.status == 'closed';
     final isTerminal = isDone || isClosed;
-    // All non-closed tasks support drag-to-change-status.
     final isDraggable = !isClosed;
 
-    // Build combined accessibility label for screen readers.
+    Widget row = _buildBaseRow(context);
+
+    if (isDraggable) {
+      row = LongPressDraggable<TaskItem>(
+        data: task,
+        delay: const Duration(milliseconds: 400),
+        onDragStarted: _insertOverlay,
+        onDragEnd: (_) {
+          if (!_dropAccepted) {
+            _removeOverlay();
+          }
+        },
+        feedback: _buildDragGhost(),
+        childWhenDragging: _buildChildWhenDragging(),
+        child: row,
+      );
+    }
+
+    if (!isTerminal) {
+      row = SwipeActionWrapper(
+        itemKey: task.id,
+        enabled: true,
+        action: SwipeActionConfig(
+          label: context.l10n.tasksSwipeDone,
+          icon: Icons.check_circle_outline,
+          color: widget.colors.success,
+        ),
+        onAction: () => widget.onStatusUpdate(task, 'done'),
+        child: row,
+      );
+    }
+
+    if (isTerminal) {
+      row = Opacity(
+        key: ValueKey('task-row-opacity-${task.id}'),
+        opacity: 0.5,
+        child: row,
+      );
+    }
+
+    return row;
+  }
+
+  /// The main row content: status icon, title, assignee avatar, actions button.
+  Widget _buildBaseRow(BuildContext context) {
+    final task = widget.task;
+    final colors = widget.colors;
+    final isTerminal = task.status == 'done' || task.status == 'closed';
+    final isClosed = task.status == 'closed';
+
     final statusLabel = taskStatusAccessibilityLabel(task.status, context);
     final assigneePart =
         task.claimedByName != null ? ', ${task.claimedByName}' : '';
     final combinedLabel =
         '#${task.taskNumber} ${task.title}, $statusLabel$assigneePart';
 
-    Widget row = Semantics(
+    return Semantics(
       key: ValueKey('task-row-${task.id}'),
       label: combinedLabel,
       onLongPress: !isClosed ? () => _showTaskActions(context) : null,
@@ -181,77 +228,40 @@ class _TaskRowState extends ConsumerState<TaskRow> {
         ),
       ),
     );
+  }
 
-    // Wrap in LongPressDraggable for non-closed tasks.
-    if (isDraggable) {
-      row = LongPressDraggable<TaskItem>(
-        data: task,
-        delay: const Duration(milliseconds: 400),
-        onDragStarted: _insertOverlay,
-        onDragEnd: (_) {
-          // If a drop was accepted, the overlay handles its own dismissal
-          // after the success animation completes.
-          if (!_dropAccepted) {
-            _removeOverlay();
-          }
-        },
-        feedback: _buildDragGhost(),
-        childWhenDragging: Opacity(
-          opacity: 0.3,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pageHorizontal,
-              vertical: AppSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                Text(
-                  taskStatusSymbol(task.status),
-                  style: AppTypography.title.copyWith(
-                    color: taskStatusColor(task.status, colors),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    '#${task.taskNumber} ${task.title}',
-                    style: AppTypography.body.copyWith(color: colors.text),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  /// Ghosted version of the row shown in its original position during drag.
+  Widget _buildChildWhenDragging() {
+    final task = widget.task;
+    final colors = widget.colors;
+    return Opacity(
+      opacity: 0.3,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pageHorizontal,
+          vertical: AppSpacing.sm,
         ),
-        child: row,
-      );
-    }
-
-    // Wrap with left-swipe "Done" action (only for active tasks).
-    if (!isTerminal) {
-      row = SwipeActionWrapper(
-        itemKey: task.id,
-        enabled: true,
-        action: SwipeActionConfig(
-          label: context.l10n.tasksSwipeDone,
-          icon: Icons.check_circle_outline,
-          color: colors.success,
+        child: Row(
+          children: [
+            Text(
+              taskStatusSymbol(task.status),
+              style: AppTypography.title.copyWith(
+                color: taskStatusColor(task.status, colors),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                '#${task.taskNumber} ${task.title}',
+                style: AppTypography.body.copyWith(color: colors.text),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
-        onAction: () => widget.onStatusUpdate(task, 'done'),
-        child: row,
-      );
-    }
-
-    if (isTerminal) {
-      row = Opacity(
-        key: ValueKey('task-row-opacity-${task.id}'),
-        opacity: 0.5,
-        child: row,
-      );
-    }
-
-    return row;
+      ),
+    );
   }
 
   /// Drag ghost: elevated rotated card showing task title.
@@ -306,8 +316,23 @@ class _TaskRowState extends ConsumerState<TaskRow> {
 
   Future<void> _showTaskActions(BuildContext context) async {
     final task = widget.task;
-    final l10n = context.l10n;
-    final actions = <ListActionItem>[
+    final actions = _buildTaskActions(context.l10n);
+
+    final result = await showListActionSheet(
+      context: context,
+      actions: actions,
+      title: '#${task.taskNumber} ${task.title}',
+      onOpenHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
+    );
+
+    if (!mounted) return;
+    _dispatchTaskAction(result);
+  }
+
+  /// Builds the context-sensitive action list for the task action sheet.
+  List<ListActionItem> _buildTaskActions(AppLocalizations l10n) {
+    final task = widget.task;
+    return [
       if (task.status != 'done' && task.status != 'closed')
         ListActionItem(
           key: 'task-action-done',
@@ -370,16 +395,11 @@ class _TaskRowState extends ConsumerState<TaskRow> {
           isDestructive: true,
         ),
     ];
+  }
 
-    final result = await showListActionSheet(
-      context: context,
-      actions: actions,
-      title: '#${task.taskNumber} ${task.title}',
-      onOpenHaptic: () => ref.read(hapticServiceProvider).mediumImpact(),
-    );
-
-    if (!mounted) return;
-
+  /// Dispatches the user-selected action from the task action sheet.
+  void _dispatchTaskAction(String? result) {
+    final task = widget.task;
     switch (result) {
       case 'task-action-done':
         widget.onStatusUpdate(task, 'done');

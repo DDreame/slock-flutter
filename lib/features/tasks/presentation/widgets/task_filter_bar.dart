@@ -80,8 +80,6 @@ class TaskFilterChip extends StatelessWidget {
     required this.onTap,
   });
 
-  static final _borderRadius = taskFilterChipBorderRadius;
-
   final String label;
   final bool isSelected;
   final AppColors colors;
@@ -97,7 +95,7 @@ class TaskFilterChip extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: _borderRadius,
+          borderRadius: taskFilterChipBorderRadius,
           child: Container(
             height: kTaskFilterChipHeight,
             padding: const EdgeInsets.symmetric(
@@ -105,7 +103,7 @@ class TaskFilterChip extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: isSelected ? colors.primary : colors.surfaceAlt,
-              borderRadius: _borderRadius,
+              borderRadius: taskFilterChipBorderRadius,
               border: isSelected ? null : Border.all(color: colors.border),
             ),
             alignment: Alignment.center,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -74,8 +75,7 @@ class MentionSuggestionOverlay extends StatelessWidget {
                             member.displayName.isNotEmpty
                                 ? member.displayName[0].toUpperCase()
                                 : '?',
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: AppTypography.caption.copyWith(
                               color: colors.textSecondary,
                             ),
                           ),
@@ -83,8 +83,7 @@ class MentionSuggestionOverlay extends StatelessWidget {
                         const SizedBox(width: AppSpacing.sm),
                         Text(
                           member.displayName,
-                          style: TextStyle(
-                            fontSize: 14,
+                          style: AppTypography.body.copyWith(
                             color: colors.text,
                           ),
                         ),
