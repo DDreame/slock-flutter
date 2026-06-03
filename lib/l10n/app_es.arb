@@ -364,6 +364,17 @@
   "conversationSelectionActionSaved": "guardados",
   "conversationSelectionActionDeleteVerb": "eliminar",
   "conversationSelectionActionDeleted": "eliminados",
+  "conversationSelectionSaveToGallery": "Guardar en galería",
+  "conversationSelectionSavedToGallery": "Guardado en galería",
+  "conversationSelectionSaveGalleryFailed": "No se pudo guardar — revise los permisos de almacenamiento",
+  "conversationExportThreadReplies": "Contiene {count} respuestas",
+  "@conversationExportThreadReplies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationEditDialogTitle": "Editar mensaje",
   "conversationEditDialogCancel": "Cancelar",
   "conversationEditDialogSave": "Guardar",

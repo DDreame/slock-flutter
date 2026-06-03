@@ -608,6 +608,17 @@
   "conversationSelectionCancel": "Cancel",
   "conversationSelectionSave": "Save",
   "conversationSelectionExportAsImage": "Export as image",
+  "conversationSelectionSaveToGallery": "Save to gallery",
+  "conversationSelectionSavedToGallery": "Saved to gallery",
+  "conversationSelectionSaveGalleryFailed": "Failed to save — check storage permissions",
+  "conversationExportThreadReplies": "Contains {count} replies",
+  "@conversationExportThreadReplies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "conversationSelectionDelete": "Delete",
   "conversationSelectionSelected": "{count} selected",
   "@conversationSelectionSelected": {

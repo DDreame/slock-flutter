@@ -1370,6 +1370,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationSelectionExportAsImage => 'Export as image';
 
   @override
+  String get conversationSelectionSaveToGallery => 'Save to gallery';
+
+  @override
+  String get conversationSelectionSavedToGallery => 'Saved to gallery';
+
+  @override
+  String get conversationSelectionSaveGalleryFailed =>
+      'Failed to save — check storage permissions';
+
+  @override
+  String conversationExportThreadReplies(int count) {
+    return 'Contains $count replies';
+  }
+
+  @override
   String get conversationSelectionDelete => 'Delete';
 
   @override

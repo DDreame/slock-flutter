@@ -1331,6 +1331,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationSelectionExportAsImage => '导出为图片';
 
   @override
+  String get conversationSelectionSaveToGallery => '保存到相册';
+
+  @override
+  String get conversationSelectionSavedToGallery => '已保存到相册';
+
+  @override
+  String get conversationSelectionSaveGalleryFailed => '保存失败，请检查存储权限';
+
+  @override
+  String conversationExportThreadReplies(int count) {
+    return '包含 $count 条回复';
+  }
+
+  @override
   String get conversationSelectionDelete => '删除';
 
   @override

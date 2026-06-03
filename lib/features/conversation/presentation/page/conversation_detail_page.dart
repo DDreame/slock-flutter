@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -33,8 +32,6 @@ export 'package:slock_app/features/conversation/presentation/widgets/conversatio
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_search_overlay.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_selection_bar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
-import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
-import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
@@ -395,7 +392,9 @@ class _ConversationDetailScreenState
           IconButton(
             key: const ValueKey('conversation-screenshot'),
             icon: const Icon(Icons.screenshot_outlined),
-            onPressed: _captureAndAnnotate,
+            onPressed: () => ref
+                .read(conversationDetailStoreProvider.notifier)
+                .enterSelectionModeEmpty(),
             tooltip: context.l10n.conversationScreenshotTooltip,
           ),
         ...?widget.appBarActionsBuilder?.call(context, ref, state),
@@ -809,20 +808,6 @@ class _ConversationDetailScreenState
 
   Future<void> _cancelRecording() async {
     await ref.read(voiceRecordingControllerProvider.notifier).cancelRecording();
-  }
-
-  // -- Screenshot --
-
-  Future<void> _captureAndAnnotate() async {
-    const captureService = ScreenshotCaptureService();
-    final pixelRatio = MediaQuery.of(context).devicePixelRatio;
-    final path = await captureService.capture(
-      _screenshotBoundaryKey,
-      pixelRatio: pixelRatio,
-    );
-    if (path == null || !mounted) return;
-    ref.read(screenshotStoreProvider.notifier).setCapturedImage(path);
-    context.push('/screenshot-annotate');
   }
 
   // -- Translation --

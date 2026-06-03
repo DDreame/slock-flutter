@@ -13,6 +13,18 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
     );
   }
 
+  /// Enters selection mode without pre-selecting any message.
+  ///
+  /// Used by the AppBar screenshot button — user picks messages first,
+  /// then exports as image.
+  void enterSelectionModeEmpty() {
+    if (state.status != ConversationDetailStatus.success) return;
+    state = state.copyWith(
+      isSelectionMode: true,
+      selectedMessageIds: const {},
+    );
+  }
+
   /// Exits selection mode and clears all selections.
   void exitSelectionMode() {
     state = state.copyWith(
