@@ -7,6 +7,20 @@ import 'package:slock_app/features/conversation/presentation/page/mention_filter
 /// Extracted from `_ConversationDetailScreenState` to reduce god-widget LOC.
 /// The controller manages mention detection, member loading, filtering, and
 /// insertion — the page delegates to it and calls [setState] when notified.
+///
+/// ## setState contract
+///
+/// This controller mutates its own fields (`showOverlay`, `query`, `members`,
+/// etc.) but never triggers widget rebuilds itself. **Callers must call
+/// `setState` after any mutating method that returns `true` or completes a
+/// future.** Specifically:
+///
+/// - [detectTrigger] → call `setState` when it returns `true`.
+/// - [close] → call `setState` when it returns `true`.
+/// - [insertMention] → always call `setState` after invocation.
+/// - [loadMembers] callback → the provided implementation must call
+///   `setState` after the future completes so that newly-loaded members
+///   are rendered in the overlay.
 class MentionAutocompleteController {
   MentionAutocompleteController({
     required this.loadMembers,
@@ -14,6 +28,10 @@ class MentionAutocompleteController {
 
   /// Callback to load channel members. Injected by the page to avoid
   /// direct dependency on [channelMemberRepositoryProvider] (layer violation).
+  ///
+  /// **Important:** The implementation must call `setState` after the future
+  /// resolves — the controller mutates [members]/[membersLoaded] but does
+  /// not trigger rebuilds.
   final Future<List<ChannelMember>> Function() loadMembers;
 
   bool showOverlay = false;
