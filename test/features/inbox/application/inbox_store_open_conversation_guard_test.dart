@@ -21,7 +21,8 @@ import '../../../support/support.dart';
 
 void main() {
   group('InboxStore open-conversation guard', () {
-    test('load() zeroes unread for the open conversation', () async {
+    test('refresh after markRead zeroes unread for the open conversation',
+        () async {
       final fixture = RuntimeAppFixture();
       fixture.seedInbox([
         const InboxItem(
@@ -50,16 +51,24 @@ void main() {
           ),
         );
 
-        await fixture.container.read(inboxStoreProvider.notifier).load();
+        // Fire markRead (simulates the page's _fireMarkReadIfUnread).
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markRead(channelId: 'ch-open');
+
+        // Now simulate a refresh returning stale server data (race window).
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .refresh(reason: 'reconnect');
 
         final state = fixture.container.read(inboxStoreProvider);
         expect(state.status, InboxStatus.success);
 
-        // ch-open must have unread zeroed (user is viewing it).
+        // ch-open must have unread zeroed (guard prevents resurrection).
         final openItem =
             state.items.firstWhere((i) => i.channelId == 'ch-open');
         expect(openItem.unreadCount, 0,
-            reason: 'Open conversation must have unread=0');
+            reason: 'Open conversation must have unread=0 after refresh');
         expect(openItem.isMentioned, isFalse);
 
         // ch-other must retain its unread count (not open).
@@ -85,8 +94,10 @@ void main() {
 
       await fixture.boot();
       try {
-        // No conversation open (default is null).
-        await fixture.container.read(inboxStoreProvider.notifier).load();
+        // No conversation open (default is null). Mark-read won't fire.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .refresh(reason: 'test');
 
         final state = fixture.container.read(inboxStoreProvider);
         expect(state.items.first.unreadCount, 5,
@@ -96,7 +107,7 @@ void main() {
       }
     });
 
-    test('load() does not modify items when open conversation has no unread',
+    test('guard does not apply before markRead fires (no mutation version)',
         () async {
       final fixture = RuntimeAppFixture();
       fixture.seedInbox([
@@ -104,12 +115,13 @@ void main() {
           kind: InboxItemKind.channel,
           channelId: 'ch-open',
           channelName: 'general',
-          unreadCount: 0,
+          unreadCount: 5,
         ),
       ]);
 
       await fixture.boot();
       try {
+        // Set open target but do NOT call markRead.
         fixture.container
             .read(currentOpenConversationTargetProvider.notifier)
             .state = ConversationDetailTarget.channel(
@@ -119,21 +131,28 @@ void main() {
           ),
         );
 
-        await fixture.container.read(inboxStoreProvider.notifier).load();
+        // Refresh without prior markRead — guard must NOT apply.
+        // This preserves the ability of _fireMarkReadIfUnread to detect
+        // unread > 0 on first load and call the mark-read API.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .refresh(reason: 'test');
 
         final state = fixture.container.read(inboxStoreProvider);
         final openItem =
             state.items.firstWhere((i) => i.channelId == 'ch-open');
-        expect(openItem.unreadCount, 0);
+        expect(openItem.unreadCount, 5,
+            reason: 'Without prior markRead, guard must not apply');
       } finally {
         await fixture.dispose();
       }
     });
 
-    test('refresh after markRead preserves zero for open conversation',
+    test('refresh preserves zero for open conversation (stale response guard)',
         () async {
       final fixture = RuntimeAppFixture();
-      // Simulate server returning stale non-zero unread (race condition).
+      // Server returns non-zero unread for ch-open — simulates stale data
+      // where the mark-read API hasn't committed yet.
       fixture.seedInbox([
         const InboxItem(
           kind: InboxItemKind.channel,
@@ -146,6 +165,18 @@ void main() {
 
       await fixture.boot();
       try {
+        // After initial load, ch-open has unread=7.
+        final stateAfterBoot = fixture.container.read(inboxStoreProvider);
+        expect(stateAfterBoot.status, InboxStatus.success);
+        expect(
+          stateAfterBoot.items
+              .firstWhere((i) => i.channelId == 'ch-open')
+              .unreadCount,
+          7,
+          reason: 'Initial load should show server unread (no mutation yet)',
+        );
+
+        // Simulate user opening the conversation — sets open target.
         fixture.container
             .read(currentOpenConversationTargetProvider.notifier)
             .state = ConversationDetailTarget.channel(
@@ -155,19 +186,13 @@ void main() {
           ),
         );
 
-        // Simulate the sequence: markRead fires → optimistic zero.
+        // Fire markRead (as the page would on enter). This sets mutation
+        // version, enabling the guard for subsequent refreshes.
         await fixture.container
             .read(inboxStoreProvider.notifier)
             .markRead(channelId: 'ch-open');
 
-        final stateAfterMark = fixture.container.read(inboxStoreProvider);
-        final itemAfterMark =
-            stateAfterMark.items.firstWhere((i) => i.channelId == 'ch-open');
-        expect(itemAfterMark.unreadCount, 0,
-            reason: 'markRead zeroes optimistically');
-
-        // Now simulate a refresh that returns stale server data.
-        // The server hasn't committed the read-all yet.
+        // Simulate a refresh (e.g. reconnect/appResume) returning stale data.
         await fixture.container
             .read(inboxStoreProvider.notifier)
             .refresh(reason: 'reconnect');
@@ -206,11 +231,20 @@ void main() {
           ),
         );
 
-        await fixture.container.read(inboxStoreProvider.notifier).load();
+        // Fire markRead to establish mutation version.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markRead(channelId: 'dm-open');
+
+        // Refresh with stale data.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .refresh(reason: 'test');
 
         final state = fixture.container.read(inboxStoreProvider);
         final dmItem = state.items.firstWhere((i) => i.channelId == 'dm-open');
-        expect(dmItem.unreadCount, 0, reason: 'Open DM must have unread=0');
+        expect(dmItem.unreadCount, 0,
+            reason: 'Open DM must have unread=0 after refresh');
       } finally {
         await fixture.dispose();
       }

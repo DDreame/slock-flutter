@@ -154,10 +154,9 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       // while this one was in-flight (e.g. rapid filter switching).
       if (epoch != _filterEpoch) return;
 
-      // INV-P0-UNREAD-LOAD: Enforce zero unread for the currently-open
-      // conversation. The server response may be stale (mark-read API not yet
-      // committed) — but the user is actively viewing the channel, so the
-      // invariant is: open conversation → unread = 0.
+      // INV-P0-UNREAD-LOAD: On refresh, enforce zero unread for the
+      // currently-open conversation when a mark-read was already issued.
+      // The server response may be stale (mark-read API not yet committed).
       final items = _applyOpenConversationReadGuard(response.items);
       _rememberInboxItems(items);
       state = state.copyWith(
@@ -521,13 +520,22 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
   }
 
   /// INV-P0-UNREAD-LOAD: Enforce zero unread for the currently-open
-  /// conversation in a list of inbox items. If the user is actively viewing
-  /// a conversation, its unread count must always be 0 regardless of what the
-  /// server returned (the server may not have committed the mark-read yet).
+  /// conversation in a list of inbox items — but only when a mark-read
+  /// mutation was already recorded for the channel (mutation version exists).
+  ///
+  /// This ensures:
+  /// - After markRead fires: subsequent refreshes with stale server data
+  ///   cannot resurrect the badge (mutation version is set → guard applies).
+  /// - Before markRead fires: initial inbox load passes through unchanged,
+  ///   allowing _fireMarkReadIfUnread to detect unread > 0 and call the API.
   List<InboxItem> _applyOpenConversationReadGuard(List<InboxItem> items) {
     final openTarget = ref.read(currentOpenConversationTargetProvider);
     if (openTarget == null) return items;
     final channelId = openTarget.conversationId;
+    // Only suppress if a mark-read was already issued for this channel.
+    // Without a prior mutation, the projection must reflect server data so
+    // _fireMarkReadIfUnread can detect unread > 0 and fire the API.
+    if (!_readMutationVersionsByChannelId.containsKey(channelId)) return items;
     final index = items.indexWhere((item) => item.channelId == channelId);
     if (index < 0 || items[index].unreadCount <= 0) return items;
     final updated = List<InboxItem>.of(items);
