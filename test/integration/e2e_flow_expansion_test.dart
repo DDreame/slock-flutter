@@ -581,12 +581,14 @@ void main() {
         ],
       ));
 
-      // Let the widget tree settle — the page auto-fires
-      // _fireMarkReadIfUnread once the unreadSourceProjection loads
-      // (deferred listener path: inbox auto-loads → projection loaded
-      // → postFrameCallback → markRead).
-      await tester.pumpAndSettle();
-
+      // Pump explicit frames instead of pumpAndSettle — background timers
+      // (inboxKeepAliveDuration, readCursorService debounce) prevent full
+      // settle. The page auto-fires _fireMarkReadIfUnread once the
+      // unreadSourceProjection loads (deferred listener path: inbox
+      // auto-loads → projection loaded → postFrameCallback → markRead).
+      await tester.pump(); // initial build + layout
+      await tester.pump(const Duration(milliseconds: 100)); // async loads
+      await tester.pump(const Duration(seconds: 1)); // debounce windows
       // Drain microtasks so the InboxStore.markRead future completes
       // and state propagates through the projection.
       for (var i = 0; i < 10; i++) {
