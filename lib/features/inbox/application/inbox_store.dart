@@ -153,14 +153,20 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       // INV-839-FILTER: Discard stale response if a newer load() was triggered
       // while this one was in-flight (e.g. rapid filter switching).
       if (epoch != _filterEpoch) return;
-      _rememberInboxItems(response.items);
+
+      // INV-P0-UNREAD-LOAD: Enforce zero unread for the currently-open
+      // conversation. The server response may be stale (mark-read API not yet
+      // committed) — but the user is actively viewing the channel, so the
+      // invariant is: open conversation → unread = 0.
+      final items = _applyOpenConversationReadGuard(response.items);
+      _rememberInboxItems(items);
       state = state.copyWith(
         status: InboxStatus.success,
-        items: response.items,
+        items: items,
         totalCount: response.totalCount,
         totalUnreadCount: response.totalUnreadCount,
         hasMore: response.hasMore,
-        offset: response.items.length,
+        offset: items.length,
         isRefreshing: false,
         clearFailure: true,
       );
@@ -227,9 +233,8 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       if (ref.read(activeServerScopeIdProvider) != serverId) return;
       // INV-850-EPOCH: Discard stale response if filter switched during await.
       if (epoch != _filterEpoch) return;
-      final mergedItems = _mergeInboxItemsDeduped(
-        state.items,
-        response.items,
+      final mergedItems = _applyOpenConversationReadGuard(
+        _mergeInboxItemsDeduped(state.items, response.items),
       );
       _rememberInboxItems(response.items);
       state = state.copyWith(
@@ -513,6 +518,25 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       }
     }
     return mergedItems;
+  }
+
+  /// INV-P0-UNREAD-LOAD: Enforce zero unread for the currently-open
+  /// conversation in a list of inbox items. If the user is actively viewing
+  /// a conversation, its unread count must always be 0 regardless of what the
+  /// server returned (the server may not have committed the mark-read yet).
+  List<InboxItem> _applyOpenConversationReadGuard(List<InboxItem> items) {
+    final openTarget = ref.read(currentOpenConversationTargetProvider);
+    if (openTarget == null) return items;
+    final channelId = openTarget.conversationId;
+    final index = items.indexWhere((item) => item.channelId == channelId);
+    if (index < 0 || items[index].unreadCount <= 0) return items;
+    final updated = List<InboxItem>.of(items);
+    updated[index] = items[index].copyWith(
+      unreadCount: 0,
+      isMentioned: false,
+      clearFirstUnreadMessageId: true,
+    );
+    return updated;
   }
 
   int _bumpReadMutationVersions(Iterable<String> channelIds) {
