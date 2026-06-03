@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
@@ -22,6 +23,7 @@ import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_edit_page.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 
+import '../support/fakes/fake_secure_storage.dart';
 import 'b132_phase2_test_support.dart';
 
 void main() {
@@ -49,6 +51,10 @@ void main() {
         router: router,
         prefs: prefs,
         conversationRepository: conversationRepository,
+        overrides: [
+          imageCompressorProvider
+              .overrideWithValue(const _NoOpImageCompressor()),
+        ],
       ));
       await tester.pumpAndSettle();
 
@@ -127,6 +133,10 @@ void main() {
         router: router,
         prefs: prefs,
         conversationRepository: conversationRepository,
+        overrides: [
+          imageCompressorProvider
+              .overrideWithValue(const _NoOpImageCompressor()),
+        ],
       ));
       await tester.pumpAndSettle();
 
@@ -257,6 +267,7 @@ void main() {
         overrides: [
           profileEditRepositoryProvider
               .overrideWithValue(profileEditRepository),
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
         ],
       ));
       await tester.pumpAndSettle();
@@ -282,7 +293,11 @@ void main() {
 
       // Tap save.
       await tester.tap(find.byKey(const ValueKey('profile-edit-save')));
-      await tester.pumpAndSettle();
+      // Use explicit pumps instead of pumpAndSettle — the success SnackBar
+      // animation prevents settling. Pump enough for async save + navigation.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
 
       // Verify repository was called with new name.
       expect(
@@ -540,4 +555,23 @@ class _TrackingProfileEditRepository implements ProfileEditRepository {
       isSelf: true,
     );
   }
+}
+
+class _NoOpImageCompressor implements ImageCompressor {
+  const _NoOpImageCompressor();
+
+  @override
+  Future<int> getFileSize(String path) async => 0;
+
+  @override
+  Future<String> compress(String path, {int quality = 80}) async => path;
+
+  @override
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  }) async {}
+
+  @override
+  bool isCompressibleImage(String mimeType) => false;
 }
