@@ -125,18 +125,63 @@ class AgentDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    // Trigger REST load of historical activity log entries.
-    final activityLogAsync =
-        ref.watch(agentActivityLogLoaderProvider(agent.id));
-
-    final activityLog = ref.watch(
-      agentsStoreProvider.select((state) => state.activityLogFor(agent.id)),
-    );
-
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
       children: [
-        // --- Avatar + glow ring ---
+        _AgentHeader(
+          key: ValueKey('agent-header-${agent.id}'),
+          agent: agent,
+          colors: colors,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        _ActionButtonRow(
+          agent: agent,
+          colors: colors,
+          onMessage: onMessage,
+          onStart: onStart,
+          onStop: onStop,
+          onReset: onReset,
+        ),
+        const SizedBox(height: AppSpacing.sectionGap),
+        _ConfigGrid(
+          key: const ValueKey('agent-config-grid'),
+          agent: agent,
+          colors: colors,
+        ),
+        const SizedBox(height: AppSpacing.sectionGap),
+        _EnvVarsSection(
+          key: const ValueKey('agent-env-vars-section'),
+          colors: colors,
+        ),
+        const SizedBox(height: AppSpacing.sectionGap),
+        _ActivityLogSection(
+          key: const ValueKey('agent-activity-log-section'),
+          agentId: agent.id,
+          colors: colors,
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Agent header (avatar + status + description)
+// ---------------------------------------------------------------------------
+
+class _AgentHeader extends StatelessWidget {
+  const _AgentHeader({
+    super.key,
+    required this.agent,
+    required this.colors,
+  });
+
+  final AgentItem agent;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
         Center(
           child: StatusGlowRing(
             key: const ValueKey('agent-detail-glow-ring'),
@@ -159,8 +204,6 @@ class AgentDetailBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-
-        // --- Status text ---
         Center(
           child: Text(
             agentActivityLabel(
@@ -180,38 +223,39 @@ class AgentDetailBody extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: AppSpacing.xl),
+      ],
+    );
+  }
+}
 
-        // --- Action buttons ---
-        _ActionButtonRow(
-          agent: agent,
-          colors: colors,
-          onMessage: onMessage,
-          onStart: onStart,
-          onStop: onStop,
-          onReset: onReset,
-        ),
-        const SizedBox(height: AppSpacing.sectionGap),
+// ---------------------------------------------------------------------------
+// Activity log section — loaded lazily via provider
+// ---------------------------------------------------------------------------
 
-        // --- 2x2 Config grid ---
-        _ConfigGrid(
-          key: const ValueKey('agent-config-grid'),
-          agent: agent,
-          colors: colors,
-        ),
-        const SizedBox(height: AppSpacing.sectionGap),
+class _ActivityLogSection extends ConsumerWidget {
+  const _ActivityLogSection({
+    super.key,
+    required this.agentId,
+    required this.colors,
+  });
 
-        // --- Environment Variables ---
-        _EnvVarsSection(
-          key: const ValueKey('agent-env-vars-section'),
-          colors: colors,
-        ),
-        const SizedBox(height: AppSpacing.sectionGap),
+  final String agentId;
+  final AppColors colors;
 
-        // --- Activity Log ---
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Trigger REST load only when this section builds (not eagerly in parent).
+    final activityLogAsync = ref.watch(agentActivityLogLoaderProvider(agentId));
+
+    final activityLog = ref.watch(
+      agentsStoreProvider.select((state) => state.activityLogFor(agentId)),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           context.l10n.agentsActivityLogTitle,
-          key: const ValueKey('agent-activity-log-section'),
           style: AppTypography.title.copyWith(color: colors.text),
         ),
         const SizedBox(height: AppSpacing.sm),
