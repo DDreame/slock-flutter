@@ -178,6 +178,8 @@ class ConversationDetailSnapshot {
     this.description,
     this.savedMessageIds,
     this.isArchived = false,
+    this.peerPresence,
+    this.peerId,
   });
 
   final ConversationDetailTarget target;
@@ -197,6 +199,14 @@ class ConversationDetailSnapshot {
 
   /// Whether the channel is archived (read-only).
   final bool isArchived;
+
+  /// DM peer's initial presence status (e.g. 'online', 'idle', 'offline').
+  /// Seeded from channel metadata response to avoid showing offline until
+  /// the first realtime presence event arrives.
+  final String? peerPresence;
+
+  /// DM peer's user/agent ID. Used to seed PresenceStore on load.
+  final String? peerId;
 }
 
 @immutable

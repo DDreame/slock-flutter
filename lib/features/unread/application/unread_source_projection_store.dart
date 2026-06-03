@@ -338,8 +338,8 @@ UnreadSourceVisibility _resolveVisibility(
           ? UnreadSourceVisibility.visible
           : UnreadSourceVisibility.hidden;
     case InboxItemKind.thread:
-      // Threads have no dedicated tab row — they appear
-      // in the hidden-sources ("未读来源") section.
-      return UnreadSourceVisibility.hidden;
+      // Threads are valid unread sources — show them in the home
+      // unread card alongside channels and DMs.
+      return UnreadSourceVisibility.visible;
   }
 }

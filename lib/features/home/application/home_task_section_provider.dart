@@ -129,11 +129,16 @@ List<HomeTaskItem> _computeTaskSection(
       )
       .toList();
 
-  // Sort: in_progress first, then todo
+  // Sort: in_progress first, then todo; within same status, most recent first.
   activeTasks.sort((a, b) {
     final aRank = a.status == 'in_progress' ? 0 : 1;
     final bRank = b.status == 'in_progress' ? 0 : 1;
-    return aRank.compareTo(bRank);
+    final rankCmp = aRank.compareTo(bRank);
+    if (rankCmp != 0) return rankCmp;
+    // Secondary sort: claimedAt (if available) or createdAt, descending.
+    final aDate = a.claimedAt ?? a.createdAt;
+    final bDate = b.claimedAt ?? b.createdAt;
+    return bDate.compareTo(aDate);
   });
 
   // Slice: max items

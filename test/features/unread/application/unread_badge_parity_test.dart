@@ -128,8 +128,8 @@ void main() {
         expect(projection.totalUnreadCount, visibleSum + hiddenSum,
             reason: 'totalUnreadCount must equal visible + hidden sums');
 
-        expect(visibleSum, 7); // ch-general (5) + dm-alice (2)
-        expect(hiddenSum, 4); // ch-hidden (3) + thread-1 (1)
+        expect(visibleSum, 8); // ch-general (5) + dm-alice (2) + thread-1 (1)
+        expect(hiddenSum, 3); // ch-hidden (3)
       } finally {
         await fixture.dispose();
       }

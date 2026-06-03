@@ -102,9 +102,10 @@ void main() {
       }
     });
 
-    test('thread-only unread: partition identity holds (all hidden)', () async {
+    test('thread-only unread: partition identity holds (all visible)',
+        () async {
       final fixture = RuntimeAppFixture();
-      // Threads don't appear in home channels — always hidden.
+      // Threads are now visible sources shown in Home unread card.
       fixture.seedHome(channels: [ChannelBuilder('parent-ch').build()]);
       fixture.seedInbox([
         const InboxItem(
@@ -125,9 +126,9 @@ void main() {
         expect(state.isLoaded, isTrue);
         _assertPartitionIdentity(state);
         _assertBadgeMatchesProjection(fixture.container, state);
-        // Threads are always hidden.
-        expect(state.visibleSources, isEmpty);
-        expect(state.hiddenSources, hasLength(1));
+        // Threads are now visible.
+        expect(state.visibleSources, hasLength(1));
+        expect(state.hiddenSources, isEmpty);
       } finally {
         await fixture.dispose();
       }

@@ -1758,7 +1758,7 @@ void main() {
     );
 
     testWidgets(
-      'thread items are excluded from Home unread card (hidden sources)',
+      'thread items are rendered on Home unread card (visible sources)',
       (tester) async {
         final router = _buildRouter();
 
@@ -1787,12 +1787,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Thread items are classified as hidden sources and excluded
-        // from the Home unread card (only visibleSources are shown).
+        // Thread items are now visible sources and rendered
+        // on the Home unread card.
         expect(
           find.byKey(const ValueKey('unread-item-0')),
-          findsNothing,
-          reason: 'Threads are hidden sources — not rendered on Home card',
+          findsOneWidget,
+          reason: 'Threads are visible sources — rendered on Home card',
         );
       },
     );

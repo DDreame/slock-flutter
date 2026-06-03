@@ -55,7 +55,8 @@ class AgentRow extends StatelessWidget {
             child: Row(
               children: [
                 StatusGlowRing(
-                  status: mapActivityToGlowStatus(agent.activity),
+                  status: mapActivityToGlowStatus(agent.activity,
+                      isStopped: agent.isStopped),
                   size: 44,
                   child: CircleAvatar(
                     radius: 18,

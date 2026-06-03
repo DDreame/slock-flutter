@@ -221,7 +221,7 @@ void main() {
       );
     });
 
-    test('threads are hidden (no dedicated tab row)', () {
+    test('threads are visible (shown in Home unread card)', () {
       final container = createContainer(
         inboxState: const InboxState(
           status: InboxStatus.success,
@@ -249,7 +249,7 @@ void main() {
       expect(state.sources.first.kind, ConversationProjectionKind.thread);
       expect(
         state.sources.first.visibility,
-        UnreadSourceVisibility.hidden,
+        UnreadSourceVisibility.visible,
       );
     });
 
@@ -360,8 +360,8 @@ void main() {
       expect(state.totalUnreadCount, 10); // 3 + 2 + 4 + 1
 
       // Visibility split.
-      expect(state.visibleSources, hasLength(2)); // general, alice
-      expect(state.hiddenSources, hasLength(2)); // random, thread
+      expect(state.visibleSources, hasLength(3)); // general, alice, thread
+      expect(state.hiddenSources, hasLength(1)); // random
       expect(state.hiddenSources.first.title, 'random');
     });
 

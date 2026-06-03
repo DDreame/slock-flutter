@@ -8,7 +8,13 @@ import 'package:slock_app/l10n/l10n.dart';
 // ---------------------------------------------------------------------------
 
 /// Maps [AgentItem.activity] string to [GlowRingStatus].
-GlowRingStatus mapActivityToGlowStatus(String activity) {
+///
+/// When [isStopped] is true, always returns [GlowRingStatus.offline]
+/// regardless of the activity value — a stopped agent should not show
+/// an active status ring.
+GlowRingStatus mapActivityToGlowStatus(String activity,
+    {bool isStopped = false}) {
+  if (isStopped) return GlowRingStatus.offline;
   return switch (activity) {
     'online' => GlowRingStatus.online,
     'thinking' => GlowRingStatus.thinking,
