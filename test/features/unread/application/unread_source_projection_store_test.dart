@@ -360,8 +360,8 @@ void main() {
       expect(state.totalUnreadCount, 10); // 3 + 2 + 4 + 1
 
       // Visibility split.
-      expect(state.visibleSources, hasLength(2)); // general, alice
-      expect(state.hiddenSources, hasLength(2)); // random, thread
+      expect(state.visibleSources, hasLength(3)); // general, alice, thread
+      expect(state.hiddenSources, hasLength(1)); // random
       expect(state.hiddenSources.first.title, 'random');
     });
 
