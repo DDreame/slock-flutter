@@ -353,7 +353,6 @@ void main() {
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
         scopeKey: _typingScopeKey,
-        seq: 0,
         receivedAt: DateTime.now(),
         payload: const {
           'scopeKey': _typingScopeKey,
@@ -401,7 +400,6 @@ void main() {
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
         scopeKey: _typingScopeKey,
-        seq: 0,
         receivedAt: DateTime.now(),
         payload: const {
           'scopeKey': _typingScopeKey,
@@ -458,7 +456,6 @@ void main() {
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
         scopeKey: _typingScopeKey,
-        seq: 0,
         receivedAt: DateTime.now(),
         payload: const {
           'scopeKey': _typingScopeKey,
@@ -504,7 +501,6 @@ void main() {
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
         scopeKey: _typingScopeKey,
-        seq: 0,
         receivedAt: DateTime.now(),
         payload: const {
           'scopeKey': _typingScopeKey,
@@ -517,7 +513,6 @@ void main() {
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'typing:start',
         scopeKey: _typingScopeKey,
-        seq: 0,
         receivedAt: DateTime.now(),
         payload: const {
           'scopeKey': _typingScopeKey,
