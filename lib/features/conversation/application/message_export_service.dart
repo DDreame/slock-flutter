@@ -10,7 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 // ---------------------------------------------------------------------------
-// #568: Multi-Select Message Export
+// #568: Multi-Select Message Export — async I/O (#859)
 //
 // Orchestrates: gather selected messages → render MessageExportCard →
 // capture via RepaintBoundary → share PNG via share_plus.
