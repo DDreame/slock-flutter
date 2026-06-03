@@ -408,6 +408,7 @@
   "conversationComposerFormattingTooltip": "格式设置",
   "conversationComposerEmojiTooltip": "表情",
   "conversationComposerTaskToggleTooltip": "作为任务发送",
+  "conversationComposerOverflowTooltip": "更多选项",
   "conversationComposerCameraUnavailable": "相机不可用。请检查权限。",
   "conversationContextEditMessage": "编辑消息",
   "conversationContextReply": "回复",

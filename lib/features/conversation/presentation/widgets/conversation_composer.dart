@@ -186,72 +186,18 @@ class ConversationComposer extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: AppSpacing.xs),
-                  Container(
-                    key: const ValueKey('composer-format-toggle'),
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isFormattingToolbarVisible
-                          ? colors.primaryLight
-                          : colors.surfaceAlt,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.text_format,
-                        size: 20,
-                        color:
-                            isFormattingToolbarVisible ? colors.primary : null,
-                      ),
-                      padding: EdgeInsets.zero,
-                      tooltip: l10n.conversationComposerFormattingTooltip,
-                      onPressed: onToggleFormattingToolbar,
-                    ),
+                  // Method A: format/emoji/task collapsed into + overflow menu
+                  _ComposerOverflowButton(
+                    key: const ValueKey('composer-overflow'),
+                    colors: colors,
+                    isSending: state.isSending,
+                    isFormattingToolbarVisible: isFormattingToolbarVisible,
+                    isEmojiPickerVisible: isEmojiPickerVisible,
+                    asTask: asTask,
+                    onToggleFormattingToolbar: onToggleFormattingToolbar,
+                    onToggleEmojiPicker: onToggleEmojiPicker,
+                    onToggleAsTask: onToggleAsTask,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Container(
-                    key: const ValueKey('composer-emoji'),
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isEmojiPickerVisible
-                          ? colors.primaryLight
-                          : colors.surfaceAlt,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Icons.emoji_emotions_outlined,
-                        size: 20,
-                        color: isEmojiPickerVisible ? colors.primary : null,
-                      ),
-                      padding: EdgeInsets.zero,
-                      tooltip: l10n.conversationComposerEmojiTooltip,
-                      onPressed: onToggleEmojiPicker,
-                    ),
-                  ),
-                  if (onToggleAsTask != null) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    Container(
-                      key: const ValueKey('composer-task-toggle'),
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: asTask ? colors.primaryLight : colors.surfaceAlt,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.task_alt,
-                          size: 20,
-                          color: asTask ? colors.primary : null,
-                        ),
-                        padding: EdgeInsets.zero,
-                        tooltip: l10n.conversationComposerTaskToggleTooltip,
-                        onPressed: state.isSending ? null : onToggleAsTask,
-                      ),
-                    ),
-                  ],
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Focus(
@@ -713,3 +659,119 @@ class _ReplyPreviewBanner extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Composer overflow button — collapses format/emoji/task into a single "+"
+// menu to maximize text field width (Method A per DDreame directive).
+// ---------------------------------------------------------------------------
+
+class _ComposerOverflowButton extends StatelessWidget {
+  const _ComposerOverflowButton({
+    super.key,
+    required this.colors,
+    required this.isSending,
+    required this.isFormattingToolbarVisible,
+    required this.isEmojiPickerVisible,
+    required this.asTask,
+    required this.onToggleFormattingToolbar,
+    required this.onToggleEmojiPicker,
+    this.onToggleAsTask,
+  });
+
+  final AppColors colors;
+  final bool isSending;
+  final bool isFormattingToolbarVisible;
+  final bool isEmojiPickerVisible;
+  final bool asTask;
+  final VoidCallback onToggleFormattingToolbar;
+  final VoidCallback onToggleEmojiPicker;
+  final VoidCallback? onToggleAsTask;
+
+  /// Whether any overflow sub-action is currently active.
+  bool get _isActive =>
+      isFormattingToolbarVisible || isEmojiPickerVisible || asTask;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = _conversationL10n(context);
+    return Container(
+      key: const ValueKey('composer-overflow-btn'),
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: _isActive ? colors.primaryLight : colors.surfaceAlt,
+        shape: BoxShape.circle,
+      ),
+      child: PopupMenuButton<_OverflowAction>(
+        icon: Icon(
+          Icons.add,
+          size: 20,
+          color: _isActive ? colors.primary : null,
+        ),
+        padding: EdgeInsets.zero,
+        tooltip: l10n.conversationComposerOverflowTooltip,
+        enabled: !isSending,
+        onSelected: (action) {
+          switch (action) {
+            case _OverflowAction.format:
+              onToggleFormattingToolbar();
+            case _OverflowAction.emoji:
+              onToggleEmojiPicker();
+            case _OverflowAction.task:
+              onToggleAsTask?.call();
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            key: const ValueKey('overflow-format'),
+            value: _OverflowAction.format,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.text_format,
+                  size: 20,
+                  color: isFormattingToolbarVisible ? colors.primary : null,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(l10n.conversationComposerFormattingTooltip),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            key: const ValueKey('overflow-emoji'),
+            value: _OverflowAction.emoji,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.emoji_emotions_outlined,
+                  size: 20,
+                  color: isEmojiPickerVisible ? colors.primary : null,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(l10n.conversationComposerEmojiTooltip),
+              ],
+            ),
+          ),
+          if (onToggleAsTask != null)
+            PopupMenuItem(
+              key: const ValueKey('overflow-task'),
+              value: _OverflowAction.task,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.task_alt,
+                    size: 20,
+                    color: asTask ? colors.primary : null,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(l10n.conversationComposerTaskToggleTooltip),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+enum _OverflowAction { format, emoji, task }

@@ -1306,6 +1306,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationComposerTaskToggleTooltip => 'Send as task';
 
   @override
+  String get conversationComposerOverflowTooltip => 'More options';
+
+  @override
   String get conversationComposerCameraUnavailable =>
       'Camera unavailable. Please check permissions.';
 

@@ -294,6 +294,7 @@
   "conversationComposerFormattingTooltip": "Formato",
   "conversationComposerEmojiTooltip": "Emoji",
   "conversationComposerTaskToggleTooltip": "Enviar como tarea",
+  "conversationComposerOverflowTooltip": "Más opciones",
   "conversationComposerCameraUnavailable": "Cámara no disponible. Comprueba los permisos.",
   "conversationContextEditMessage": "Editar mensaje",
   "conversationContextReply": "Responder",

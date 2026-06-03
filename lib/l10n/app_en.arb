@@ -587,6 +587,7 @@
   "conversationComposerFormattingTooltip": "Formatting",
   "conversationComposerEmojiTooltip": "Emoji",
   "conversationComposerTaskToggleTooltip": "Send as task",
+  "conversationComposerOverflowTooltip": "More options",
   "conversationComposerCameraUnavailable": "Camera unavailable. Please check permissions.",
   "conversationContextEditMessage": "Edit message",
   "conversationContextReply": "Reply",
