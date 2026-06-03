@@ -242,8 +242,8 @@ class _SelectionActionBarState extends ConsumerState<SelectionActionBar> {
                         if (path != null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content:
-                                  Text(l10n.conversationSelectionSavedToGallery),
+                              content: Text(
+                                  l10n.conversationSelectionSavedToGallery),
                             ),
                           );
                           ref

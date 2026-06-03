@@ -52,8 +52,7 @@ void main() {
           reason: 'No image captured when boundary key has no context');
     });
 
-    test(
-        'returns null when boundary key context has no RenderRepaintBoundary',
+    test('returns null when boundary key context has no RenderRepaintBoundary',
         () async {
       // The structural guarantee is: capture (toImage) happens before
       // Gal.hasAccess(). If boundary is null, it short-circuits before
@@ -117,4 +116,3 @@ void main() {
     });
   });
 }
-
