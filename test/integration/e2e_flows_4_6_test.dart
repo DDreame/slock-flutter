@@ -16,7 +16,6 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
-import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
@@ -34,29 +33,23 @@ void main() {
       final memberRepository = B132MemberRepository();
       final conversationRepository = B132ConversationRepository();
 
-      // Track which DM was navigated to.
-      String? navigatedDmId;
+      // Track which DM channelId was returned from the picker.
+      String? openedDmChannelId;
 
+      // Use a wrapper that pushes NewDmPage imperatively (like the real app).
       final router = GoRouter(
-        initialLocation: '/home',
+        initialLocation: '/dm-launcher',
         routes: [
           GoRoute(
-            path: '/home',
-            builder: (_, __) => const HomePage(),
-          ),
-          GoRoute(
-            path: '/new-dm',
-            builder: (_, __) => ProviderScope(
-              overrides: [
-                currentMembersServerIdProvider.overrideWithValue(b132ServerId),
-              ],
-              child: const NewDmPage(serverId: b132ServerId),
+            path: '/dm-launcher',
+            builder: (context, _) => _DmLauncherPage(
+              serverId: b132ServerId,
+              onResult: (channelId) => openedDmChannelId = channelId,
             ),
           ),
           GoRoute(
             path: '/servers/:serverId/dms/:channelId',
             builder: (_, state) {
-              navigatedDmId = state.pathParameters['channelId'];
               final target = ConversationDetailTarget.directMessage(
                 DirectMessageScopeId(
                   serverId: b132ServerId,
@@ -77,8 +70,8 @@ void main() {
       ));
       await tester.pumpAndSettle();
 
-      // Navigate to new DM page.
-      router.go('/new-dm');
+      // Tap the launcher button to push NewDmPage imperatively.
+      await tester.tap(find.byKey(const ValueKey('dm-launch-button')));
       await tester.pumpAndSettle();
 
       // The People tab should show Bob (non-self member).
@@ -92,12 +85,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('dm-member-user-2')));
       await tester.pumpAndSettle();
 
-      // Verify navigation happened to the DM channel.
+      // NewDmPage pops with channelId; our launcher catches it.
       // B132MemberRepository.openDirectMessage returns 'dm-user-2'.
       expect(
-        navigatedDmId,
+        openedDmChannelId,
         'dm-user-2',
-        reason: 'Should navigate to the DM channel after selecting contact',
+        reason: 'Should receive DM channel ID after selecting contact',
       );
     });
 
@@ -225,8 +218,8 @@ void main() {
         reason: 'Copy action should always be visible',
       );
 
-      // Dismiss the menu.
-      await tester.tapAt(Offset.zero);
+      // Dismiss the bottom sheet by tapping the barrier.
+      await tester.tapAt(const Offset(400, 100));
       await tester.pumpAndSettle();
     });
 
@@ -288,8 +281,8 @@ void main() {
         reason: 'Reply action should always be visible',
       );
 
-      // Dismiss.
-      await tester.tapAt(Offset.zero);
+      // Dismiss the bottom sheet by tapping the barrier.
+      await tester.tapAt(const Offset(400, 100));
       await tester.pumpAndSettle();
     });
 
@@ -530,6 +523,9 @@ void main() {
         findsOneWidget,
         reason: 'Search result content should be shown',
       );
+
+      // Drain any remaining timers before teardown.
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('tap search result navigates to conversation', (tester) async {
@@ -667,6 +663,9 @@ void main() {
         findsOneWidget,
         reason: 'Empty state should be displayed when no results found',
       );
+
+      // Drain any remaining timers before teardown.
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('clear button resets search', (tester) async {
@@ -731,6 +730,48 @@ void main() {
         findsNothing,
         reason: 'Search results should be cleared',
       );
+
+      // Drain any remaining timers before teardown.
+      await tester.pump(const Duration(seconds: 1));
     });
   });
+}
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+/// Wrapper page that pushes [NewDmPage] imperatively (like the real DmsTabPage).
+/// This avoids Navigator._debugLocked assertions that occur when NewDmPage
+/// calls Navigator.pop() from within a GoRouter route.
+class _DmLauncherPage extends ConsumerWidget {
+  const _DmLauncherPage({required this.serverId, required this.onResult});
+
+  final ServerScopeId serverId;
+  final void Function(String?) onResult;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      body: Center(
+        child: ElevatedButton(
+          key: const ValueKey('dm-launch-button'),
+          onPressed: () async {
+            final channelId = await Navigator.of(context).push<String>(
+              MaterialPageRoute(
+                builder: (_) => ProviderScope(
+                  overrides: [
+                    currentMembersServerIdProvider.overrideWithValue(serverId),
+                  ],
+                  child: NewDmPage(serverId: serverId),
+                ),
+              ),
+            );
+            onResult(channelId);
+          },
+          child: const Text('New DM'),
+        ),
+      ),
+    );
+  }
 }
