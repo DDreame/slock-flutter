@@ -345,7 +345,8 @@ void main() {
   // C. MessageExportService temp file lifetime
   // ---------------------------------------------------------------------------
   group('#741C — MessageExportService temp file survives share sheet', () {
-    test('cleanupPreviousExportFiles only removes files older than minAge', () {
+    test('cleanupPreviousExportFiles only removes files older than minAge',
+        () async {
       final dir = Directory.systemTemp;
 
       // Create an "old" file and backdate its modified time.
@@ -374,7 +375,7 @@ void main() {
       });
 
       // Cleanup with default 60s threshold.
-      MessageExportService.cleanupPreviousExportFiles();
+      await MessageExportService.cleanupPreviousExportFiles();
 
       expect(oldFile.existsSync(), isFalse,
           reason: '#741: Export files older than minAge must be cleaned up');
@@ -387,7 +388,7 @@ void main() {
 
     test(
         'second export does not delete first file while share sheet may read it',
-        () {
+        () async {
       // This is the exact regression A1 requested: two consecutive exports
       // where the second starts while the first file is recent.
       final dir = Directory.systemTemp;
@@ -401,7 +402,7 @@ void main() {
 
       // Simulate second export starting: cleanup runs but must NOT delete
       // the first file because it's less than 60 seconds old.
-      MessageExportService.cleanupPreviousExportFiles();
+      await MessageExportService.cleanupPreviousExportFiles();
 
       expect(firstExport.existsSync(), isTrue,
           reason: '#741: Recent export file must survive second export cleanup '
@@ -409,7 +410,7 @@ void main() {
     });
 
     test('cleanup with minAge: zero removes all export files (test utility)',
-        () {
+        () async {
       final dir = Directory.systemTemp;
       final file = File('${dir.path}/slock_export_77777.png');
       file.writeAsStringSync('test');
@@ -418,7 +419,7 @@ void main() {
       });
 
       // With minAge: zero, even brand-new files are deleted.
-      MessageExportService.cleanupPreviousExportFiles(
+      await MessageExportService.cleanupPreviousExportFiles(
         minAge: Duration.zero,
       );
 
@@ -426,7 +427,7 @@ void main() {
           reason: '#741: minAge: zero must delete all export files');
     });
 
-    test('export file persists after share (no finally deletion)', () {
+    test('export file persists after share (no finally deletion)', () async {
       // Create a file simulating what exportSelectedMessages creates.
       final dir = Directory.systemTemp;
       final exportFile = File('${dir.path}/slock_export_54321.png');
@@ -445,7 +446,7 @@ void main() {
       exportFile.setLastModifiedSync(
         DateTime.now().subtract(const Duration(minutes: 2)),
       );
-      MessageExportService.cleanupPreviousExportFiles();
+      await MessageExportService.cleanupPreviousExportFiles();
       expect(exportFile.existsSync(), isFalse,
           reason: '#741: Aged export file cleaned up on next export');
     });

@@ -280,7 +280,7 @@ void main() {
               '#741: Temp file must persist after share (cleaned on next export)');
 
       // Simulate next export triggering cleanup (minAge: zero for test).
-      MessageExportService.cleanupPreviousExportFiles(
+      await MessageExportService.cleanupPreviousExportFiles(
         minAge: Duration.zero,
       );
       expect(File(sharedPath!).existsSync(), isFalse,
@@ -344,7 +344,7 @@ void main() {
               '#741: Temp file persists on failure (cleaned on next export)');
 
       // Simulate next export triggering cleanup (minAge: zero for test).
-      MessageExportService.cleanupPreviousExportFiles(
+      await MessageExportService.cleanupPreviousExportFiles(
         minAge: Duration.zero,
       );
       expect(File(capturedPath!).existsSync(), isFalse,

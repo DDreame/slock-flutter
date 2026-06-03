@@ -10,7 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 // ---------------------------------------------------------------------------
-// #568: Multi-Select Message Export
+// #568: Multi-Select Message Export — async I/O (#859)
 //
 // Orchestrates: gather selected messages → render MessageExportCard →
 // capture via RepaintBoundary → share PNG via share_plus.
@@ -76,14 +76,15 @@ class MessageExportService {
     required GlobalKey boundaryKey,
   }) async {
     try {
-      // 0. Clean up previous export temp files (#741).
-      cleanupPreviousExportFiles();
-
-      // 1. Find the RepaintBoundary render object.
+      // 1. Find the RepaintBoundary render object (sync, before any async gap).
       final context = boundaryKey.currentContext;
       if (context == null) return null;
       final boundary = context.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
+
+      // 0. Clean up previous export temp files (#741).
+      //    Moved after context capture to avoid use_build_context_synchronously.
+      await cleanupPreviousExportFiles();
 
       // 2. Capture as image at 3x pixel ratio for sharp output.
       final image = await boundary.toImage(pixelRatio: 3.0);
@@ -91,12 +92,12 @@ class MessageExportService {
         final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
         if (byteData == null) return null;
 
-        // 3. Save to temporary file (synchronous write for test compatibility).
+        // 3. Save to temporary file (#859: async to avoid main-isolate jank).
         final dir = Directory.systemTemp;
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filePath = '${dir.path}/slock_export_$timestamp.png';
         final file = File(filePath);
-        file.writeAsBytesSync(byteData.buffer.asUint8List());
+        await file.writeAsBytes(byteData.buffer.asUint8List());
 
         // 4. Share via injectable seam.
         if (shareXFiles != null) {
@@ -120,23 +121,25 @@ class MessageExportService {
   /// while keeping recent files alive for share sheet consumers (#741).
   /// Files younger than [minAge] are preserved to avoid deleting a file that
   /// a mobile share target may still be reading.
+  ///
+  /// Async (#859) to avoid main-isolate jank when temp dir contains many files.
   @visibleForTesting
-  static void cleanupPreviousExportFiles({
+  static Future<void> cleanupPreviousExportFiles({
     Duration minAge = const Duration(seconds: 60),
-  }) {
+  }) async {
     try {
       final dir = Directory.systemTemp;
       final now = DateTime.now();
-      final entries = dir.listSync();
+      final entries = await dir.list().toList();
       for (final entry in entries) {
         if (entry is File &&
             entry.path.contains('slock_export_') &&
             entry.path.endsWith('.png')) {
           try {
-            final stat = entry.statSync();
+            final stat = await entry.stat();
             final age = now.difference(stat.modified);
             if (age >= minAge) {
-              entry.deleteSync();
+              await entry.delete();
             }
           } catch (_) {
             // Best-effort — file may be locked by share sheet.
@@ -181,12 +184,12 @@ class MessageExportService {
           if (!granted) return null;
         }
 
-        // 4. Save to temp file then copy to gallery.
+        // 4. Save to temp file then copy to gallery (#859: async write).
         final dir = Directory.systemTemp;
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final filePath = '${dir.path}/slock_export_$timestamp.png';
         final file = File(filePath);
-        file.writeAsBytesSync(byteData.buffer.asUint8List());
+        await file.writeAsBytes(byteData.buffer.asUint8List());
 
         // 5. Save to gallery via injectable seam.
         if (saveToGallery != null) {

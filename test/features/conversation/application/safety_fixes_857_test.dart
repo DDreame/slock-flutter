@@ -107,11 +107,11 @@ void main() {
         () async {
       // Verify the cleanup helper is resilient — important since it's called
       // at the start of every export operation.
-      expect(
-        () => MessageExportService.cleanupPreviousExportFiles(
+      await expectLater(
+        MessageExportService.cleanupPreviousExportFiles(
           minAge: const Duration(seconds: 0),
         ),
-        returnsNormally,
+        completes,
       );
     });
   });
