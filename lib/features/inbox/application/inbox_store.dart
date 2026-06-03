@@ -153,14 +153,19 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       // INV-839-FILTER: Discard stale response if a newer load() was triggered
       // while this one was in-flight (e.g. rapid filter switching).
       if (epoch != _filterEpoch) return;
-      _rememberInboxItems(response.items);
+
+      // INV-P0-UNREAD-LOAD: On refresh, enforce zero unread for the
+      // currently-open conversation when a mark-read was already issued.
+      // The server response may be stale (mark-read API not yet committed).
+      final items = _applyOpenConversationReadGuard(response.items);
+      _rememberInboxItems(items);
       state = state.copyWith(
         status: InboxStatus.success,
-        items: response.items,
+        items: items,
         totalCount: response.totalCount,
         totalUnreadCount: response.totalUnreadCount,
         hasMore: response.hasMore,
-        offset: response.items.length,
+        offset: items.length,
         isRefreshing: false,
         clearFailure: true,
       );
@@ -227,9 +232,8 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       if (ref.read(activeServerScopeIdProvider) != serverId) return;
       // INV-850-EPOCH: Discard stale response if filter switched during await.
       if (epoch != _filterEpoch) return;
-      final mergedItems = _mergeInboxItemsDeduped(
-        state.items,
-        response.items,
+      final mergedItems = _applyOpenConversationReadGuard(
+        _mergeInboxItemsDeduped(state.items, response.items),
       );
       _rememberInboxItems(response.items);
       state = state.copyWith(
@@ -513,6 +517,34 @@ class InboxStore extends AutoDisposeNotifier<InboxState> {
       }
     }
     return mergedItems;
+  }
+
+  /// INV-P0-UNREAD-LOAD: Enforce zero unread for the currently-open
+  /// conversation in a list of inbox items — but only when a mark-read
+  /// mutation was already recorded for the channel (mutation version exists).
+  ///
+  /// This ensures:
+  /// - After markRead fires: subsequent refreshes with stale server data
+  ///   cannot resurrect the badge (mutation version is set → guard applies).
+  /// - Before markRead fires: initial inbox load passes through unchanged,
+  ///   allowing _fireMarkReadIfUnread to detect unread > 0 and call the API.
+  List<InboxItem> _applyOpenConversationReadGuard(List<InboxItem> items) {
+    final openTarget = ref.read(currentOpenConversationTargetProvider);
+    if (openTarget == null) return items;
+    final channelId = openTarget.conversationId;
+    // Only suppress if a mark-read was already issued for this channel.
+    // Without a prior mutation, the projection must reflect server data so
+    // _fireMarkReadIfUnread can detect unread > 0 and fire the API.
+    if (!_readMutationVersionsByChannelId.containsKey(channelId)) return items;
+    final index = items.indexWhere((item) => item.channelId == channelId);
+    if (index < 0 || items[index].unreadCount <= 0) return items;
+    final updated = List<InboxItem>.of(items);
+    updated[index] = items[index].copyWith(
+      unreadCount: 0,
+      isMentioned: false,
+      clearFirstUnreadMessageId: true,
+    );
+    return updated;
   }
 
   int _bumpReadMutationVersions(Iterable<String> channelIds) {

@@ -563,6 +563,15 @@ class _ConversationDetailScreenState
       _scrollCoordinator.lastRegisteredMessageCount = next.messages.length;
       _registerAttachmentDownloads(next.messages);
       _updateReadCursor(next.messages);
+      // INV-P0-UNREAD: Re-fire mark-read when new messages arrive while the
+      // conversation is already open. Without this, `_fireMarkReadIfUnread`
+      // only fires on the initial transition to success, leaving new messages
+      // unread in the inbox projection (requires exit/re-enter to clear).
+      final t = ref.read(currentConversationDetailTargetProvider);
+      final projection = ref.read(unreadSourceProjectionProvider);
+      if (projection.isLoaded) {
+        _fireMarkReadIfUnread(t, projection);
+      }
     }
 
     if (next.status == ConversationDetailStatus.success) {
