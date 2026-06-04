@@ -24,6 +24,7 @@ class ConversationMessageList extends ConsumerWidget {
     this.onScrollToMessage,
     this.highlightedMessageId,
     this.messageKeyBuilder,
+    this.newlySentIds,
   });
 
   /// Number of times the build method has been invoked across all instances.
@@ -52,6 +53,9 @@ class ConversationMessageList extends ConsumerWidget {
   /// Returns a [GlobalKey] for a given message ID, used for
   /// [Scrollable.ensureVisible]-based scroll targeting.
   final GlobalKey Function(String messageId)? messageKeyBuilder;
+
+  /// Message IDs that should play the send animation (slide-up + fade-in).
+  final Set<String>? newlySentIds;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -179,7 +183,9 @@ class ConversationMessageList extends ConsumerWidget {
                     message.id;
             final isQuoteJumpHighlighted = highlightedMessageId == message.id;
             final messageKey = messageKeyBuilder?.call(message.id);
-            return RepaintBoundary(
+            final shouldAnimate =
+                newlySentIds != null && newlySentIds!.remove(message.id);
+            Widget messageWidget = RepaintBoundary(
               key: ValueKey('repaint-boundary-${message.id}'),
               child: KeyedSubtree(
                 key: messageKey,
@@ -198,6 +204,13 @@ class ConversationMessageList extends ConsumerWidget {
                 ),
               ),
             );
+            if (shouldAnimate) {
+              messageWidget = _SendAnimationWrapper(
+                key: ValueKey('send-anim-${message.id}'),
+                child: messageWidget,
+              );
+            }
+            return messageWidget;
           }
           // Last item (top of screen) = history header.
           return _ConversationHistoryHeader(
@@ -645,6 +658,62 @@ class _PendingMessageCard extends ConsumerWidget {
             statusRow,
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Wraps a newly-sent message with a slide-up + fade-in animation.
+/// Plays the animation once on first build (200ms, easeOut).
+class _SendAnimationWrapper extends StatefulWidget {
+  const _SendAnimationWrapper({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<_SendAnimationWrapper> createState() => _SendAnimationWrapperState();
+}
+
+class _SendAnimationWrapperState extends State<_SendAnimationWrapper>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: widget.child,
       ),
     );
   }
