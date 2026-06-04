@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/features/home/application/last_active_timestamp_provider.dart';
 import 'package:slock_app/features/home/application/summary_card_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -57,7 +58,8 @@ class _SummaryCardState extends ConsumerState<SummaryCard>
   Future<void> _dismiss() async {
     await _dismissController.forward();
     if (mounted) {
-      ref.read(summaryCardDismissedProvider.notifier).state = true;
+      final lastActive = ref.read(lastActiveTimestampProvider);
+      ref.read(summaryCardDismissedForProvider.notifier).state = lastActive;
     }
   }
 
@@ -72,12 +74,15 @@ class _SummaryCardState extends ConsumerState<SummaryCard>
           .map((item) => item.channelId)
           .toList();
 
-      // Fire mark-read for all channels in parallel (max 5 concurrent).
       final inboxNotifier = ref.read(inboxStoreProvider.notifier);
 
-      // Optimistic: clear all badges immediately.
-      for (final channelId in unreadChannelIds) {
-        inboxNotifier.markRead(channelId: channelId);
+      // Batch mark-read calls in groups of 5 to avoid unbounded API burst.
+      const batchSize = 5;
+      for (var i = 0; i < unreadChannelIds.length; i += batchSize) {
+        final batch = unreadChannelIds.skip(i).take(batchSize);
+        await Future.wait(
+          batch.map((id) => inboxNotifier.markRead(channelId: id)),
+        );
       }
 
       await _dismiss();
@@ -158,12 +163,16 @@ class _SummaryCardState extends ConsumerState<SummaryCard>
             ),
           ),
         ),
-        InkWell(
-          onTap: _dismiss,
-          borderRadius: BorderRadius.circular(12),
-          child: const Padding(
-            padding: EdgeInsets.all(4),
-            child: Icon(Icons.close, size: 18),
+        Tooltip(
+          message: l10n.summaryCardDismiss,
+          child: InkWell(
+            onTap: _dismiss,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close,
+                  size: 18, semanticLabel: l10n.summaryCardDismiss),
+            ),
           ),
         ),
       ],

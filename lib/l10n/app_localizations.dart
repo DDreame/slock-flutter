@@ -7156,6 +7156,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'assigned to you'**
   String get summaryCardTaskAssigned;
+
+  /// No description provided for @summaryCardDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss summary'**
+  String get summaryCardDismiss;
 }
 
 class _AppLocalizationsDelegate

@@ -173,16 +173,21 @@ class _ReactionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        width: 40,
-        height: 40,
-        child: Center(
-          child: Text(
-            emoji,
-            style: const TextStyle(fontSize: 22),
+    return Semantics(
+      label: emoji,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+            child: Text(
+              emoji,
+              style: const TextStyle(fontSize: 22),
+              semanticsLabel: '',
+            ),
           ),
         ),
       ),
@@ -200,17 +205,21 @@ class _MoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        width: 40,
-        height: 40,
-        child: Center(
-          child: Icon(
-            Icons.add_circle_outline,
-            size: 22,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+    return Semantics(
+      label: 'More reactions',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: Center(
+            child: Icon(
+              Icons.add_circle_outline,
+              size: 22,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ),

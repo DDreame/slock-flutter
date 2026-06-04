@@ -3847,4 +3847,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get summaryCardTaskAssigned => 'assigned to you';
+
+  @override
+  String get summaryCardDismiss => 'Dismiss summary';
 }

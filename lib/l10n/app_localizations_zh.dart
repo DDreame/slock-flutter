@@ -3730,4 +3730,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get summaryCardTaskAssigned => '分配给你';
+
+  @override
+  String get summaryCardDismiss => '关闭摘要';
 }
