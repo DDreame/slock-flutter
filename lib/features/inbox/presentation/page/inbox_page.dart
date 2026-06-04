@@ -9,6 +9,7 @@ import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/haptic/haptic_service.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -193,11 +194,23 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     }
 
     if (inboxState.items.isEmpty) {
-      return EmptyStateWidget(
-        key: const ValueKey('inbox-empty'),
-        icon: Icons.inbox_outlined,
-        title: context.l10n.inboxEmptyTitle,
-        subtitle: context.l10n.inboxEmptySubtitle,
+      return RefreshIndicator(
+        onRefresh: () async {
+          ref.read(hapticServiceProvider).mediumImpact();
+          await ref.read(inboxStoreProvider.notifier).refresh();
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 120),
+            EmptyStateWidget(
+              key: const ValueKey('inbox-empty'),
+              icon: Icons.inbox_outlined,
+              title: context.l10n.inboxEmptyTitle,
+              subtitle: context.l10n.inboxEmptySubtitle,
+            ),
+          ],
+        ),
       );
     }
 
@@ -219,7 +232,10 @@ class _InboxPageState extends ConsumerState<InboxPage> {
           ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () => ref.read(inboxStoreProvider.notifier).refresh(),
+            onRefresh: () async {
+              ref.read(hapticServiceProvider).mediumImpact();
+              await ref.read(inboxStoreProvider.notifier).refresh();
+            },
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
                 if (notification is ScrollEndNotification &&
