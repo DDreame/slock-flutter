@@ -25,7 +25,7 @@ AgentDisplayStatus resolveDisplayStatus(AgentItem agent) {
     'thinking' => AgentDisplayStatus.thinking,
     'working' => AgentDisplayStatus.working,
     'error' => AgentDisplayStatus.error,
-    'online' => AgentDisplayStatus.online,
+    'online' || 'idle' => AgentDisplayStatus.online,
     _ => AgentDisplayStatus.offline,
   };
 }

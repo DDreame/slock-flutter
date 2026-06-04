@@ -1177,9 +1177,18 @@ class ConversationDetailStore
       return;
     }
 
+    // P0-FIX (#860): Update UI immediately with the incoming message.
+    // Previously the state update was after `persistMessage` await, creating a
+    // race where a provider rebuild during the async gap would dispose this
+    // notifier — losing the message entirely.
+    final prevMaxSeq = _maxSeq(state.messages);
+    state = state.copyWith(
+      messages: _appendDedupedMessage(state.messages, incoming.message),
+    );
+
+    // Persist + enrich in background (best-effort, non-blocking).
     unawaited(() async {
       try {
-        final prevMaxSeq = _maxSeq(state.messages);
         ConversationMessageSummary? persisted;
         try {
           persisted =
@@ -1191,17 +1200,15 @@ class ConversationDetailStore
         } catch (e, st) {
           ref.read(crashReporterProvider).captureException(e, stackTrace: st);
         }
-        // INV-P0-REALTIME: If persistence failed, use the incoming message
-        // directly so the user sees it in real-time. Persistence is
-        // best-effort — display must not depend on local storage success.
-        final messageToAppend = persisted ?? incoming.message;
-        if (ref.read(currentConversationDetailTargetProvider) != target ||
-            state.status != ConversationDetailStatus.success) {
-          return;
+
+        // If persistence returned an enriched copy, swap it in.
+        if (persisted != null &&
+            ref.read(currentConversationDetailTargetProvider) == target &&
+            state.status == ConversationDetailStatus.success) {
+          state = state.copyWith(
+            messages: _appendDedupedMessage(state.messages, persisted),
+          );
         }
-        state = state.copyWith(
-          messages: _appendDedupedMessage(state.messages, messageToAppend),
-        );
         _persistSession();
 
         if (gapDetected) {
