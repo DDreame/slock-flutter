@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -24,6 +26,7 @@ class ConversationSearchBar extends StatefulWidget {
 
 class ConversationSearchBarState extends State<ConversationSearchBar> {
   late final TextEditingController _controller;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -33,14 +36,23 @@ class ConversationSearchBarState extends State<ConversationSearchBar> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      widget.onChanged(value);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final matchCount = widget.state.searchMatchIds.length;
     final currentMatch = widget.state.currentSearchMatchIndex;
+    final hasQuery = widget.state.searchQuery.isNotEmpty;
 
     return Container(
       key: const ValueKey('conversation-search-bar'),
@@ -65,9 +77,19 @@ class ConversationSearchBarState extends State<ConversationSearchBar> {
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
               ),
-              onChanged: widget.onChanged,
+              onChanged: _onQueryChanged,
             ),
           ),
+          if (hasQuery && matchCount == 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                context.l10n.conversationSearchNoResults,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+              ),
+            ),
           if (matchCount > 0)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),

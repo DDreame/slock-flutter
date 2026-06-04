@@ -2864,6 +2864,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get conversationSearchClose => 'Close search';
 
   @override
+  String get conversationSearchNoResults => 'No results';
+
+  @override
   String get conversationFormatBold => 'Bold';
 
   @override

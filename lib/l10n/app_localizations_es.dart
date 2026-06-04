@@ -2897,6 +2897,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get conversationSearchClose => 'Cerrar búsqueda';
 
   @override
+  String get conversationSearchNoResults => 'Sin resultados';
+
+  @override
   String get conversationFormatBold => 'Negrita';
 
   @override

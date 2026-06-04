@@ -1302,6 +1302,7 @@
   "conversationSearchPrevious": "Previous result",
   "conversationSearchNext": "Next result",
   "conversationSearchClose": "Close search",
+  "conversationSearchNoResults": "No results",
   "conversationFormatBold": "Bold",
   "conversationFormatItalic": "Italic",
   "conversationFormatInlineCode": "Inline code",

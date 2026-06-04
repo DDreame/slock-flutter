@@ -256,6 +256,21 @@ class _ConversationDetailScreenState
       },
     );
 
+    // Scroll to current search match when index changes (prev/next navigation).
+    ref.listen(
+      conversationDetailStoreProvider.select((s) => (
+            matchIndex: s.currentSearchMatchIndex,
+            matchIds: s.searchMatchIds,
+          )),
+      (prev, next) {
+        if (next.matchIndex >= 0 && next.matchIndex < next.matchIds.length) {
+          final messageId = next.matchIds[next.matchIndex];
+          final messages = ref.read(conversationDetailStoreProvider).messages;
+          _scrollToMessageId(messageId, messages);
+        }
+      },
+    );
+
     final voiceRecordingState = ref.watch(
       voiceMessageStoreProvider.select((s) => s.recordingState),
     );

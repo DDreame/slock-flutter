@@ -5375,6 +5375,12 @@ abstract class AppLocalizations {
   /// **'Close search'**
   String get conversationSearchClose;
 
+  /// No description provided for @conversationSearchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get conversationSearchNoResults;
+
   /// No description provided for @conversationFormatBold.
   ///
   /// In en, this message translates to:

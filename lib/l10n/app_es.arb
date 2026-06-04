@@ -1125,6 +1125,7 @@
   "conversationSearchPrevious": "Resultado anterior",
   "conversationSearchNext": "Siguiente resultado",
   "conversationSearchClose": "Cerrar búsqueda",
+  "conversationSearchNoResults": "Sin resultados",
   "conversationFormatBold": "Negrita",
   "conversationFormatItalic": "Cursiva",
   "conversationFormatInlineCode": "Código en línea",

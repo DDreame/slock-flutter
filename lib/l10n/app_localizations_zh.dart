@@ -2771,6 +2771,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get conversationSearchClose => '关闭搜索';
 
   @override
+  String get conversationSearchNoResults => '无结果';
+
+  @override
   String get conversationFormatBold => '粗体';
 
   @override
