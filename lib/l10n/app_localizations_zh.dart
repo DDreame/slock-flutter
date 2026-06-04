@@ -2667,6 +2667,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get conversationEmptySubtitle => '发送第一条消息来开始对话。';
+
+  @override
   String get conversationPresenceOnline => '在线';
 
   @override

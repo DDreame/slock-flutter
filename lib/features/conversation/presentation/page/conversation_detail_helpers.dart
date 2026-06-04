@@ -66,13 +66,32 @@ class ConversationEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
     return Center(
       key: const ValueKey('conversation-empty'),
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          context.l10n.conversationEmpty(title),
-          textAlign: TextAlign.center,
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline,
+              size: 48,
+              color: colors.textTertiary,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              context.l10n.conversationEmpty(title),
+              textAlign: TextAlign.center,
+              style: AppTypography.title.copyWith(color: colors.text),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              context.l10n.conversationEmptySubtitle,
+              textAlign: TextAlign.center,
+              style: AppTypography.body.copyWith(color: colors.textSecondary),
+            ),
+          ],
         ),
       ),
     );

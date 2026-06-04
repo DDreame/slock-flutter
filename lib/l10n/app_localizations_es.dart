@@ -2786,6 +2786,10 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String get conversationEmptySubtitle =>
+      'Envía el primer mensaje para iniciar la conversación.';
+
+  @override
   String get conversationPresenceOnline => 'En línea';
 
   @override

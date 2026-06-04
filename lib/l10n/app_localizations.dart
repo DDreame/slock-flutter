@@ -5189,6 +5189,12 @@ abstract class AppLocalizations {
   /// **'No messages in {title} yet.'**
   String conversationEmpty(String title);
 
+  /// No description provided for @conversationEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send the first message to start the conversation.'**
+  String get conversationEmptySubtitle;
+
   /// No description provided for @conversationPresenceOnline.
   ///
   /// In en, this message translates to:
