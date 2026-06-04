@@ -100,13 +100,15 @@ class _TypingIndicatorWidgetState extends ConsumerState<TypingIndicatorWidget>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // PERF-831: RepaintBoundary isolates the animation repaints from
-                // propagating to parent Column (composer, message list siblings).
-                const RepaintBoundary(
-                  child: _AnimatedDots(
-                    key: ValueKey('typing-dots'),
+                // PERF-870: Only mount _AnimatedDots when someone is typing.
+                // This stops the .repeat() ticker when the indicator is hidden
+                // (SizeTransition collapses but previously kept child mounted).
+                if (activeTypers.isNotEmpty)
+                  const RepaintBoundary(
+                    child: _AnimatedDots(
+                      key: ValueKey('typing-dots'),
+                    ),
                   ),
-                ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
