@@ -2837,6 +2837,18 @@ abstract class AppLocalizations {
   /// **'Reply'**
   String get conversationReplySemantics;
 
+  /// No description provided for @conversationSwipeLeftSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter thread'**
+  String get conversationSwipeLeftSemantics;
+
+  /// No description provided for @conversationSwipeRightReactionSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Add reaction'**
+  String get conversationSwipeRightReactionSemantics;
+
   /// No description provided for @channelStopAllAgents.
   ///
   /// In en, this message translates to:

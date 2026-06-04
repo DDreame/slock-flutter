@@ -702,6 +702,8 @@
   "conversationMessageActionsSemantics": "Message actions",
   "conversationShowMessageMenuSemantics": "Show message menu",
   "conversationReplySemantics": "Reply",
+  "conversationSwipeLeftSemantics": "Enter thread",
+  "conversationSwipeRightReactionSemantics": "Add reaction",
   "channelStopAllAgents": "Stop All Agents",
   "channelResumeAllAgents": "Resume All Agents",
   "channelStopAllAgentsTitle": "Stop all agents",

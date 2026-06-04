@@ -409,6 +409,8 @@
   "conversationMessageActionsSemantics": "Acciones del mensaje",
   "conversationShowMessageMenuSemantics": "Mostrar menú del mensaje",
   "conversationReplySemantics": "Responder",
+  "conversationSwipeLeftSemantics": "Entrar al hilo",
+  "conversationSwipeRightReactionSemantics": "Agregar reacción",
   "channelStopAllAgents": "Detener todos los agentes",
   "channelResumeAllAgents": "Reanudar todos los agentes",
   "channelStopAllAgentsTitle": "Detener todos los agentes",
