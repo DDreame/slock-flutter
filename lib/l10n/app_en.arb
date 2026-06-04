@@ -1836,5 +1836,6 @@
       }
     }
   },
-  "summaryCardTaskAssigned": "assigned to you"
+  "summaryCardTaskAssigned": "assigned to you",
+  "summaryCardDismiss": "Dismiss summary"
 }

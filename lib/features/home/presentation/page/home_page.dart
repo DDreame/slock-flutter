@@ -20,6 +20,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/home_task_section_provider.dart';
+import 'package:slock_app/features/home/application/summary_card_provider.dart';
 import 'package:slock_app/features/home/presentation/widgets/summary_card.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
@@ -143,8 +144,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                         AppSpacing.xl,
                       ),
                       itemCount: 4,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.md),
+                      separatorBuilder: (_, index) {
+                        // Hide separator adjacent to summary card when it's invisible.
+                        if (index == 0) {
+                          final cardState = ref.watch(summaryCardStateProvider);
+                          final isDismissed =
+                              ref.watch(summaryCardDismissedProvider);
+                          if (cardState == null || isDismissed) {
+                            return const SizedBox.shrink();
+                          }
+                        }
+                        return const SizedBox(height: AppSpacing.md);
+                      },
                       itemBuilder: (_, index) => switch (index) {
                         0 => const SummaryCard(
                             key: ValueKey('home-summary-card'),

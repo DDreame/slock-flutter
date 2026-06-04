@@ -91,8 +91,18 @@ class SummaryCardState {
   bool get hasContent => totalUnread > 0 || newTaskCount > 0;
 }
 
+/// Tracks the lastActive value at the time of dismissal.
+/// When lastActive changes (new resume cycle), dismissed state auto-clears.
+/// Write to this from the widget when dismissing.
+final summaryCardDismissedForProvider = StateProvider<DateTime?>((ref) => null);
+
 /// Session-level dismiss state — resets on next app resume.
-final summaryCardDismissedProvider = StateProvider<bool>((ref) => false);
+final summaryCardDismissedProvider = Provider<bool>((ref) {
+  final dismissedFor = ref.watch(summaryCardDismissedForProvider);
+  if (dismissedFor == null) return false;
+  final lastActive = ref.watch(lastActiveTimestampProvider);
+  return lastActive != null && dismissedFor == lastActive;
+});
 
 /// Computes the summary card state from reactive stores.
 ///

@@ -1350,5 +1350,6 @@
   "summaryCardCollapse": "收起 ▲",
   "summaryCardMentionedSuffix": "@你",
   "summaryCardMoreChannels": "+{count} 其他",
-  "summaryCardTaskAssigned": "分配给你"
+  "summaryCardTaskAssigned": "分配给你",
+  "summaryCardDismiss": "关闭摘要"
 }

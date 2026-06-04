@@ -1528,5 +1528,6 @@
   "summaryCardCollapse": "Contraer ▲",
   "summaryCardMentionedSuffix": "@tú",
   "summaryCardMoreChannels": "+{count} más",
-  "summaryCardTaskAssigned": "asignada a ti"
+  "summaryCardTaskAssigned": "asignada a ti",
+  "summaryCardDismiss": "Cerrar resumen"
 }
