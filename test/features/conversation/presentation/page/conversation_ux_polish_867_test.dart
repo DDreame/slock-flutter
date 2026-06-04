@@ -59,7 +59,7 @@ void main() {
   group('FAB unread badge widget', () {
     testWidgets('shows badge when unreadCount > 0', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: _ScrollToBottomFabHarness(unreadCount: 3),
@@ -79,7 +79,7 @@ void main() {
 
     testWidgets('hides badge when unreadCount is 0', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: _ScrollToBottomFabHarness(unreadCount: 0),
@@ -98,7 +98,7 @@ void main() {
 
     testWidgets('shows 99+ when count exceeds 99', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: _ScrollToBottomFabHarness(unreadCount: 150),
