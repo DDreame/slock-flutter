@@ -996,6 +996,7 @@
   "conversationSearchPrevious": "上一个结果",
   "conversationSearchNext": "下一个结果",
   "conversationSearchClose": "关闭搜索",
+  "conversationSearchNoResults": "无结果",
   "conversationFormatBold": "粗体",
   "conversationFormatItalic": "斜体",
   "conversationFormatInlineCode": "行内代码",
