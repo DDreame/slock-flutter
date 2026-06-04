@@ -62,7 +62,10 @@ void main() {
     );
 
     await tester.pumpWidget(_buildConversationApp(repo));
-    await tester.pumpAndSettle();
+    // Use pump() instead of pumpAndSettle() — the TypingIndicatorWidget's
+    // _AnimatedDots has a repeating animation that never settles.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
   }
 
   // -----------------------------------------------------------------------
@@ -90,12 +93,12 @@ void main() {
         find.byKey(const ValueKey('conversation-success')),
         const Offset(0, 200),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.drag(
         find.byKey(const ValueKey('conversation-success')),
         const Offset(0, 200),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // Now offset should be > 300. FAB must be visible.
       expect(
@@ -141,12 +144,12 @@ void main() {
         find.byKey(const ValueKey('conversation-success')),
         const Offset(0, 200),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.drag(
         find.byKey(const ValueKey('conversation-success')),
         const Offset(0, 200),
       );
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // FAB must be visible.
       final fabFinder = find.byKey(const ValueKey('scroll-to-bottom-fab'));
@@ -164,7 +167,10 @@ void main() {
 
       // Tap FAB.
       await tester.tap(fabFinder);
-      await tester.pumpAndSettle();
+      // Pump multiple frames to complete the 300ms scroll animation.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       // After animation, scroll position must be back at bottom (~0).
       expect(

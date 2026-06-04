@@ -135,6 +135,14 @@ class _ConversationDetailScreenState
   bool _isEmojiPickerVisible = false;
   bool _asTask = false;
 
+  /// Message IDs that should play a send animation (slide-up + fade-in).
+  /// Populated when the user sends a message and a new own-message appears.
+  final Set<String> _newlySentIds = {};
+
+  /// Tracks whether a send was just triggered, so we can attribute the next
+  /// new own-message to a user send action (vs. realtime incoming).
+  bool _pendingSendAnimation = false;
+
   @override
   void initState() {
     super.initState();
@@ -459,6 +467,7 @@ class _ConversationDetailScreenState
                     highlightedMessageId:
                         _scrollCoordinator.highlightedMessageId,
                     messageKeyBuilder: _scrollCoordinator.getMessageKey,
+                    newlySentIds: _newlySentIds,
                   ),
                 ),
                 if (_scrollCoordinator.quoteJumpState != QuoteJumpState.idle)
@@ -472,15 +481,17 @@ class _ConversationDetailScreenState
                   Positioned(
                     right: 16,
                     bottom: 16,
-                    child: FloatingActionButton.small(
+                    child: _ScrollToBottomFab(
                       key: const ValueKey('scroll-to-bottom-fab'),
-                      tooltip: context.l10n.scrollToBottomFabTooltip,
-                      onPressed: () => _scrollController.animateTo(
-                        0,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOut,
-                      ),
-                      child: const Icon(Icons.keyboard_double_arrow_down),
+                      unreadCount: _scrollCoordinator.unreadSinceScrolled,
+                      onPressed: () {
+                        _scrollCoordinator.unreadSinceScrolled = 0;
+                        _scrollController.animateTo(
+                          0,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOut,
+                        );
+                      },
                     ),
                   ),
               ]),
@@ -574,6 +585,23 @@ class _ConversationDetailScreenState
 
     if (next.status == ConversationDetailStatus.success &&
         next.messages.length != _scrollCoordinator.lastRegisteredMessageCount) {
+      // Track new messages arriving while user is scrolled up (FAB badge).
+      final oldCount = _scrollCoordinator.lastRegisteredMessageCount;
+      if (_scrollCoordinator.showScrollToBottom &&
+          oldCount > 0 &&
+          next.messages.length > oldCount) {
+        _scrollCoordinator.unreadSinceScrolled +=
+            next.messages.length - oldCount;
+      }
+      // Track newly-sent own messages for send animation.
+      if (_pendingSendAnimation &&
+          next.messages.isNotEmpty &&
+          next.messages.length > oldCount) {
+        _pendingSendAnimation = false;
+        // The newest message (last in list, first chronologically) is the
+        // just-sent message.
+        _newlySentIds.add(next.messages.last.id);
+      }
       _scrollCoordinator.lastRegisteredMessageCount = next.messages.length;
       _registerAttachmentDownloads(next.messages);
       _updateReadCursor(next.messages);
@@ -779,6 +807,7 @@ class _ConversationDetailScreenState
     if (state.sendFailure == null &&
         state.draft.isEmpty &&
         state.pendingAttachments.isEmpty) {
+      _pendingSendAnimation = true;
       ref.read(hapticServiceProvider).lightImpact();
       _composerController.clear();
       _composerFocusNode.unfocus();
@@ -900,5 +929,54 @@ class _ConversationDetailScreenState
               ref.read(conversationDetailStoreProvider.notifier).refresh(),
         ),
       ));
+  }
+}
+
+/// Scroll-to-bottom FAB with an optional unread count badge.
+class _ScrollToBottomFab extends StatelessWidget {
+  const _ScrollToBottomFab({
+    super.key,
+    required this.unreadCount,
+    required this.onPressed,
+  });
+
+  final int unreadCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        FloatingActionButton.small(
+          tooltip: context.l10n.scrollToBottomFabTooltip,
+          onPressed: onPressed,
+          child: const Icon(Icons.keyboard_double_arrow_down),
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            top: -4,
+            right: -4,
+            child: Container(
+              key: const ValueKey('fab-unread-badge'),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.error,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(
+                unreadCount > 99 ? '99+' : '$unreadCount',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onError,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

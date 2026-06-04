@@ -40,6 +40,10 @@ class ConversationScrollCoordinator {
   String? highlightedMessageId;
   QuoteJumpState quoteJumpState = QuoteJumpState.idle;
 
+  /// Number of new messages received while the user is scrolled up.
+  /// Reset when user scrolls back to bottom or taps the FAB.
+  int unreadSinceScrolled = 0;
+
   // -- Internal state --
 
   bool didApplyInitialLanding = false;
@@ -82,6 +86,10 @@ class ConversationScrollCoordinator {
     final changed = shouldShow != showScrollToBottom;
     if (changed) {
       showScrollToBottom = shouldShow;
+      // Reset unread count when user scrolls back to bottom.
+      if (!shouldShow) {
+        unreadSinceScrolled = 0;
+      }
     }
 
     // Throttle updateViewportOffset writes.
