@@ -92,6 +92,7 @@ jobs:
         run: make analyze
 
       - name: Unit and widget tests
+        timeout-minutes: 16
         run: make ci-test-all
 
       - name: Core tests (CT)
