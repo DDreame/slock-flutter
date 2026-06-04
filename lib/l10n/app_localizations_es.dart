@@ -3850,4 +3850,41 @@ class AppLocalizationsEs extends AppLocalizations {
   String shareUploadProgressMulti(int current, int total) {
     return 'Subiendo archivo $current de $total...';
   }
+
+  @override
+  String summaryCardAwayDuration(int minutes) {
+    return 'Ausente $minutes min';
+  }
+
+  @override
+  String get summaryCardUnread => 'sin leer';
+
+  @override
+  String get summaryCardMentions => '@tú';
+
+  @override
+  String get summaryCardNewTasks => 'tareas nuevas';
+
+  @override
+  String get summaryCardMarkAllRead => 'Marcar todo como leído';
+
+  @override
+  String get summaryCardMarkReadFailed => 'Error al marcar, reintentar';
+
+  @override
+  String get summaryCardExpand => 'Detalles ▼';
+
+  @override
+  String get summaryCardCollapse => 'Contraer ▲';
+
+  @override
+  String get summaryCardMentionedSuffix => '@tú';
+
+  @override
+  String summaryCardMoreChannels(int count) {
+    return '+$count más';
+  }
+
+  @override
+  String get summaryCardTaskAssigned => 'asignada a ti';
 }

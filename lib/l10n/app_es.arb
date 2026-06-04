@@ -1517,5 +1517,16 @@
   },
   "undoAction": "Deshacer",
   "shareUploadProgressSingle": "Subiendo...",
-  "shareUploadProgressMulti": "Subiendo archivo {current} de {total}..."
+  "shareUploadProgressMulti": "Subiendo archivo {current} de {total}...",
+  "summaryCardAwayDuration": "Ausente {minutes} min",
+  "summaryCardUnread": "sin leer",
+  "summaryCardMentions": "@tú",
+  "summaryCardNewTasks": "tareas nuevas",
+  "summaryCardMarkAllRead": "Marcar todo como leído",
+  "summaryCardMarkReadFailed": "Error al marcar, reintentar",
+  "summaryCardExpand": "Detalles ▼",
+  "summaryCardCollapse": "Contraer ▲",
+  "summaryCardMentionedSuffix": "@tú",
+  "summaryCardMoreChannels": "+{count} más",
+  "summaryCardTaskAssigned": "asignada a ti"
 }

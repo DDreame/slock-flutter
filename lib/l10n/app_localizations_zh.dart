@@ -3693,4 +3693,41 @@ class AppLocalizationsZh extends AppLocalizations {
   String shareUploadProgressMulti(int current, int total) {
     return '正在上传第 $current 个文件，共 $total 个...';
   }
+
+  @override
+  String summaryCardAwayDuration(int minutes) {
+    return '离开 $minutes 分钟';
+  }
+
+  @override
+  String get summaryCardUnread => '条未读';
+
+  @override
+  String get summaryCardMentions => '条 @你';
+
+  @override
+  String get summaryCardNewTasks => '新任务';
+
+  @override
+  String get summaryCardMarkAllRead => '全部标记已读';
+
+  @override
+  String get summaryCardMarkReadFailed => '标记失败，请重试';
+
+  @override
+  String get summaryCardExpand => '展开详情 ▼';
+
+  @override
+  String get summaryCardCollapse => '收起 ▲';
+
+  @override
+  String get summaryCardMentionedSuffix => '@你';
+
+  @override
+  String summaryCardMoreChannels(int count) {
+    return '+$count 其他';
+  }
+
+  @override
+  String get summaryCardTaskAssigned => '分配给你';
 }

@@ -7090,6 +7090,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Uploading file {current} of {total}...'**
   String shareUploadProgressMulti(int current, int total);
+
+  /// No description provided for @summaryCardAwayDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Away {minutes} min'**
+  String summaryCardAwayDuration(int minutes);
+
+  /// No description provided for @summaryCardUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'unread'**
+  String get summaryCardUnread;
+
+  /// No description provided for @summaryCardMentions.
+  ///
+  /// In en, this message translates to:
+  /// **'@you'**
+  String get summaryCardMentions;
+
+  /// No description provided for @summaryCardNewTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'new tasks'**
+  String get summaryCardNewTasks;
+
+  /// No description provided for @summaryCardMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get summaryCardMarkAllRead;
+
+  /// No description provided for @summaryCardMarkReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark read failed, please retry'**
+  String get summaryCardMarkReadFailed;
+
+  /// No description provided for @summaryCardExpand.
+  ///
+  /// In en, this message translates to:
+  /// **'Details ▼'**
+  String get summaryCardExpand;
+
+  /// No description provided for @summaryCardCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse ▲'**
+  String get summaryCardCollapse;
+
+  /// No description provided for @summaryCardMentionedSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'@you'**
+  String get summaryCardMentionedSuffix;
+
+  /// No description provided for @summaryCardMoreChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String summaryCardMoreChannels(int count);
+
+  /// No description provided for @summaryCardTaskAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'assigned to you'**
+  String get summaryCardTaskAssigned;
 }
 
 class _AppLocalizationsDelegate
