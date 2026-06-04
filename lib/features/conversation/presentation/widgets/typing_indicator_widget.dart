@@ -8,7 +8,11 @@ import 'package:slock_app/l10n/l10n.dart';
 /// Watches [typingIndicatorStoreProvider] and renders nothing when no
 /// users are typing. When one or more users are typing, shows an
 /// animated three-dot indicator followed by "X is typing..." text.
-class TypingIndicatorWidget extends ConsumerWidget {
+///
+/// Animate in/out: slide + fade transition (200ms) matching SummaryCard
+/// pattern. The indicator slides up from below when appearing, and
+/// slides back down when disappearing.
+class TypingIndicatorWidget extends ConsumerStatefulWidget {
   const TypingIndicatorWidget({super.key});
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
@@ -18,54 +22,106 @@ class TypingIndicatorWidget extends ConsumerWidget {
   static int debugBuildCount = 0;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TypingIndicatorWidget> createState() =>
+      _TypingIndicatorWidgetState();
+}
+
+class _TypingIndicatorWidgetState extends ConsumerState<TypingIndicatorWidget>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     assert(() {
-      debugBuildCount++;
+      TypingIndicatorWidget.debugBuildCount++;
       return true;
     }());
     final activeTypers = ref.watch(
       typingIndicatorStoreProvider.select((s) => s.activeTypers),
     );
 
-    if (activeTypers.isEmpty) {
-      return const SizedBox.shrink();
+    // Drive animation based on whether anyone is typing.
+    if (activeTypers.isNotEmpty) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
     }
 
     final l10n = context.l10n;
-    final displayText = switch (activeTypers.length) {
-      1 => l10n.typingIndicatorOne(activeTypers[0].displayName),
-      2 => l10n.typingIndicatorTwo(
-          activeTypers[0].displayName,
-          activeTypers[1].displayName,
-        ),
-      _ => l10n.typingIndicatorSeveral,
-    };
+    final displayText = activeTypers.isEmpty
+        ? ''
+        : switch (activeTypers.length) {
+            1 => l10n.typingIndicatorOne(activeTypers[0].displayName),
+            2 => l10n.typingIndicatorTwo(
+                activeTypers[0].displayName,
+                activeTypers[1].displayName,
+              ),
+            _ => l10n.typingIndicatorSeveral,
+          };
 
-    return Padding(
-      key: const ValueKey('typing-indicator'),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // PERF-831: RepaintBoundary isolates the animation repaints from
-          // propagating to parent Column (composer, message list siblings).
-          const RepaintBoundary(
-            child: _AnimatedDots(
-              key: ValueKey('typing-dots'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              displayText,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
+    return SizeTransition(
+      sizeFactor: _fadeAnimation,
+      axisAlignment: 1.0,
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Padding(
+            key: const ValueKey('typing-indicator'),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // PERF-831: RepaintBoundary isolates the animation repaints from
+                // propagating to parent Column (composer, message list siblings).
+                const RepaintBoundary(
+                  child: _AnimatedDots(
+                    key: ValueKey('typing-dots'),
                   ),
-              overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    displayText,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

@@ -30,9 +30,15 @@ void main() {
       await tester.pumpWidget(
         buildApp(typingState: const TypingIndicatorState()),
       );
-      await tester.pumpAndSettle();
+      // Use pump() with extra time because the animated dots have a repeating
+      // animation that prevents pumpAndSettle from ever completing.
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.byKey(const ValueKey('typing-indicator')), findsNothing);
+      // Widget is still in tree but at zero size/opacity via SizeTransition.
+      final sizeTransition = tester.widget<SizeTransition>(
+        find.byType(SizeTransition),
+      );
+      expect(sizeTransition.sizeFactor.value, 0.0);
     });
 
     testWidgets('shows single typer text', (tester) async {
