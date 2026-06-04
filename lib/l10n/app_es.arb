@@ -1087,6 +1087,7 @@
   "conversationLoadFailed": "No se pudo cargar {title}.",
   "conversationRetry": "Reintentar",
   "conversationEmpty": "Aún no hay mensajes en {title}.",
+  "conversationEmptySubtitle": "Envía el primer mensaje para iniciar la conversación.",
   "conversationPresenceOnline": "En línea",
   "conversationPresenceIdle": "Inactivo",
   "conversationPresenceOffline": "Desconectado",

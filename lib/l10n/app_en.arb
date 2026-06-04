@@ -1257,6 +1257,7 @@
       }
     }
   },
+  "conversationEmptySubtitle": "Send the first message to start the conversation.",
   "conversationPresenceOnline": "Online",
   "conversationPresenceIdle": "Idle",
   "conversationPresenceOffline": "Offline",

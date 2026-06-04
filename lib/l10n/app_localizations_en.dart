@@ -2753,6 +2753,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get conversationEmptySubtitle =>
+      'Send the first message to start the conversation.';
+
+  @override
   String get conversationPresenceOnline => 'Online';
 
   @override

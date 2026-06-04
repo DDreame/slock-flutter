@@ -958,6 +958,7 @@
   "conversationLoadFailed": "无法加载 {title}。",
   "conversationRetry": "重试",
   "conversationEmpty": "{title} 暂无消息。",
+  "conversationEmptySubtitle": "发送第一条消息来开始对话。",
   "conversationPresenceOnline": "在线",
   "conversationPresenceIdle": "空闲",
   "conversationPresenceOffline": "离线",
