@@ -209,6 +209,7 @@ class ConversationScrollCoordinator {
     quoteJumpState = QuoteJumpState.idle;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!scrollController.hasClients) return;
       final key = getMessageKey(messageId);
       if (key.currentContext != null) {
         Scrollable.ensureVisible(

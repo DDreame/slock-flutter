@@ -111,7 +111,7 @@ final summaryCardDismissedProvider = Provider<bool>((ref) {
 /// - Away duration < 5 minutes
 /// - No unreads AND no task changes
 /// - Inbox or Home not yet loaded
-final summaryCardStateProvider = Provider<SummaryCardState?>((ref) {
+final summaryCardStateProvider = Provider.autoDispose<SummaryCardState?>((ref) {
   final lastActive = ref.watch(lastActiveTimestampProvider);
   if (lastActive == null) return null;
 
