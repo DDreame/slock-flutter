@@ -66,6 +66,13 @@ void main() {
       );
     });
 
+    test('active + idle → online (agent sleeping but reachable, #860)', () {
+      expect(
+        resolveDisplayStatus(makeAgent(activity: 'idle')),
+        AgentDisplayStatus.online,
+      );
+    });
+
     test('active + offline → offline', () {
       expect(
         resolveDisplayStatus(makeAgent(activity: 'offline')),
