@@ -355,7 +355,40 @@ class _ConversationDetailScreenState
 
   AppBar _buildAppBar(BuildContext context, ConversationDetailState state,
       ConversationDetailTarget target) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final heroTag = 'conversation-avatar-${target.conversationId}';
+    final (bgColor, icon) = switch (target.surface) {
+      ConversationSurface.channel => (
+          colors.success.withValues(alpha: 0.12),
+          Icons.tag,
+        ),
+      ConversationSurface.directMessage => (
+          colors.warning.withValues(alpha: 0.12),
+          Icons.chat_bubble_outline,
+        ),
+    };
+
     return AppBar(
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const BackButton(),
+          Hero(
+            tag: heroTag,
+            child: Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 16, color: colors.textSecondary),
+            ),
+          ),
+        ],
+      ),
+      leadingWidth: 80,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,

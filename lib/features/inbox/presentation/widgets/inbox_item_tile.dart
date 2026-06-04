@@ -145,7 +145,7 @@ class InboxItemTile extends StatelessWidget {
         ),
     };
 
-    return Container(
+    final avatar = Container(
       key: ValueKey('inbox-tile-avatar-$_keyId'),
       width: _kAvatarSize,
       height: _kAvatarSize,
@@ -155,6 +155,11 @@ class InboxItemTile extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(icon, size: 20, color: colors.textSecondary),
+    );
+
+    return Hero(
+      tag: 'conversation-avatar-$_keyId',
+      child: avatar,
     );
   }
 
