@@ -1811,5 +1811,30 @@
         "type": "int"
       }
     }
-  }
+  },
+  "summaryCardAwayDuration": "Away {minutes} min",
+  "@summaryCardAwayDuration": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "summaryCardUnread": "unread",
+  "summaryCardMentions": "@you",
+  "summaryCardNewTasks": "new tasks",
+  "summaryCardMarkAllRead": "Mark all read",
+  "summaryCardMarkReadFailed": "Mark read failed, please retry",
+  "summaryCardExpand": "Details ▼",
+  "summaryCardCollapse": "Collapse ▲",
+  "summaryCardMentionedSuffix": "@you",
+  "summaryCardMoreChannels": "+{count} more",
+  "@summaryCardMoreChannels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "summaryCardTaskAssigned": "assigned to you"
 }

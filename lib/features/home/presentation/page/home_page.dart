@@ -20,6 +20,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/home_task_section_provider.dart';
+import 'package:slock_app/features/home/presentation/widgets/summary_card.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -141,20 +142,23 @@ class _HomePageState extends ConsumerState<HomePage> {
                         AppSpacing.pageHorizontal,
                         AppSpacing.xl,
                       ),
-                      itemCount: 3,
+                      itemCount: 4,
                       separatorBuilder: (_, __) =>
                           const SizedBox(height: AppSpacing.md),
                       itemBuilder: (_, index) => switch (index) {
-                        0 => _HomeTasksSection(
+                        0 => const SummaryCard(
+                            key: ValueKey('home-summary-card'),
+                          ),
+                        1 => _HomeTasksSection(
                             key: const ValueKey('home-card-tasks'),
                             taskLoadFailure: state.taskLoadFailure,
                             onViewAll: () => _pushServerRoute('tasks'),
                           ),
-                        1 => _InboxUnreadSection(
+                        2 => _InboxUnreadSection(
                             key: const ValueKey('home-card-unread'),
                             onViewAll: () => _pushServerRoute('unread'),
                           ),
-                        2 => _HomeAgentsSection(
+                        3 => _HomeAgentsSection(
                             key: const ValueKey('home-card-agents'),
                             onViewAll: () => _pushServerRoute('agents'),
                           ),
